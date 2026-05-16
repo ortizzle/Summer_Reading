@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ortizzle Summer Reading Challenge</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23FF6B35'/%3E%3Crect x='7' y='13' width='9' height='9' rx='1' fill='%23FFFAF0'/%3E%3Crect x='16' y='13' width='9' height='9' rx='1' fill='%23FFE66D'/%3E%3Crect x='15' y='13' width='2' height='9' fill='%231A1A2E'/%3E%3Cline x1='9' y1='17' x2='14' y2='17' stroke='%23ccc' stroke-width='1'/%3E%3Cline x1='9' y1='19' x2='14' y2='19' stroke='%23ccc' stroke-width='1'/%3E%3Cline x1='18' y1='17' x2='23' y2='17' stroke='%23bba' stroke-width='1'/%3E%3Cline x1='18' y1='19' x2='23' y2='19' stroke='%23bba' stroke-width='1'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1268,10 +1269,18 @@ body.theme-sparkle {
     <div class="timer-display">
       <div class="timer-face" id="timer-display">00:00:00</div>
       <div class="timer-book-title" id="timer-book-name">Select a book to start</div>
-      <div style="margin-bottom:16px;">
+      <div style="margin-bottom:12px;">
         <select class="form-select" id="timer-book-select" style="max-width:280px;margin:0 auto;display:block;">
           <option value="">— Choose a book —</option>
         </select>
+      </div>
+      <!-- Quick presets -->
+      <div id="timer-presets" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(10)">10 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(20)">20 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(30)">30 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(45)">45 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(60)">1 hr</button>
       </div>
       <div class="timer-controls">
         <button class="btn btn-primary" id="timer-start-btn" onclick="timerStart()">▶ Start</button>
@@ -1286,6 +1295,29 @@ body.theme-sparkle {
     <div id="today-sessions">
       <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No reading logged today yet!</div>
     </div>
+  </div>
+
+  <!-- Manual entry -->
+  <div class="card">
+    <div class="card-title">📖 Log Reading Manually</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Read away from your phone? Log it here.</div>
+    <div class="form-group">
+      <label class="form-label">Book</label>
+      <select class="form-select" id="manual-book-select">
+        <option value="">— Choose a book —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <div class="form-group" style="flex:1;margin:0;">
+        <label class="form-label">Minutes Read</label>
+        <input class="form-select" type="number" id="manual-minutes" min="1" max="600" placeholder="e.g. 25">
+      </div>
+      <div class="form-group" style="flex:1;margin:0;">
+        <label class="form-label">Date</label>
+        <input class="form-select" type="date" id="manual-date">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="logManualSession()">+ Log Session</button>
   </div>
 
   <!-- Points key -->
@@ -1740,6 +1772,7 @@ let timerInterval = null;
 let timerSeconds = 0;
 let timerRunning = false;
 let timerBookId = null;
+let timerCountdownTarget = 0; // 0 = open-ended up-count, >0 = countdown from this many seconds
 
 // ═══════════════════════════════════════
 //  GIST SYNC
@@ -2042,10 +2075,16 @@ function renderShelf() {
 function renderTimer() {
   ensureMember(currentMember);
   buildMemberBar('timer-member-bar');
-  const sel = document.getElementById('timer-book-select');
+
   const books = (state.books[currentMember]||[]).filter(b=>b.status==='reading'||b.status==='finished');
-  sel.innerHTML = `<option value="">— Choose a book —</option>` + books.map(b =>
+  const bookOpts = `<option value="">— Choose a book —</option>` + books.map(b =>
     `<option value="${b.id}">${b.title}</option>`).join('');
+  document.getElementById('timer-book-select').innerHTML = bookOpts;
+  document.getElementById('manual-book-select').innerHTML = bookOpts;
+
+  // Default manual date to today
+  const manualDate = document.getElementById('manual-date');
+  if (!manualDate.value) manualDate.value = todayStr();
 
   const today = todayStr();
   const todaySessions = (state.sessions[currentMember]||[]).filter(s=>s.date===today);
@@ -2055,14 +2094,26 @@ function renderTimer() {
   } else {
     el.innerHTML = todaySessions.map(s => `
       <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
-        <div style="font-size:20px;">⏱</div>
+        <div style="font-size:18px;">${s.bookId==='library'?'🏛️':'⏱'}</div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:500;">${s.bookTitle}</div>
           <div style="font-size:12px;color:var(--muted);">${formatMins(s.minutes)}</div>
         </div>
-        <div style="font-weight:700;color:var(--sun);">+${s.minutes} pts</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-weight:700;color:var(--sun);">+${s.minutes} pts</div>
+          <button onclick="editSession('${s.id}')" title="Edit duration"
+            style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:2px;">✏️</button>
+        </div>
       </div>`).join('');
   }
+}
+
+function timerPreset(minutes) {
+  const bookId = document.getElementById('timer-book-select').value;
+  if (!bookId) { showToast('Select a book first!'); return; }
+  timerCountdownTarget = minutes * 60;
+  timerSeconds = 0;
+  timerStart();
 }
 
 function timerStart() {
@@ -2075,13 +2126,22 @@ function timerStart() {
   document.getElementById('timer-start-btn').style.display = 'none';
   document.getElementById('timer-pause-btn').style.display = '';
   document.getElementById('timer-stop-btn').style.display = '';
+  document.getElementById('timer-presets').style.display = 'none';
   timerInterval = setInterval(() => {
     timerSeconds++;
-    const h = Math.floor(timerSeconds/3600);
-    const m = Math.floor((timerSeconds%3600)/60);
-    const s = timerSeconds%60;
-    document.getElementById('timer-display').textContent =
-      `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (timerCountdownTarget > 0) {
+      const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
+      const h = Math.floor(remaining/3600);
+      const m = Math.floor((remaining%3600)/60);
+      const s = remaining%60;
+      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      if (remaining === 0) { timerStop(); return; }
+    } else {
+      const h = Math.floor(timerSeconds/3600);
+      const m = Math.floor((timerSeconds%3600)/60);
+      const s = timerSeconds%60;
+      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
   }, 1000);
 }
 
@@ -2096,16 +2156,26 @@ function timerResume() {
   timerRunning = true;
   timerInterval = setInterval(() => {
     timerSeconds++;
-    const h = Math.floor(timerSeconds/3600);
-    const m = Math.floor((timerSeconds%3600)/60);
-    const s = timerSeconds%60;
-    document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (timerCountdownTarget > 0) {
+      const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
+      const h = Math.floor(remaining/3600);
+      const m = Math.floor((remaining%3600)/60);
+      const s = remaining%60;
+      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      if (remaining === 0) { timerStop(); return; }
+    } else {
+      const h = Math.floor(timerSeconds/3600);
+      const m = Math.floor((timerSeconds%3600)/60);
+      const s = timerSeconds%60;
+      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
   }, 1000);
 }
 
 function timerStop() {
   clearInterval(timerInterval);
-  const mins = Math.ceil(timerSeconds / 60);
+  const elapsed = Math.ceil(timerSeconds / 60);
+  const mins = Math.max(1, elapsed);
   if (mins < 1) { showToast('Read for at least 1 minute!'); resetTimer(); return; }
   const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
   const session = {
@@ -2126,7 +2196,9 @@ function timerStop() {
 }
 
 function resetTimer() {
+  clearInterval(timerInterval);
   timerSeconds = 0;
+  timerCountdownTarget = 0;
   timerBookId = null;
   timerRunning = false;
   document.getElementById('timer-display').textContent = '00:00:00';
@@ -2134,6 +2206,53 @@ function resetTimer() {
   document.getElementById('timer-start-btn').style.display = '';
   document.getElementById('timer-pause-btn').style.display = 'none';
   document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-pause-btn').onclick = timerPause;
+  const presets = document.getElementById('timer-presets');
+  if (presets) presets.style.display = '';
+}
+
+function editSession(sessionId) {
+  const sessions = state.sessions[currentMember] || [];
+  const s = sessions.find(s => s.id === sessionId);
+  if (!s) return;
+  const raw = prompt(`Edit minutes for "${s.bookTitle}" (currently ${s.minutes} min):`);
+  if (raw === null) return;
+  const mins = parseInt(raw, 10);
+  if (isNaN(mins) || mins < 1) { showToast('Enter a valid number of minutes'); return; }
+  s.minutes = mins;
+  saveToGist().then(() => {
+    checkBadges(currentMember);
+    renderTimer();
+    showToast('Session updated ✏️');
+  });
+}
+
+function logManualSession() {
+  const bookId = document.getElementById('manual-book-select').value;
+  const minsRaw = document.getElementById('manual-minutes').value;
+  const dateVal = document.getElementById('manual-date').value;
+  if (!bookId) { showToast('Select a book'); return; }
+  const mins = parseInt(minsRaw, 10);
+  if (isNaN(mins) || mins < 1) { showToast('Enter the number of minutes you read'); return; }
+  const date = dateVal || todayStr();
+  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
+  const session = {
+    id: uid(), bookId, bookTitle: book ? book.title : '?',
+    minutes: mins, date, ts: Date.now(), manual: true
+  };
+  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+  state.sessions[currentMember].push(session);
+  const who = MEMBERS.find(m=>m.id===currentMember).name;
+  addActivity('📖', `${who} logged ${formatMins(mins)} (manual)`, currentMember);
+  saveToGist().then(() => {
+    checkBadges(currentMember);
+    checkGroupMilestones();
+    showToast(`+${mins} pts logged! 📖`);
+    document.getElementById('manual-minutes').value = '';
+    document.getElementById('manual-date').value = todayStr();
+    renderTimer();
+  });
 }
 
 // ═══════════════════════════════════════
