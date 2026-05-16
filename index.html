@@ -2110,12 +2110,11 @@ function buildMemberBar(containerId) {
 }
 
 function selectMember(id, barId) {
+  // Admin bypasses all PINs
+  if (currentMember === ADMIN_ID) { doSelectMember(id); return; }
   // If target has a PIN, show overlay first
   const pin = (state.pins || {})[id];
-  if (pin) {
-    showPinOverlay(id);
-    return;
-  }
+  if (pin) { showPinOverlay(id); return; }
   doSelectMember(id);
 }
 
