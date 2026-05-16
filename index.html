@@ -1354,16 +1354,16 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 <!-- HEADER -->
 <div class="app-header">
-  <div class="app-title">📚 Ortizzle Reading</div>
+  <div class="app-title">📚 Ortizzle Summer Reading</div>
   <div class="app-subtitle">Summer Challenge · May 23 – August 1</div>
   <div class="countdown-banner">
     <div>
-      <div style="font-size:11px;opacity:0.8;" id="countdown-label">Days Remaining</div>
-      <div class="countdown-days" id="countdown-days">—</div>
+      <div style="font-size:11px;opacity:0.8;">Family Minutes</div>
+      <div class="countdown-days" id="header-fam-mins">—</div>
     </div>
     <div style="text-align:right;">
       <div style="font-size:11px;opacity:0.8;">Family Points</div>
-      <div class="countdown-days" id="family-total-pts">0</div>
+      <div class="countdown-days" id="header-fam-pts">0</div>
     </div>
   </div>
 </div>
@@ -1396,6 +1396,25 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <span id="my-stats-label" style="display:none;"></span>
   </div>
 
+  <!-- Group milestone / Family Goal -->
+  <div class="group-progress-card">
+    <div class="group-title">🌟 Family Goal</div>
+    <div class="group-subtitle" id="group-milestone-label">Reading together all summer</div>
+    <div class="group-progress-bar">
+      <div class="group-progress-fill" id="group-progress-fill" style="width:0%"></div>
+    </div>
+    <div class="group-progress-label">
+      <span id="group-progress-current">0 pts</span>
+      <span id="group-progress-next">Next: Ice Cream 🍦</span>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="card">
+    <div class="card-title">🏆 Family Leaderboard</div>
+    <div id="lb-list"></div>
+  </div>
+
   <!-- Family totals -->
   <div style="background:var(--navy);border-radius:20px;padding:20px;margin-bottom:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
     <div style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:14px;">👨‍👩‍👧 FAMILY TOTAL</div>
@@ -1419,25 +1438,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     </div>
   </div>
 
-  <!-- Group milestone -->
-  <div class="group-progress-card">
-    <div class="group-title">🌟 Family Goal</div>
-    <div class="group-subtitle" id="group-milestone-label">Reading together all summer</div>
-    <div class="group-progress-bar">
-      <div class="group-progress-fill" id="group-progress-fill" style="width:0%"></div>
-    </div>
-    <div class="group-progress-label">
-      <span id="group-progress-current">0 pts</span>
-      <span id="group-progress-next">Next: Ice Cream 🍦</span>
-    </div>
-  </div>
-
-  <!-- Leaderboard -->
-  <div class="card">
-    <div class="card-title">🏆 Family Leaderboard</div>
-    <div id="lb-list"></div>
-  </div>
-
   <!-- Recent activity preview -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1458,6 +1458,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div id="shelf-book-list">
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>
     </div>
+  </div>
+
+  <div class="card" id="shelf-everyone-card" style="display:none;">
+    <div class="card-title">📖 What Everyone's Reading</div>
+    <div id="shelf-everyone-list"></div>
   </div>
 </div>
 
@@ -1525,7 +1530,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div class="card-title">✨ Point System</div>
     <div style="font-size:13px;line-height:2;color:var(--text);">
       ⏱ 1 pt per minute read<br>
-      📚 +50 pts to finish a novel (200+ pages)<br>
+      📚 +50 pts to finish a novel or chapter book (200+ pages)<br>
       📘 +30 pts to finish any book<br>
       🗞️ +25 pts to finish an article (e.g. New Yorker)<br>
       🎨 +20 pts to finish a graphic novel or manga<br>
@@ -1622,7 +1627,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
   <!-- Full feed -->
   <div class="card">
-    <div class="card-title">💬 Family Feed</div>
+    <div class="card-title">💬 The Exchange</div>
     <div id="full-feed-list"></div>
   </div>
 </div>
@@ -1647,7 +1652,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <span class="bottom-nav-icon">📝</span>Journal
   </button>
   <button class="bottom-nav-item" onclick="openTab('feed')" id="nav-feed">
-    <span class="bottom-nav-icon">💬</span>Feed
+    <span class="bottom-nav-icon">💬</span>Exchange
   </button>
   <button class="bottom-nav-item" onclick="openTab('settings')" id="nav-settings">
     <span class="bottom-nav-icon">⚙️</span>Settings
@@ -1933,7 +1938,7 @@ const KIDS_BINGO = [
   { emoji:'🏕️', label:'Cozy Corner', desc:'Create a special reading nook', id:'kids_nook' },
   { emoji:'🌍', label:'Different World', desc:'Read a book set in another country', id:'kids_world' },
   { emoji:'🕰️', label:'Time Traveler', desc:'Read a book set in the past', id:'kids_historical' },
-  { emoji:'🤝', label:'Buddy Read', desc:'Read the same book as another family member', id:'kids_buddy' },
+  { emoji:'👨‍👩‍👧', label:'Family Reading', desc:'Everyone reads their own book at the same time together', id:'kids_family_session' },
   { emoji:'🔖', label:'5-Star Review', desc:'Rate a book and write 3 sentences about it', id:'kids_review' },
   { emoji:'🏔️', label:'Glacier Read', desc:'Read while viewing a glacier or mountain scenery', id:'kids_glacier' }
 ];
@@ -1959,7 +1964,7 @@ const ADULTS_BINGO = [
   { emoji:'🌍', label:'Different World', desc:'Read a book set outside the US', id:'adults_world' },
   { emoji:'🔖', label:'5-Star Review', desc:'Rate & journal about a completed book', id:'adults_review' },
   { emoji:'🎧', label:'Audiobook', desc:'Listen to an audiobook for 30+ minutes', id:'adults_audio' },
-  { emoji:'📖', label:'Reread', desc:'Revisit a book you loved years ago', id:'adults_reread' },
+  { emoji:'💑', label:'Couple Read', desc:'Read at the same time as your partner (same or different books)', id:'adults_couple' },
   { emoji:'🕰️', label:'Time Traveler', desc:'Read historical fiction', id:'adults_historical' },
   { emoji:'🍷', label:'Weekend Read', desc:'Read for 3+ hours on a Saturday or Sunday', id:'adults_weekend' },
   { emoji:'🌟', label:'Author Deep Dive', desc:'Read 2+ books by the same author', id:'adults_author' },
@@ -2212,6 +2217,14 @@ function renderHome() {
     : famMins + 'm';
   document.getElementById('fam-total-pts').textContent = famPts;
 
+  // Header family stats
+  const headerMins = document.getElementById('header-fam-mins');
+  const headerPts  = document.getElementById('header-fam-pts');
+  if (headerMins) headerMins.textContent = famMins >= 60
+    ? Math.floor(famMins/60) + 'h ' + (famMins % 60) + 'm'
+    : famMins + 'm';
+  if (headerPts) headerPts.textContent = famPts;
+
   // Group progress
   document.getElementById('group-progress-current').textContent = famPts + ' pts';
   const nextGM = GROUP_MILESTONES.find(gm => !(state.groupMilestones||[]).includes(gm.id));
@@ -2253,23 +2266,6 @@ function renderHome() {
   // Recent activity preview (last 5 items)
   renderActivityList('activity-feed', 5);
 
-  // Countdown
-  const start = new Date('2026-05-23');
-  const end   = new Date('2026-08-01');
-  const now   = new Date();
-  let days, label;
-  if (now < start) {
-    days  = Math.ceil((start - now) / 86400000);
-    label = 'Days Until Start';
-  } else if (now <= end) {
-    days  = Math.ceil((end - now) / 86400000);
-    label = 'Days Remaining';
-  } else {
-    days  = 0;
-    label = 'Challenge Complete!';
-  }
-  document.getElementById('countdown-days').textContent = days;
-  document.getElementById('countdown-label').textContent = label;
 }
 
 function renderActivityList(containerId, limit) {
@@ -2486,6 +2482,30 @@ function renderShelf() {
   }).join('');
 
   el.innerHTML = filterBar + `<div class="shelf-grid">${cards}</div>`;
+
+  // "What everyone else is reading" section
+  const everyoneCard = document.getElementById('shelf-everyone-card');
+  const everyoneList = document.getElementById('shelf-everyone-list');
+  const otherReading = [];
+  MEMBERS.forEach(m => {
+    if (m.id === currentMember) return;
+    const active = (state.books[m.id] || []).filter(b => b.status === 'reading');
+    active.forEach(b => otherReading.push({ member: m, book: b }));
+  });
+  if (otherReading.length && everyoneCard && everyoneList) {
+    everyoneCard.style.display = '';
+    everyoneList.innerHTML = otherReading.map(({ member, book }) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);">
+        <div style="font-size:28px;width:36px;text-align:center;flex-shrink:0;">${getMemberEmoji(member.id)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${book.title}</div>
+          <div style="font-size:12px;color:var(--muted);">${book.author || 'Unknown author'}</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:${getMemberColor(member.id)};flex-shrink:0;">${member.name}</div>
+      </div>`).join('');
+  } else if (everyoneCard) {
+    everyoneCard.style.display = 'none';
+  }
 }
 
 function setShelfFilter(f) {
@@ -3371,8 +3391,10 @@ function toggleReaction(actId, emoji) {
   if (idx >= 0) reactors.splice(idx, 1);
   else reactors.push(currentMember);
   state.reactions[actId][emoji] = reactors;
-  saveToGist();
+  // Optimistic: update UI immediately, save in background
   renderHome();
+  renderFeed();
+  saveToGist();
 }
 
 function bookColor(genre) {
@@ -3999,6 +4021,14 @@ function renderSettings() {
     </div>
   </div>`;
 
+  // Journal export
+  html += `
+  <div class="settings-card">
+    <div class="card-title">📝 My Journal</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Download all your reading journal entries as a text file.</p>
+    <button class="btn btn-sky btn-sm" onclick="exportJournal()">⬇️ Export My Journal</button>
+  </div>`;
+
   // Danger zone
   html += `
   <div class="settings-card" style="border:2px solid #FFCDD2;">
@@ -4035,6 +4065,28 @@ function saveGistSettings() {
   localStorage.setItem(GIST_TOKEN_KEY, tok);
   showToast('Gist settings saved! Syncing…');
   loadFromGist().then(() => renderHome());
+}
+
+function exportJournal() {
+  const entries = state.journal[currentMember] || [];
+  if (!entries.length) { showToast('No journal entries to export yet!'); return; }
+  const memberName = MEMBERS.find(m => m.id === currentMember)?.name || currentMember;
+  const lines = entries.slice().reverse().map(e => {
+    const date = e.ts ? new Date(e.ts).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) : '';
+    const stars = e.rating ? '★'.repeat(e.rating) + '☆'.repeat(5 - e.rating) : '';
+    const book = e.bookTitle ? `Book: ${e.bookTitle}` : '';
+    const parts = [date, book, stars, e.text].filter(Boolean);
+    return parts.join('\n') + '\n' + '─'.repeat(40);
+  }).join('\n\n');
+  const text = `${memberName}'s Reading Journal — Ortizzle Summer Reading 2026\n${'═'.repeat(50)}\n\n${lines}`;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${memberName.toLowerCase()}-reading-journal.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📝 Journal exported!');
 }
 
 function copyShareLink() {
