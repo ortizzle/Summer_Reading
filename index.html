@@ -391,6 +391,51 @@ body {
   border-radius: 20px;
 }
 
+/* ── LEADERBOARD ── */
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid #f5f5f5;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank {
+  width: 28px; text-align: center; font-size: 13px;
+  font-weight: 700; color: var(--muted); flex-shrink: 0;
+}
+.lb-rank-top { font-size: 20px; }
+.lb-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.lb-info { flex: 1; min-width: 0; }
+.lb-name { font-weight: 600; font-size: 14px; }
+.lb-book { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.lb-stats { text-align: right; flex-shrink: 0; }
+.lb-hours { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 700; color: var(--sun); }
+.lb-pts-small { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* ── ACTIVITY + REACTIONS ── */
+.activity-item { padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+.activity-item:last-child { border-bottom: none; }
+.activity-main { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.activity-emoji { font-size: 22px; flex-shrink: 0; line-height: 1.2; }
+.activity-body { flex: 1; }
+.activity-text { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.activity-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.reaction-row { display: flex; gap: 6px; flex-wrap: wrap; padding-left: 32px; }
+.reaction-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #f5f5f5; border: 1.5px solid #eee;
+  border-radius: 20px; padding: 4px 9px;
+  font-size: 14px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; transition: all .15s; -webkit-tap-highlight-color: transparent;
+  color: var(--text);
+}
+.reaction-btn:active { transform: scale(.92); }
+.reaction-btn.reacted { background: var(--sand); border-color: var(--sun); }
+.reaction-btn span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.reaction-btn.reacted span { color: var(--sun); }
+
 /* ── BADGES ── */
 .badges-grid {
   display: grid;
@@ -1152,32 +1197,10 @@ body.theme-sparkle {
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
 
-  <!-- Stats -->
-  <div class="stats-row" id="home-stats">
-    <div class="stat-box">
-      <span class="stat-number" id="stat-pts">0</span>
-      <span class="stat-label">Points</span>
-    </div>
-    <div class="stat-box">
-      <span class="stat-number" id="stat-books">0</span>
-      <span class="stat-label">Books</span>
-    </div>
-    <div class="stat-box">
-      <span class="stat-number" id="stat-hours">0</span>
-      <span class="stat-label">Hours</span>
-    </div>
-  </div>
-
-  <!-- Active book -->
-  <div class="card" id="active-book-card">
-    <div class="card-title">📖 Currently Reading</div>
-    <div id="active-book-display">
-      <div style="text-align:center;padding:20px;color:var(--muted);">
-        <div style="font-size:40px;margin-bottom:8px;">📚</div>
-        <div>No active book yet</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openTab('shelf')">Add a Book</button>
-      </div>
-    </div>
+  <!-- Leaderboard -->
+  <div class="card">
+    <div class="card-title">🏆 Family Leaderboard</div>
+    <div id="lb-list"></div>
   </div>
 
   <!-- Group milestone -->
@@ -1193,9 +1216,9 @@ body.theme-sparkle {
     </div>
   </div>
 
-  <!-- Recent activity feed -->
+  <!-- Social feed -->
   <div class="card">
-    <div class="card-title">⚡ Recent Activity</div>
+    <div class="card-title">⚡ Family Feed</div>
     <div id="activity-feed">
       <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Start reading to see activity here!</div>
     </div>
@@ -1654,7 +1677,8 @@ let state = {
   avatars: {},       // memberId -> emoji string
   pins: {},          // memberId -> '1234'
   themes: {},        // memberId -> 'standard' | 'sparkle'
-  defaultTabs: {}    // memberId -> tab name
+  defaultTabs: {},   // memberId -> tab name
+  reactions: {}      // activityId -> { emoji: [memberIds] }
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
@@ -1795,41 +1819,38 @@ function doSelectMember(id) {
 function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
-  const pts = getMemberPoints(currentMember);
-  const books = state.books[currentMember] || [];
-  const sessions = state.sessions[currentMember] || [];
-  const totalMins = sessions.reduce((a,s) => a + (s.minutes||0), 0);
-  document.getElementById('stat-pts').textContent = pts;
-  document.getElementById('stat-books').textContent = books.filter(b=>b.status==='finished').length;
-  document.getElementById('stat-hours').textContent = Math.floor(totalMins/60);
 
-  // Active book
-  const active = books.find(b => b.status === 'reading');
-  const aEl = document.getElementById('active-book-display');
-  if (active) {
-    const totalBookMins = sessions.filter(s=>s.bookId===active.id).reduce((a,s)=>a+(s.minutes||0),0);
-    aEl.innerHTML = `
-      <div class="book-card" style="border:none;padding:0;" onclick="openBookDetail('${active.id}')">
-        <div class="book-cover" style="background:${bookColor(active.genre)};">${bookEmoji(active.genre)}</div>
-        <div class="book-info">
-          <div class="book-title-text">${active.title}</div>
-          <div class="book-author">${active.author||'Unknown author'}</div>
-          <div class="book-time">⏱ ${formatMins(totalBookMins)} logged</div>
-        </div>
-      </div>`;
-  } else {
-    aEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);">
-      <div style="font-size:40px;margin-bottom:8px;">📚</div>
-      <div>No active book</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openTab('shelf')">Add a Book</button>
-    </div>`;
-  }
+  // Leaderboard
+  const ranked = [...MEMBERS].map(m => {
+    ensureMember(m.id);
+    const sess = state.sessions[m.id] || [];
+    const totalMins = sess.reduce((a,s) => a + (s.minutes||0), 0);
+    const pts = getMemberPoints(m.id);
+    const books = state.books[m.id] || [];
+    const activeBook = books.find(b => b.status === 'reading');
+    const finished = books.filter(b => b.status === 'finished').length;
+    return { ...m, totalMins, pts, activeBook, finished };
+  }).sort((a,b) => b.totalMins - a.totalMins);
+  const rankEmoji = ['🥇','🥈','🥉'];
+  document.getElementById('lb-list').innerHTML = ranked.map((m,i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${i<3?'lb-rank-top':''}">${i<3 ? rankEmoji[i] : i+1}</div>
+      <div class="lb-avatar" style="background:${m.color}20">${getMemberEmoji(m.id)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${m.name}${m.finished ? ` <span style="font-size:11px;color:var(--muted);">(${m.finished} book${m.finished>1?'s':''})</span>` : ''}</div>
+        <div class="lb-book">${m.activeBook ? `📖 ${m.activeBook.title}` : '<span style="opacity:.5;">No book yet</span>'}</div>
+      </div>
+      <div class="lb-stats">
+        <div class="lb-hours">${m.totalMins >= 60 ? Math.floor(m.totalMins/60)+'h '+(m.totalMins%60)+'m' : m.totalMins+'m'}</div>
+        <div class="lb-pts-small">${m.pts} pts</div>
+      </div>
+    </div>`).join('');
 
   // Group progress
   const allPts = MEMBERS.reduce((a,m) => a + getMemberPoints(m.id), 0);
   document.getElementById('family-total-pts').textContent = allPts;
   document.getElementById('group-progress-current').textContent = allPts + ' pts';
-  const nextGM = GROUP_MILESTONES.find(gm => !state.groupMilestones.includes(gm.id));
+  const nextGM = GROUP_MILESTONES.find(gm => !(state.groupMilestones||[]).includes(gm.id));
   if (nextGM) {
     const pct = Math.min(100, (allPts / nextGM.threshold) * 100);
     document.getElementById('group-progress-fill').style.width = pct + '%';
@@ -1840,20 +1861,35 @@ function renderHome() {
     document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
   }
 
-  // Activity
+  // Social feed with reactions
   const feed = document.getElementById('activity-feed');
-  const acts = (state.activity || []).slice(-10).reverse();
+  const acts = (state.activity || []).slice(-20).reverse();
   if (!acts.length) {
-    feed.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Start reading to see activity!</div>`;
+    feed.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Start reading to see activity here!</div>`;
   } else {
-    feed.innerHTML = acts.map(a => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
-        <div style="font-size:22px;">${a.emoji}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">${a.text}</div>
-          <div style="font-size:11px;color:var(--muted);">${a.member} · ${timeAgo(a.ts)}</div>
-        </div>
-      </div>`).join('');
+    feed.innerHTML = acts.map(a => {
+      const actId = a.id || (a.ts + a.member);
+      const reactData = (state.reactions || {})[actId] || {};
+      const reactionBtns = REACTION_EMOJIS.map(e => {
+        const reactors = reactData[e] || [];
+        const count = reactors.length;
+        const mine = reactors.includes(currentMember);
+        return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
+      }).join('');
+      const memberObj = MEMBERS.find(m => m.id === a.member);
+      const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
+      return `
+        <div class="activity-item">
+          <div class="activity-main">
+            <div class="activity-emoji">${a.emoji}</div>
+            <div class="activity-body">
+              <div class="activity-text">${a.text}</div>
+              <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
+            </div>
+          </div>
+          <div class="reaction-row">${reactionBtns}</div>
+        </div>`;
+    }).join('');
   }
 
   // Countdown
@@ -2437,10 +2473,24 @@ function getMemberPoints(memberId) {
   return sessions.reduce((a,s) => a + (s.minutes||0), 0);
 }
 
+const REACTION_EMOJIS = ['🎉','❤️','🔥','⭐','💪'];
+
 function addActivity(emoji, text, member) {
   if (!state.activity) state.activity = [];
-  state.activity.push({ emoji, text, member, ts: Date.now() });
-  if (state.activity.length > 50) state.activity = state.activity.slice(-50);
+  state.activity.push({ id: uid(), emoji, text, member, ts: Date.now() });
+  if (state.activity.length > 100) state.activity = state.activity.slice(-100);
+}
+
+function toggleReaction(actId, emoji) {
+  if (!state.reactions) state.reactions = {};
+  if (!state.reactions[actId]) state.reactions[actId] = {};
+  const reactors = state.reactions[actId][emoji] || [];
+  const idx = reactors.indexOf(currentMember);
+  if (idx >= 0) reactors.splice(idx, 1);
+  else reactors.push(currentMember);
+  state.reactions[actId][emoji] = reactors;
+  saveToGist();
+  renderHome();
 }
 
 function bookColor(genre) {
