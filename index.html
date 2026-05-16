@@ -1151,6 +1151,79 @@ body.theme-sparkle {
   80%      { transform: translateX(8px); }
 }
 .pin-shake { animation: pinShake 0.4s ease; }
+
+/* ── MENTION DROPDOWN ── */
+#mention-dropdown {
+  position: absolute;
+  left: 0; right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 500;
+  overflow: hidden;
+  display: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.mention-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.mention-item:hover { background: var(--sand); }
+
+/* ── FEED MESSAGE BUBBLE ── */
+.activity-item.msg-bubble {
+  background: white;
+  border-radius: 14px;
+  border-left: 4px solid #ccc;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.activity-item.msg-bubble .activity-main { margin-bottom: 6px; }
+.activity-item.msg-bubble .activity-emoji { font-size: 28px; }
+.msg-speech {
+  background: var(--cream);
+  border-radius: 0 12px 12px 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* ── FEED SYSTEM ITEM ── */
+.activity-item.sys-item {
+  background: var(--sand);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+/* ── DATE SEPARATOR ── */
+.feed-date-sep {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 12px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.feed-date-sep::before, .feed-date-sep::after {
+  content: \'\';
+  flex: 1;
+  height: 1px;
+  background: #e8e8e8;
+}
 </style>
 </head>
 <body>
@@ -1338,6 +1411,14 @@ body.theme-sparkle {
 
 <!-- CHALLENGES SECTION -->
 <div class="section" id="sec-challenges">
+  <div class="member-select-bar" id="badges-member-bar"></div>
+
+  <!-- Badges -->
+  <div class="card">
+    <div class="card-title">🎖 My Badges</div>
+    <div class="badges-grid" id="badges-grid"></div>
+  </div>
+
   <!-- Bingo toggle -->
   <div style="display:flex;gap:8px;margin-bottom:14px;">
     <button class="btn btn-primary btn-sm" id="bingo-kids-btn" onclick="switchBingo('kids')">🧒 Kids Card</button>
@@ -1353,6 +1434,15 @@ body.theme-sparkle {
     </div>
   </div>
 
+  <!-- Library visits -->
+  <div class="card">
+    <div class="card-title">🏛️ Library Visits</div>
+    <button class="btn btn-sky btn-sm btn-full" onclick="logLibraryVisit()" style="margin-bottom:12px;">+ Log a Visit</button>
+    <div id="library-visits-list">
+      <div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet — go explore!</div>
+    </div>
+  </div>
+
   <!-- Individual milestones -->
   <div class="card">
     <div class="card-title">🏆 Individual Milestones</div>
@@ -1363,24 +1453,6 @@ body.theme-sparkle {
   <div class="card">
     <div class="card-title">👨‍👩‍👧‍👧 Family Milestones</div>
     <div id="group-milestones"></div>
-  </div>
-</div>
-
-<!-- BADGES SECTION -->
-<div class="section" id="sec-badges">
-  <div class="member-select-bar" id="badges-member-bar"></div>
-  <div class="card">
-    <div class="card-title">🎖 My Badges</div>
-    <div class="badges-grid" id="badges-grid"></div>
-  </div>
-
-  <!-- Library visits -->
-  <div class="card">
-    <div class="card-title">🏛️ Library Visits</div>
-    <button class="btn btn-sky btn-sm btn-full" onclick="logLibraryVisit()" style="margin-bottom:12px;">+ Log a Visit</button>
-    <div id="library-visits-list">
-      <div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet — go explore!</div>
-    </div>
   </div>
 </div>
 
@@ -1408,9 +1480,14 @@ body.theme-sparkle {
   <!-- Message composer -->
   <div class="card" style="padding:12px 16px;">
     <div style="display:flex;gap:8px;align-items:flex-end;">
-      <textarea id="feed-input" class="form-select" placeholder="Say something to the family… use @name to mention someone" rows="2"
-        style="flex:1;resize:none;border-radius:12px;padding:10px 14px;font-size:14px;font-family:'DM Sans',sans-serif;line-height:1.4;"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();postFeedMessage();}"></textarea>
+      <div style="flex:1;position:relative;">
+        <textarea id="feed-input" class="form-select" placeholder="Say something to the family… use @name to mention someone" rows="2"
+          style="width:100%;resize:none;border-radius:12px;padding:10px 14px;font-size:14px;font-family:'DM Sans',sans-serif;line-height:1.4;"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();postFeedMessage();}"
+          oninput="onFeedInput(event)"
+          onblur="setTimeout(()=>hideMentionDropdown(),150)"></textarea>
+        <div id="mention-dropdown"></div>
+      </div>
       <button class="btn btn-primary" onclick="postFeedMessage()" style="padding:10px 16px;flex-shrink:0;">Send</button>
     </div>
   </div>
@@ -1437,9 +1514,6 @@ body.theme-sparkle {
   </button>
   <button class="bottom-nav-item" onclick="openTab('challenges')" id="nav-challenges">
     <span class="bottom-nav-icon">🎯</span>Goals
-  </button>
-  <button class="bottom-nav-item" onclick="openTab('badges')" id="nav-badges">
-    <span class="bottom-nav-icon">🎖</span>Badges
   </button>
   <button class="bottom-nav-item" onclick="openTab('journal')" id="nav-journal">
     <span class="bottom-nav-icon">📝</span>Journal
@@ -1724,21 +1798,21 @@ const ALL_BADGES = [
 ];
 
 const INDIVIDUAL_MILESTONES = [
-  { id:'m_1book',    pts:30,  name:'First Book Finished!',  desc:'Complete your first book',       icon:'📕', reward:'Movie night pick 🎬 — you choose the Disney movie + snacks for everyone' },
+  { id:'m_1book',    pts:30,  name:'First Book Finished!',  desc:'Complete your first book',       icon:'📕', reward:'Movie night pick 🎬 — you choose the movie + snacks for everyone' },
   { id:'m_100pts',  pts:100, name:'Century Club',           desc:'Earn 100 reading points',        icon:'💯', reward:'Boba or Slurpee run 🧋 — pick your own flavor' },
-  { id:'m_3books',  pts:90,  name:'Trilogy',                desc:'Finish 3 books',                 icon:'📚', reward:'Bookstore trip — Changing Hands or Barnes & Noble, your pick 📚' },
-  { id:'m_5hrs',    pts:300, name:'5 Hour Reader',          desc:'Read 5 hours total',             icon:'⏰', reward:'Disney+ family night 🍿 — you control the remote, everyone watches your pick' },
+  { id:'m_3books',  pts:90,  name:'Trilogy',                desc:'Finish 3 books',                 icon:'📚', reward:'$10 toward a book of your choice at any bookstore 📚' },
+  { id:'m_5hrs',    pts:300, name:'5 Hour Reader',          desc:'Read 5 hours total',             icon:'⏰', reward:'Family movie night 🍿 — you pick the movie and control the remote' },
   { id:'m_novel',   pts:50,  name:'Novel Finisher',         desc:'Finish a full novel (200+ pages)',icon:'📗', reward:'Reading nook upgrade ✨ — new bookmark, cozy blanket, or book light' },
-  { id:'m_10hrs',   pts:500, name:'10 Hour Legend',         desc:'Read 10 hours total',            icon:'🕙', reward:'Build-A-Bear trip 🐻 — make your official reading mascot' },
+  { id:'m_10hrs',   pts:500, name:'10 Hour Legend',         desc:'Read 10 hours total',            icon:'🕙', reward:'$10 toward a new book of your choice 📖' },
   { id:'m_journal5',pts:50,  name:'Dear Diary',             desc:'Write 5 journal entries',        icon:'📝', reward:'Brand new journal or notebook of your choice 📒' },
   { id:'m_bingo',   pts:100, name:'Bingo Champ',            desc:'Complete a full bingo card',     icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
 ];
 
 const GROUP_MILESTONES = [
-  { id:'gm_500',  threshold:500,  name:'Family Reading Club',   desc:'Earn 500 family points together',      icon:'👨‍👩‍👧',  reward:'Ice Cream Outing 🍦 — Mickey Bar style, everyone picks their treat' },
-  { id:'gm_1000', threshold:1000, name:'The Ortizzle Library',  desc:'Earn 1,000 family points together',    icon:'🏛️', reward:'Dole Whip Party 🍍 — make homemade Disney-style frozen treats together' },
-  { id:'gm_2000', threshold:2000, name:'Summer Scholars',       desc:'Earn 2,000 family points together',    icon:'🎓', reward:'Disney Store or Disney Springs shopping trip 🛍️ — everyone gets a pick' },
-  { id:'gm_3000', threshold:3000, name:'Championship Readers',  desc:'Earn 3,000 points — ULTIMATE GOAL!', icon:'🏆', reward:'Disney movie marathon weekend 🎬 + ultimate snack spread, no bedtimes!' }
+  { id:'gm_500',  threshold:500,  name:'Family Reading Club',   desc:'Earn 500 family points together',      icon:'👨‍👩‍👧',  reward:'Ice cream outing 🍦 — everyone picks their treat' },
+  { id:'gm_1000', threshold:1000, name:'The Ortizzle Library',  desc:'Earn 1,000 family points together',    icon:'🏛️', reward:'Froyo or smoothie night 🍓 — everyone makes their own creation' },
+  { id:'gm_2000', threshold:2000, name:'Summer Scholars',       desc:'Earn 2,000 family points together',    icon:'🎓', reward:'$10 book budget each at the bookstore 📚 — everyone picks something' },
+  { id:'gm_3000', threshold:3000, name:'Championship Readers',  desc:'Earn 3,000 points — ULTIMATE GOAL!', icon:'🏆', reward:'Movie marathon weekend 🎬 + ultimate snack spread, no bedtimes!' }
 ];
 
 // ═══════════════════════════════════════
@@ -1837,7 +1911,6 @@ function renderTab(tab) {
   if (tab === 'shelf') renderShelf();
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
-  if (tab === 'badges') renderBadges();
   if (tab === 'journal') renderJournal();
   if (tab === 'feed') renderFeed();
   if (tab === 'settings') renderSettings();
@@ -1857,9 +1930,7 @@ function buildMemberBar(containerId) {
     const av = getMemberEmoji(m.id);
     return `
     <div class="member-chip ${isActive?'active':''}" data-memberid="${m.id}" onclick="selectMember('${m.id}','${containerId}')">
-      <div class="member-avatar" style="background:${m.color}20;border-color:${isActive?m.color:'#eee'};position:relative;"
-           onclick="event.stopPropagation();${isActive ? `openAvatarPicker('${m.id}')` : `selectMember('${m.id}','${containerId}')`}"
-      >${av}</div>
+      <div class="member-avatar" style="background:${m.color}20;border-color:${isActive?m.color:'#eee'};position:relative;">${av}</div>
       <span class="member-chip-name">${m.name}</span>
     </div>`;
   }).join('');
@@ -1989,6 +2060,7 @@ function renderActivityList(containerId, limit) {
     el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No activity yet — start reading!</div>`;
     return;
   }
+  let lastDateStr = null;
   el.innerHTML = acts.map(a => {
     const actId = a.id || (a.ts + a.member);
     const reactData = (state.reactions || {})[actId] || {};
@@ -2000,8 +2072,31 @@ function renderActivityList(containerId, limit) {
     }).join('');
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
-    return `
-      <div class="activity-item">
+    const itemDate = a.ts ? new Date(a.ts).toLocaleDateString(undefined, {weekday:'short',month:'short',day:'numeric'}) : null;
+    let dateSep = '';
+    if (itemDate && itemDate !== lastDateStr) {
+      dateSep = `<div class="feed-date-sep">${itemDate}</div>`;
+      lastDateStr = itemDate;
+    }
+    const isMsg = a.type === 'message';
+    const memberColor = memberObj ? memberObj.color : '#ccc';
+    const replyName = memberObj ? memberObj.name : '';
+    const replyBtn = replyName ? `<button onclick="feedReply('${replyName}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
+    if (isMsg) {
+      return `${dateSep}
+      <div class="activity-item msg-bubble" style="border-left-color:${memberColor};">
+        <div class="activity-main">
+          <div class="activity-emoji">${getMemberEmoji(memberObj ? memberObj.id : '')}</div>
+          <div class="activity-body">
+            <div class="activity-meta" style="margin-bottom:4px;">${who} · ${timeAgo(a.ts)}</div>
+            <div class="msg-speech">${a.text}</div>
+          </div>
+        </div>
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
+      </div>`;
+    }
+    return `${dateSep}
+      <div class="activity-item sys-item">
         <div class="activity-main">
           <div class="activity-emoji">${a.emoji}</div>
           <div class="activity-body">
@@ -2009,7 +2104,7 @@ function renderActivityList(containerId, limit) {
             <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
           </div>
         </div>
-        <div class="reaction-row">${reactionBtns}</div>
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
       </div>`;
   }).join('');
 }
@@ -2020,6 +2115,54 @@ function renderActivityList(containerId, limit) {
 function renderFeed() {
   buildMemberBar('feed-member-bar');
   renderActivityList('full-feed-list', 0);
+  initMentionDropdown();
+}
+
+function initMentionDropdown() {}
+
+function onFeedInput(e) {
+  const ta = e.target;
+  const val = ta.value;
+  const pos = ta.selectionStart;
+  const before = val.slice(0, pos);
+  const match = before.match(/@(\w*)$/);
+  if (!match) { hideMentionDropdown(); return; }
+  const query = match[1].toLowerCase();
+  const matches = MEMBERS.filter(m => m.name.toLowerCase().startsWith(query));
+  const dd = document.getElementById('mention-dropdown');
+  if (!matches.length) { hideMentionDropdown(); return; }
+  dd.innerHTML = matches.map(m =>
+    `<div class="mention-item" onmousedown="insertMention('${m.name}')">${getMemberEmoji(m.id)} ${m.name}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function hideMentionDropdown() {
+  const dd = document.getElementById('mention-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function insertMention(name) {
+  const ta = document.getElementById('feed-input');
+  const val = ta.value;
+  const pos = ta.selectionStart;
+  const before = val.slice(0, pos);
+  const after = val.slice(pos);
+  const replaced = before.replace(/@\w*$/, '@' + name + ' ');
+  ta.value = replaced + after;
+  ta.focus();
+  const newPos = replaced.length;
+  ta.setSelectionRange(newPos, newPos);
+  hideMentionDropdown();
+}
+
+function feedReply(name) {
+  const ta = document.getElementById('feed-input');
+  ta.value = '@' + name + ' ';
+  ta.focus();
+  const len = ta.value.length;
+  ta.setSelectionRange(len, len);
+  ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function postFeedMessage() {
@@ -2027,8 +2170,11 @@ function postFeedMessage() {
   const text = (input.value || '').trim();
   if (!text) { showToast('Type something first!'); return; }
   const member = MEMBERS.find(m => m.id === currentMember);
-  addActivity('💬', `${member.name}: ${text}`, currentMember);
+  if (!state.activity) state.activity = [];
+  state.activity.push({ id: uid(), emoji: '💬', text: `${member.name}: ${text}`, member: currentMember, ts: Date.now(), type: 'message' });
+  if (state.activity.length > 100) state.activity = state.activity.slice(-100);
   input.value = '';
+  hideMentionDropdown();
   saveToGist().then(() => renderFeed());
 }
 
@@ -2104,6 +2250,8 @@ function renderTimer() {
           <div style="font-weight:700;color:var(--sun);">+${s.minutes} pts</div>
           <button onclick="editSession('${s.id}')" title="Edit duration"
             style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:2px;">✏️</button>
+          <button onclick="deleteSession('${s.id}')" title="Delete session"
+            style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:2px;">🗑️</button>
         </div>
       </div>`).join('');
   }
@@ -2229,6 +2377,12 @@ function editSession(sessionId) {
   });
 }
 
+function deleteSession(sessionId) {
+  if (!confirm('Delete this reading session?')) return;
+  state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(s => s.id !== sessionId);
+  saveToGist().then(() => { renderTimer(); renderHome(); showToast('Session removed'); });
+}
+
 function logManualSession() {
   const bookId = document.getElementById('manual-book-select').value;
   const minsRaw = document.getElementById('manual-minutes').value;
@@ -2260,6 +2414,8 @@ function logManualSession() {
 //  CHALLENGES
 // ═══════════════════════════════════════
 function renderChallenges() {
+  buildMemberBar('badges-member-bar');
+  renderBadges();
   renderBingoCard();
   renderIndividualMilestones();
   renderGroupMilestonesSection();
@@ -2413,7 +2569,6 @@ function renderGroupMilestonesSection() {
 // ═══════════════════════════════════════
 function renderBadges() {
   ensureMember(currentMember);
-  buildMemberBar('badges-member-bar');
   const earned = state.badges[currentMember] || [];
   const grid = document.getElementById('badges-grid');
   grid.innerHTML = ALL_BADGES.map(b => `
@@ -2450,11 +2605,14 @@ function deleteLibraryVisit(visitId) {
   if (!visit) return;
   if (!confirm('Remove this library visit and deduct 25 pts?')) return;
   state.library[currentMember] = visits.filter(v => v.id !== visitId);
-  // Remove the matching session (same timestamp ±1 second, bookId = 'library')
   state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(
-    s => !(s.bookId === 'library' && Math.abs((s.ts||0) - (visit.ts||0)) < 1000)
+    s => !(s.bookId === 'library' && Math.abs((s.ts||0) - (visit.ts||0)) < 2000)
   );
-  saveToGist().then(() => { renderBadges(); showToast('Library visit removed'); });
+  // Remove the matching activity entry
+  state.activity = (state.activity||[]).filter(
+    a => !(a.member === currentMember && a.emoji === '🏛️' && Math.abs((a.ts||0) - (visit.ts||0)) < 2000)
+  );
+  saveToGist().then(() => { renderBadges(); renderHome(); showToast('Library visit removed'); });
 }
 
 function awardBadge(memberId, badgeId) {
@@ -2633,10 +2791,12 @@ function openBookDetail(bookId) {
       <div style="display:flex;gap:4px;">
         ${[1,2,3,4,5].map(n=>`<span style="font-size:28px;cursor:pointer;" onclick="rateBook('${bookId}',${n})">${(book.rating||0)>=n?'★':'☆'}</span>`).join('')}
       </div>
-    </div>`;
+    </div>
+    ${book.summary ? `<div style="background:var(--sand);border-radius:12px;padding:12px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📖 About this Book</div><div style="font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;">${book.summary}</div></div>` : ''}`;
   document.getElementById('book-finish-btn').style.display = book.status==='finished'?'none':'';
   document.getElementById('book-dnf-btn').style.display = book.status==='dnf'?'none':'';
   openModal('book-detail-modal');
+  if (!book.summary) fetchAndStoreSummary(book);
 }
 
 function rateBook(bookId, rating) {
@@ -2691,6 +2851,19 @@ async function lookupISBN() {
       showToast('Book found! ✅');
     } else { showToast('Book not found — enter manually'); }
   } catch(e) { showToast('Lookup failed — enter manually'); }
+}
+
+async function fetchAndStoreSummary(book) {
+  try {
+    const q = encodeURIComponent(book.title + (book.author ? ' ' + book.author : ''));
+    const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
+    const data = await r.json();
+    const desc = data?.items?.[0]?.volumeInfo?.description;
+    if (!desc) return;
+    book.summary = desc.length > 400 ? desc.slice(0, 397) + '…' : desc;
+    await saveToGist();
+    if (pendingBookDetail === book.id) openBookDetail(book.id);
+  } catch(e) {}
 }
 
 function startScanner() {
@@ -3146,10 +3319,11 @@ function renderSettings() {
     <div class="card-title">👤 My Profile</div>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
       <div style="font-size:48px;">${getMemberEmoji(currentMember)}</div>
-      <div>
+      <div style="flex:1;">
         <div style="font-weight:700;font-size:18px;">${m ? m.name : currentMember}</div>
         <div style="font-size:12px;color:var(--muted);">Current member</div>
       </div>
+      <button class="btn btn-sky btn-sm" onclick="openAvatarPicker('${currentMember}')">Change Avatar</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       ${hasMyPin
@@ -3216,8 +3390,8 @@ function setTheme(theme) {
   renderSettings();
 }
 
-function clearAllMyData() {
-  if (!confirm('Clear ALL your data (books, sessions, journal, badges)? This cannot be undone.')) return;
+async function clearAllMyData() {
+  if (!confirm('Clear ALL your data (books, sessions, journal, badges, library visits)? This cannot be undone.')) return;
   const id = currentMember;
   state.books[id] = [];
   state.sessions[id] = [];
@@ -3225,8 +3399,10 @@ function clearAllMyData() {
   state.journal[id] = [];
   state.library[id] = [];
   state.milestones[id] = [];
-  saveToGist();
-  showToast('Your data has been cleared.');
+  state.activity = (state.activity||[]).filter(a => a.member !== id);
+  await saveToGist();
+  showToast('All data cleared.');
+  renderHome();
   renderSettings();
 }
 
