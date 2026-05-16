@@ -2582,6 +2582,8 @@ function timerStop() {
     checkGroupMilestones();
     showToast(`+${mins} pts! Great reading! 📚`);
     if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
+    if (mins >= 30) celebrateThemed();
+    else if (mins >= 10) celebrateSmall();
   });
   resetTimer();
   renderTimer();
@@ -2647,6 +2649,8 @@ function logManualSession() {
     checkBadges(currentMember);
     checkGroupMilestones();
     showToast(`+${mins} pts logged! 📖`);
+    if (mins >= 30) celebrateThemed();
+    else if (mins >= 10) celebrateSmall();
     document.getElementById('manual-minutes').value = '';
     document.getElementById('manual-date').value = todayStr();
     renderTimer();
@@ -2768,7 +2772,7 @@ function checkBingo() {
 
   if (bingoLines > 0 && !hasBadge('bingo_line')) {
     awardBadge(currentMember, 'bingo_line');
-    celebrate();
+    celebrateThemed();
     showToast('🎲 BINGO! +100 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_bonus', bookTitle:'Bingo Line Bonus', minutes:100, date:todayStr(), ts:Date.now() });
@@ -2776,7 +2780,7 @@ function checkBingo() {
   }
   if (corners && !hasBadge('bingo_corners')) {
     awardBadge(currentMember, 'bingo_corners');
-    celebrate();
+    celebrateThemed();
     showToast('🔲 Four Corners! +60 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_corners', bookTitle:'Four Corners Bonus', minutes:60, date:todayStr(), ts:Date.now() });
@@ -2784,7 +2788,7 @@ function checkBingo() {
   }
   if (xPattern && !hasBadge('bingo_x')) {
     awardBadge(currentMember, 'bingo_x');
-    celebrate();
+    celebrateThemed();
     showToast('✖️ X Marks It! +80 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_x', bookTitle:'X Pattern Bonus', minutes:80, date:todayStr(), ts:Date.now() });
@@ -2792,7 +2796,7 @@ function checkBingo() {
   }
   if (allComplete && !hasBadge('bingo_full')) {
     awardBadge(currentMember, 'bingo_full');
-    celebrate();
+    celebrateThemed();
     showToast('🃏 BLACKOUT! +200 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_full', bookTitle:'Blackout Bonus', minutes:200, date:todayStr(), ts:Date.now() });
@@ -2935,7 +2939,7 @@ function awardBadge(memberId, badgeId) {
     const badge = ALL_BADGES.find(b=>b.id===badgeId);
     if (badge) {
       addActivity('🎖', `${MEMBERS.find(m=>m.id===memberId).name} earned: ${badge.label}`, memberId);
-      celebrate();
+      celebrateThemed();
     }
     saveToGist();
   }
@@ -2976,7 +2980,7 @@ function checkGroupMilestones() {
     if (allPts >= gm.threshold && !state.groupMilestones.includes(gm.id)) {
       state.groupMilestones.push(gm.id);
       addActivity('🎉', `Family milestone unlocked: ${gm.name}! ${gm.reward}`, 'family');
-      celebrate();
+      celebrateThemed();
       showToast(`🎉 Family Milestone: ${gm.name}!`);
     }
   }
@@ -3162,7 +3166,7 @@ function markFinished() {
   saveToGist().then(() => {
     checkBadges(currentMember);
     checkGroupMilestones();
-    celebrate();
+    celebrateThemed();
     showToast(`🎉 "${book.title}" finished! Points awarded!`);
     closeModal('book-detail-modal');
     renderShelf();
@@ -3441,7 +3445,7 @@ function showMagicUnlock(icon, name, reward) {
   document.getElementById('magic-unlock-reward').textContent = '🎁 Your reward: ' + reward;
   const banner = document.getElementById('magic-unlock-banner');
   banner.classList.add('show');
-  celebrate();
+  celebrateThemed();
 }
 
 function closeMagicBanner() {
@@ -3466,6 +3470,108 @@ function applyTheme(memberId) {
   document.body.classList.toggle('theme-bubbles', theme === 'bubbles');
   document.body.classList.toggle('theme-dark', theme === 'dark');
   if (theme === 'bubbles') { startBubbles(); } else { stopBubbles(); }
+}
+
+function fireThemeIntro() {
+  const theme = getThemeFor(currentMember);
+  if (theme === 'sparkle') {
+    // Two waves of sparkles staggered
+    fireSparkleParticles();
+    setTimeout(fireSparkleParticles, 600);
+  } else if (theme === 'bubbles') {
+    // Extra burst of large bubbles rising up on load
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'bubble-particle';
+        const size = 40 + Math.random() * 100;
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = (Math.random() * 100) + 'vw';
+        el.style.bottom = '-120px';
+        el.style.opacity = '0.2';
+        el.style.animationDuration = (5 + Math.random() * 6) + 's';
+        el.style.animationDelay = '0s';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 12000);
+      }, i * 150);
+    }
+  }
+}
+
+// Theme-aware celebrate: confetti + themed burst
+function celebrateThemed() {
+  celebrate();
+  const theme = getThemeFor(currentMember);
+  if (theme === 'sparkle') {
+    setTimeout(fireSparkleParticles, 300);
+  } else if (theme === 'bubbles') {
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'bubble-particle';
+        const size = 30 + Math.random() * 70;
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = (Math.random() * 100) + 'vw';
+        el.style.bottom = '-80px';
+        el.style.opacity = '0.25';
+        el.style.animationDuration = (4 + Math.random() * 4) + 's';
+        el.style.animationDelay = '0s';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 10000);
+      }, i * 100);
+    }
+  }
+}
+
+// Small particle burst for mid-session milestones
+function celebrateSmall() {
+  const theme = getThemeFor(currentMember);
+  if (theme === 'sparkle') {
+    const emojis = ['⭐','✨','💫','🌟'];
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'sparkle-particle';
+        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        el.style.left = (10 + Math.random() * 80) + 'vw';
+        el.style.fontSize = '18px';
+        el.style.animationDuration = (1 + Math.random() * 0.6) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 2000);
+      }, i * 80);
+    }
+  } else if (theme === 'bubbles') {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'bubble-particle';
+        const size = 20 + Math.random() * 40;
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = (10 + Math.random() * 80) + 'vw';
+        el.style.bottom = '80px';
+        el.style.opacity = '0.3';
+        el.style.animationDuration = (3 + Math.random() * 3) + 's';
+        el.style.animationDelay = '0s';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 7000);
+      }, i * 100);
+    }
+  } else {
+    // Standard/dark: mini confetti
+    const el = document.getElementById('celebration');
+    const colors = ['#FF6B35','#4ECDC4','#FFE66D','#FF8FA3'];
+    el.style.display = 'block';
+    for (let i = 0; i < 15; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.cssText = `left:${Math.random()*100}%;background:${colors[i%colors.length]};animation-delay:${Math.random()*0.3}s;animation-duration:${1.5+Math.random()}s;width:7px;height:7px;`;
+      el.appendChild(piece);
+    }
+    setTimeout(() => { el.style.display='none'; el.innerHTML=''; }, 2500);
+  }
 }
 
 let _bubbleInterval = null;
@@ -4018,6 +4124,8 @@ async function init() {
   buildMemberBar('journal-member-bar');
   buildMemberBar('feed-member-bar');
   renderHome();
+  // Fire theme intro after a short delay so the UI is painted first
+  setTimeout(fireThemeIntro, 400);
 }
 
 init();
