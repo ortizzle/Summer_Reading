@@ -1872,6 +1872,16 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Who Are You? Overlay -->
+<div id="who-overlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:11000;overflow:auto;padding:40px 20px 80px;">
+  <div style="max-width:400px;margin:0 auto;text-align:center;">
+    <div style="font-size:52px;margin-bottom:12px;">👋</div>
+    <h2 style="font-family:'Fraunces',serif;font-size:26px;margin-bottom:6px;">Who's using this device?</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:32px;">Pick yourself — this gets saved so you'll always load as you.</p>
+    <div id="who-member-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+  </div>
+</div>
+
 <!-- Onboarding Overlay -->
 <div id="onboard-overlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:10000;overflow:auto;padding:30px 20px 100px;">
   <div style="max-width:400px;margin:0 auto;">
@@ -2020,6 +2030,7 @@ const GROUP_MILESTONES = [
 const GIST_TOKEN_KEY = 'ortizzle_gist_token';
 const GIST_ID_KEY = 'ortizzle_gist_id';
 const ADMIN_ID = 'chris';
+const DEVICE_MEMBER_KEY = 'ak26-device-member';
 let state = {
   books: {},         // memberId -> [book]
   sessions: {},      // memberId -> [session]
@@ -2140,11 +2151,16 @@ function buildMemberBar(containerId) {
 }
 
 function selectMember(id, barId) {
-  // Admin bypasses all PINs
-  if (currentMember === ADMIN_ID) { doSelectMember(id); return; }
-  // If target has a PIN, show overlay first
+  if (id === currentMember) return;
+  // Always require a PIN to switch INTO a PIN-protected member (even on admin device)
   const pin = (state.pins || {})[id];
   if (pin) { showPinOverlay(id); return; }
+  // Non-admin, non-device-owner: block switching to unprotected members (encourage PINs)
+  const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
+  if (deviceMember && deviceMember !== ADMIN_ID && id !== deviceMember) {
+    showToast('Ask ' + (MEMBERS.find(m=>m.id===id)?.name||id) + ' to set a PIN to protect their account!');
+    return;
+  }
   doSelectMember(id);
 }
 
@@ -4021,6 +4037,16 @@ function renderSettings() {
     </div>
   </div>`;
 
+  // Device identity
+  const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
+  const deviceName = deviceMember ? (MEMBERS.find(m=>m.id===deviceMember)?.name || deviceMember) : 'Not set';
+  html += `
+  <div class="settings-card">
+    <div class="card-title">📱 This Device</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">This device is claimed by <strong>${deviceName}</strong>. The app will always load as them.</p>
+    <button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('${DEVICE_MEMBER_KEY}');showWhoOverlay();renderSettings();">Switch Device Owner</button>
+  </div>`;
+
   // Journal export
   html += `
   <div class="settings-card">
@@ -4150,6 +4176,38 @@ async function clearAllMyData() {
   showToast('All data cleared.');
   renderHome();
   renderSettings();
+}
+
+// ═══════════════════════════════════════
+//  DEVICE IDENTITY
+// ═══════════════════════════════════════
+function showWhoOverlay() {
+  const grid = document.getElementById('who-member-grid');
+  grid.innerHTML = MEMBERS.map(m => `
+    <div onclick="claimDevice('${m.id}')" style="
+      background:white;border-radius:20px;padding:24px 16px;cursor:pointer;
+      border:3px solid transparent;box-shadow:0 4px 16px rgba(0,0,0,0.08);
+      transition:border-color 0.15s,transform 0.15s;
+      display:flex;flex-direction:column;align-items:center;gap:8px;"
+      onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform=''">
+      <div style="font-size:44px;line-height:1;">${getMemberEmoji(m.id)}</div>
+      <div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;">${m.name}</div>
+    </div>`).join('');
+  document.getElementById('who-overlay').style.display = 'block';
+}
+
+function claimDevice(memberId) {
+  localStorage.setItem(DEVICE_MEMBER_KEY, memberId);
+  currentMember = memberId;
+  document.getElementById('who-overlay').style.display = 'none';
+  applyTheme(memberId);
+  // If this member hasn't onboarded yet, kick off onboarding
+  if (!state.onboarded?.[memberId]) {
+    startOnboarding(memberId);
+  } else {
+    renderHome();
+    showToast('Welcome back, ' + (MEMBERS.find(m=>m.id===memberId)?.name||memberId) + '! 👋');
+  }
 }
 
 // ═══════════════════════════════════════
@@ -4303,22 +4361,37 @@ async function init() {
   checkGistConfig();
   await loadFromGist();
   MEMBERS.forEach(m => ensureMember(m.id));
-  // Ensure state sub-objects exist after load
   if (!state.pins) state.pins = {};
   if (!state.themes) state.themes = {};
   if (!state.defaultTabs) state.defaultTabs = {};
   if (!state.memberColors) state.memberColors = {};
   if (!state.onboarded) state.onboarded = {};
-  applyTheme(currentMember);
-  buildMemberBar('home-member-bar');
-  buildMemberBar('shelf-member-bar');
-  buildMemberBar('timer-member-bar');
-  buildMemberBar('badges-member-bar');
-  buildMemberBar('journal-member-bar');
-  buildMemberBar('feed-member-bar');
-  renderHome();
-  // Fire theme intro after a short delay so the UI is painted first
-  setTimeout(fireThemeIntro, 400);
+
+  // Restore device identity from localStorage
+  const savedDevice = localStorage.getItem(DEVICE_MEMBER_KEY);
+  if (savedDevice && MEMBERS.find(m => m.id === savedDevice)) {
+    currentMember = savedDevice;
+    applyTheme(currentMember);
+    buildMemberBar('home-member-bar');
+    buildMemberBar('shelf-member-bar');
+    buildMemberBar('timer-member-bar');
+    buildMemberBar('badges-member-bar');
+    buildMemberBar('journal-member-bar');
+    buildMemberBar('feed-member-bar');
+    renderHome();
+    setTimeout(fireThemeIntro, 400);
+  } else {
+    // No device identity — show "Who are you?" first
+    applyTheme(currentMember);
+    buildMemberBar('home-member-bar');
+    buildMemberBar('shelf-member-bar');
+    buildMemberBar('timer-member-bar');
+    buildMemberBar('badges-member-bar');
+    buildMemberBar('journal-member-bar');
+    buildMemberBar('feed-member-bar');
+    renderHome();
+    showWhoOverlay();
+  }
 }
 
 init();
