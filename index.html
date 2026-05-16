@@ -1374,22 +1374,54 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
 
-  <!-- Family totals -->
-  <div class="card" style="padding:16px 20px;">
+  <!-- My Stats (individual) -->
+  <div class="card" style="padding:12px 16px;margin-bottom:10px;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;" id="my-stats-label">My Stats</div>
     <div style="display:flex;justify-content:space-around;text-align:center;">
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--sun);" id="fam-total-books">0</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Books Read</div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sky);" id="my-stat-reading">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Reading</div>
       </div>
       <div style="width:1px;background:#eee;"></div>
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--sky);" id="fam-total-mins">0m</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Minutes Read</div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sun);" id="my-stat-finished">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Finished</div>
       </div>
       <div style="width:1px;background:#eee;"></div>
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--coral);" id="fam-total-pts">0</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--coral);" id="my-stat-mins">0m</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Read</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--lavender);" id="my-stat-pts">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Family totals -->
+  <div class="card" style="padding:12px 16px;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">👨‍👩‍👧 Family Total</div>
+    <div style="display:flex;justify-content:space-around;text-align:center;">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sky);" id="fam-total-reading">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Reading</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sun);" id="fam-total-books">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Finished</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--coral);" id="fam-total-mins">0m</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Read</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--lavender);" id="fam-total-pts">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
       </div>
     </div>
   </div>
@@ -2151,16 +2183,33 @@ function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
 
+  // My stats (individual)
+  const myBooks   = state.books[currentMember] || [];
+  const mySess    = state.sessions[currentMember] || [];
+  const myReading  = myBooks.filter(b => b.status === 'reading').length;
+  const myFinished = myBooks.filter(b => b.status === 'finished').length;
+  const myMins     = mySess.reduce((a,s) => a + (s.minutes||0), 0);
+  const myPts      = getMemberPoints(currentMember);
+  const myName     = MEMBERS.find(m => m.id === currentMember)?.name || 'My';
+  document.getElementById('my-stats-label').textContent = myName + ''s Stats';
+  document.getElementById('my-stat-reading').textContent  = myReading;
+  document.getElementById('my-stat-finished').textContent = myFinished;
+  document.getElementById('my-stat-mins').textContent = myMins >= 60
+    ? Math.floor(myMins/60) + 'h ' + (myMins % 60) + 'm' : myMins + 'm';
+  document.getElementById('my-stat-pts').textContent = myPts;
+
   // Family totals
-  let famBooks = 0, famMins = 0, famPts = 0;
+  let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
     const sess = state.sessions[m.id] || [];
-    famBooks += books.filter(b => b.status === 'finished').length;
-    famMins  += sess.reduce((a,s) => a + (s.minutes||0), 0);
-    famPts   += getMemberPoints(m.id);
+    famReading += books.filter(b => b.status === 'reading').length;
+    famBooks   += books.filter(b => b.status === 'finished').length;
+    famMins    += sess.reduce((a,s) => a + (s.minutes||0), 0);
+    famPts     += getMemberPoints(m.id);
   });
+  document.getElementById('fam-total-reading').textContent = famReading;
   document.getElementById('fam-total-books').textContent = famBooks;
   document.getElementById('fam-total-mins').textContent = famMins >= 60
     ? Math.floor(famMins/60) + 'h ' + (famMins % 60) + 'm'
