@@ -150,7 +150,7 @@ body {
   gap: 10px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: 4px;
+  padding: 8px 0 4px;
   margin-bottom: 16px;
 }
 .member-select-bar::-webkit-scrollbar { display: none; }
@@ -745,19 +745,20 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px;
+  gap: 1px;
+  padding: 6px 2px;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 9px;
+  font-weight: 600;
   font-family: 'DM Sans', sans-serif;
   transition: color 0.2s;
+  min-width: 0;
 }
 .bottom-nav-item.active { color: var(--sun); }
-.bottom-nav-icon { font-size: 20px; }
+.bottom-nav-icon { font-size: 18px; }
 .main-content { padding-bottom: 80px; }
 
 /* ── DIVIDER ── */
@@ -1197,10 +1198,24 @@ body.theme-sparkle {
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
 
-  <!-- Leaderboard -->
-  <div class="card">
-    <div class="card-title">🏆 Family Leaderboard</div>
-    <div id="lb-list"></div>
+  <!-- Family totals -->
+  <div class="card" style="padding:16px 20px;">
+    <div style="display:flex;justify-content:space-around;text-align:center;">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--sun);" id="fam-total-books">0</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Books Read</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--sky);" id="fam-total-mins">0m</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Minutes Read</div>
+      </div>
+      <div style="width:1px;background:#eee;"></div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--coral);" id="fam-total-pts">0</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
+      </div>
+    </div>
   </div>
 
   <!-- Group milestone -->
@@ -1216,12 +1231,19 @@ body.theme-sparkle {
     </div>
   </div>
 
-  <!-- Social feed -->
+  <!-- Leaderboard -->
   <div class="card">
-    <div class="card-title">⚡ Family Feed</div>
-    <div id="activity-feed">
-      <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Start reading to see activity here!</div>
+    <div class="card-title">🏆 Family Leaderboard</div>
+    <div id="lb-list"></div>
+  </div>
+
+  <!-- Recent activity preview -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">⚡ Recent Activity</div>
+      <button class="btn btn-sky btn-sm" onclick="openTab('feed')">See All →</button>
     </div>
+    <div id="activity-feed"></div>
   </div>
 </div>
 
@@ -1346,6 +1368,27 @@ body.theme-sparkle {
   <div id="settings-content"></div>
 </div>
 
+<!-- FEED SECTION -->
+<div class="section" id="sec-feed">
+  <div class="member-select-bar" id="feed-member-bar"></div>
+
+  <!-- Message composer -->
+  <div class="card" style="padding:12px 16px;">
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea id="feed-input" class="form-select" placeholder="Say something to the family… use @name to mention someone" rows="2"
+        style="flex:1;resize:none;border-radius:12px;padding:10px 14px;font-size:14px;font-family:'DM Sans',sans-serif;line-height:1.4;"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();postFeedMessage();}"></textarea>
+      <button class="btn btn-primary" onclick="postFeedMessage()" style="padding:10px 16px;flex-shrink:0;">Send</button>
+    </div>
+  </div>
+
+  <!-- Full feed -->
+  <div class="card">
+    <div class="card-title">💬 Family Feed</div>
+    <div id="full-feed-list"></div>
+  </div>
+</div>
+
 </div><!-- end main-content -->
 
 <!-- BOTTOM NAV -->
@@ -1367,6 +1410,9 @@ body.theme-sparkle {
   </button>
   <button class="bottom-nav-item" onclick="openTab('journal')" id="nav-journal">
     <span class="bottom-nav-icon">📝</span>Journal
+  </button>
+  <button class="bottom-nav-item" onclick="openTab('feed')" id="nav-feed">
+    <span class="bottom-nav-icon">💬</span>Feed
   </button>
   <button class="bottom-nav-item" onclick="openTab('settings')" id="nav-settings">
     <span class="bottom-nav-icon">⚙️</span>Settings
@@ -1759,6 +1805,7 @@ function renderTab(tab) {
   if (tab === 'challenges') renderChallenges();
   if (tab === 'badges') renderBadges();
   if (tab === 'journal') renderJournal();
+  if (tab === 'feed') renderFeed();
   if (tab === 'settings') renderSettings();
 }
 
@@ -1824,9 +1871,37 @@ function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
 
+  // Family totals
+  let famBooks = 0, famMins = 0, famPts = 0;
+  MEMBERS.forEach(m => {
+    ensureMember(m.id);
+    const books = state.books[m.id] || [];
+    const sess = state.sessions[m.id] || [];
+    famBooks += books.filter(b => b.status === 'finished').length;
+    famMins  += sess.reduce((a,s) => a + (s.minutes||0), 0);
+    famPts   += getMemberPoints(m.id);
+  });
+  document.getElementById('fam-total-books').textContent = famBooks;
+  document.getElementById('fam-total-mins').textContent = famMins >= 60
+    ? Math.floor(famMins/60) + 'h ' + (famMins % 60) + 'm'
+    : famMins + 'm';
+  document.getElementById('fam-total-pts').textContent = famPts;
+
+  // Group progress
+  document.getElementById('group-progress-current').textContent = famPts + ' pts';
+  const nextGM = GROUP_MILESTONES.find(gm => !(state.groupMilestones||[]).includes(gm.id));
+  if (nextGM) {
+    const pct = Math.min(100, (famPts / nextGM.threshold) * 100);
+    document.getElementById('group-progress-fill').style.width = pct + '%';
+    document.getElementById('group-progress-next').textContent = `Next: ${nextGM.reward}`;
+    document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold + ' pts';
+  } else {
+    document.getElementById('group-progress-fill').style.width = '100%';
+    document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
+  }
+
   // Leaderboard
   const ranked = [...MEMBERS].map(m => {
-    ensureMember(m.id);
     const sess = state.sessions[m.id] || [];
     const totalMins = sess.reduce((a,s) => a + (s.minutes||0), 0);
     const pts = getMemberPoints(m.id);
@@ -1850,51 +1925,8 @@ function renderHome() {
       </div>
     </div>`).join('');
 
-  // Group progress
-  const allPts = MEMBERS.reduce((a,m) => a + getMemberPoints(m.id), 0);
-  document.getElementById('family-total-pts').textContent = allPts;
-  document.getElementById('group-progress-current').textContent = allPts + ' pts';
-  const nextGM = GROUP_MILESTONES.find(gm => !(state.groupMilestones||[]).includes(gm.id));
-  if (nextGM) {
-    const pct = Math.min(100, (allPts / nextGM.threshold) * 100);
-    document.getElementById('group-progress-fill').style.width = pct + '%';
-    document.getElementById('group-progress-next').textContent = `Next: ${nextGM.reward}`;
-    document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold + ' pts';
-  } else {
-    document.getElementById('group-progress-fill').style.width = '100%';
-    document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
-  }
-
-  // Social feed with reactions
-  const feed = document.getElementById('activity-feed');
-  const acts = (state.activity || []).slice(-20).reverse();
-  if (!acts.length) {
-    feed.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Start reading to see activity here!</div>`;
-  } else {
-    feed.innerHTML = acts.map(a => {
-      const actId = a.id || (a.ts + a.member);
-      const reactData = (state.reactions || {})[actId] || {};
-      const reactionBtns = REACTION_EMOJIS.map(e => {
-        const reactors = reactData[e] || [];
-        const count = reactors.length;
-        const mine = reactors.includes(currentMember);
-        return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
-      }).join('');
-      const memberObj = MEMBERS.find(m => m.id === a.member);
-      const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
-      return `
-        <div class="activity-item">
-          <div class="activity-main">
-            <div class="activity-emoji">${a.emoji}</div>
-            <div class="activity-body">
-              <div class="activity-text">${a.text}</div>
-              <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
-            </div>
-          </div>
-          <div class="reaction-row">${reactionBtns}</div>
-        </div>`;
-    }).join('');
-  }
+  // Recent activity preview (last 5 items)
+  renderActivityList('activity-feed', 5);
 
   // Countdown
   const start = new Date('2026-05-23');
@@ -1913,6 +1945,57 @@ function renderHome() {
   }
   document.getElementById('countdown-days').textContent = days;
   document.getElementById('countdown-label').textContent = label;
+}
+
+function renderActivityList(containerId, limit) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const acts = (state.activity || []).slice(limit ? -limit : 0).reverse();
+  if (!acts.length) {
+    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No activity yet — start reading!</div>`;
+    return;
+  }
+  el.innerHTML = acts.map(a => {
+    const actId = a.id || (a.ts + a.member);
+    const reactData = (state.reactions || {})[actId] || {};
+    const reactionBtns = REACTION_EMOJIS.map(e => {
+      const reactors = reactData[e] || [];
+      const count = reactors.length;
+      const mine = reactors.includes(currentMember);
+      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
+    }).join('');
+    const memberObj = MEMBERS.find(m => m.id === a.member);
+    const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
+    return `
+      <div class="activity-item">
+        <div class="activity-main">
+          <div class="activity-emoji">${a.emoji}</div>
+          <div class="activity-body">
+            <div class="activity-text">${a.text}</div>
+            <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
+          </div>
+        </div>
+        <div class="reaction-row">${reactionBtns}</div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  FEED (messaging + activity)
+// ═══════════════════════════════════════
+function renderFeed() {
+  buildMemberBar('feed-member-bar');
+  renderActivityList('full-feed-list', 0);
+}
+
+function postFeedMessage() {
+  const input = document.getElementById('feed-input');
+  const text = (input.value || '').trim();
+  if (!text) { showToast('Type something first!'); return; }
+  const member = MEMBERS.find(m => m.id === currentMember);
+  addActivity('💬', `${member.name}: ${text}`, currentMember);
+  input.value = '';
+  saveToGist().then(() => renderFeed());
 }
 
 // ═══════════════════════════════════════
@@ -2232,9 +2315,26 @@ function renderBadges() {
           <div style="font-weight:600;font-size:14px;">${v.note||'Library visit'}</div>
           <div class="library-date">${new Date(v.ts).toLocaleDateString()}</div>
         </div>
-        <div class="library-pts">+25 pts</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="library-pts">+25 pts</div>
+          <button onclick="deleteLibraryVisit('${v.id}')" title="Remove visit"
+            style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;line-height:1;">🗑️</button>
+        </div>
       </div>`).join('');
   }
+}
+
+function deleteLibraryVisit(visitId) {
+  const visits = state.library[currentMember] || [];
+  const visit = visits.find(v => v.id === visitId);
+  if (!visit) return;
+  if (!confirm('Remove this library visit and deduct 25 pts?')) return;
+  state.library[currentMember] = visits.filter(v => v.id !== visitId);
+  // Remove the matching session (same timestamp ±1 second, bookId = 'library')
+  state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(
+    s => !(s.bookId === 'library' && Math.abs((s.ts||0) - (visit.ts||0)) < 1000)
+  );
+  saveToGist().then(() => { renderBadges(); showToast('Library visit removed'); });
 }
 
 function awardBadge(memberId, badgeId) {
@@ -2654,7 +2754,7 @@ function pickAvatar(av) {
     }
   });
   // Re-render the bars
-  ['home-member-bar','shelf-member-bar','timer-member-bar','badges-member-bar','journal-member-bar'].forEach(id => {
+  ['home-member-bar','shelf-member-bar','timer-member-bar','badges-member-bar','journal-member-bar','feed-member-bar'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.innerHTML) buildMemberBar(id);
   });
@@ -3038,6 +3138,7 @@ async function init() {
   buildMemberBar('timer-member-bar');
   buildMemberBar('badges-member-bar');
   buildMemberBar('journal-member-bar');
+  buildMemberBar('feed-member-bar');
   renderHome();
 }
 
