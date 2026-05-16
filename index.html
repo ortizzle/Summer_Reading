@@ -3228,8 +3228,78 @@ async function fetchAndStoreSummary(book) {
   } catch(e) {}
 }
 
-function startScanner() {
-  showToast('Camera scanner — enter ISBN manually below for now');
+let _scannerStream = null;
+let _scannerRAF = null;
+let _scannerActive = false;
+
+async function startScanner() {
+  if (_scannerActive) { stopScanner(); return; }
+
+  if (!('BarcodeDetector' in window)) {
+    showToast('Barcode scanning not supported in this browser — enter ISBN manually');
+    return;
+  }
+
+  const label = document.getElementById('scanner-label');
+  const video = document.getElementById('scanner-video');
+  const scanLine = document.getElementById('scan-line');
+
+  label.textContent = 'Starting camera…';
+
+  try {
+    _scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+  } catch (e) {
+    label.textContent = '📷 Scan ISBN Barcode';
+    showToast('Camera access denied — enter ISBN manually');
+    return;
+  }
+
+  video.srcObject = _scannerStream;
+  video.style.display = 'block';
+  scanLine.style.display = 'block';
+  label.textContent = 'Point at ISBN barcode…';
+  _scannerActive = true;
+
+  // Change tap-to-stop
+  document.getElementById('scanner-area').onclick = stopScanner;
+
+  const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+
+  async function detect() {
+    if (!_scannerActive) return;
+    try {
+      const codes = await detector.detect(video);
+      if (codes.length > 0) {
+        const raw = codes[0].rawValue.replace(/\D/g, '');
+        if (raw.length >= 10) {
+          stopScanner();
+          document.getElementById('isbn-input').value = raw;
+          showToast('📷 Barcode detected! Looking up…');
+          lookupISBN();
+          return;
+        }
+      }
+    } catch (e) {}
+    _scannerRAF = requestAnimationFrame(detect);
+  }
+
+  video.addEventListener('loadedmetadata', () => { _scannerRAF = requestAnimationFrame(detect); }, { once: true });
+}
+
+function stopScanner() {
+  _scannerActive = false;
+  if (_scannerRAF) { cancelAnimationFrame(_scannerRAF); _scannerRAF = null; }
+  if (_scannerStream) { _scannerStream.getTracks().forEach(t => t.stop()); _scannerStream = null; }
+  const video = document.getElementById('scanner-video');
+  if (video) { video.srcObject = null; video.style.display = 'none'; }
+  const scanLine = document.getElementById('scan-line');
+  if (scanLine) scanLine.style.display = 'none';
+  const label = document.getElementById('scanner-label');
+  if (label) label.textContent = '📷 Scan ISBN Barcode';
+  const area = document.getElementById('scanner-area');
+  if (area) area.onclick = startScanner;
 }
 
 // ═══════════════════════════════════════
@@ -3308,7 +3378,10 @@ function clearBookForm() {
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'add-book-modal') stopScanner();
+}
 
 // Close modals on backdrop click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
