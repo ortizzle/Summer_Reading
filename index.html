@@ -852,6 +852,258 @@ textarea.form-input { resize: none; }
 
 /* ── PRIZE CHIP (on milestone cards) ── */
 .milestone-reward { font-size: 11px; font-weight: 700; color: var(--sun); background: var(--sand); padding: 4px 10px; border-radius: 20px; max-width: 160px; text-align: center; line-height: 1.3; }
+
+/* ── SPARKLE THEME ── */
+body.theme-sparkle {
+  --sun: #9B5DE5;
+  --sky: #F15BB5;
+  --lemon: #FEE440;
+  --coral: #FB5607;
+  --cream: #FDF4FF;
+  --sand: #F5E6FF;
+}
+.theme-sparkle .app-header {
+  background: linear-gradient(135deg, #6A0DAD 0%, #C71585 50%, #FFD700 100%);
+}
+.theme-sparkle .app-header::before {
+  content: '⭐';
+}
+.theme-sparkle .stat-number { color: var(--sun); }
+.theme-sparkle .group-progress-card {
+  background: linear-gradient(135deg, #4B0082, #8B008B);
+}
+.theme-sparkle .nav-tab.active { background: #9B5DE5; }
+.theme-sparkle .bottom-nav-item.active { color: #9B5DE5; }
+.theme-sparkle .btn-primary { background: #9B5DE5; }
+.theme-sparkle .btn-sky { background: #F15BB5; }
+.theme-sparkle .bingo-cell.completed {
+  background: linear-gradient(135deg, #9B5DE5, #F15BB5);
+  border-color: #9B5DE5;
+}
+.theme-sparkle .progress-fill { background: #9B5DE5; }
+.theme-sparkle .milestone-item.unlocked {
+  background: linear-gradient(135deg, #F5E6FF, #FFE8F5);
+  border-color: #9B5DE5;
+}
+.theme-sparkle .card-title { color: #6A0DAD; }
+@keyframes sparkleShimmer {
+  0%   { opacity: 0.15; transform: scaleX(0.8); }
+  50%  { opacity: 0.35; transform: scaleX(1.1); }
+  100% { opacity: 0.15; transform: scaleX(0.8); }
+}
+.theme-sparkle .app-header::after {
+  animation: sparkleShimmer 2s ease-in-out infinite;
+}
+
+/* ── SPARKLE PARTICLES ── */
+.sparkle-particle {
+  position: fixed;
+  bottom: 80px;
+  font-size: 22px;
+  pointer-events: none;
+  z-index: 9990;
+  animation: sparkleFloat 1.6s ease-out forwards;
+}
+@keyframes sparkleFloat {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-60vh) rotate(360deg); opacity: 0; }
+}
+
+/* ── SETTINGS ── */
+.settings-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 14px;
+}
+.settings-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: block;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.user-row:last-child { border-bottom: none; }
+.user-row-avatar {
+  font-size: 26px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.user-row-name { font-weight: 600; font-size: 14px; flex: 1; }
+.user-row-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.pin-status-set {
+  font-size: 10px;
+  font-weight: 700;
+  background: #E8F5E9;
+  color: #2E7D32;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.pin-status-none {
+  font-size: 10px;
+  font-weight: 700;
+  background: #f0f0f0;
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 0;
+}
+.connection-status::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.connection-status.ok { color: #2E7D32; }
+.connection-status.ok::before { background: #4CAF50; }
+.connection-status.fail { color: #C62828; }
+.connection-status.fail::before { background: #EF5350; }
+.theme-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: 50px;
+  overflow: hidden;
+  border: 2px solid #eee;
+  width: fit-content;
+}
+.theme-toggle-btn {
+  padding: 8px 16px;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.theme-toggle-btn.active {
+  background: var(--sun);
+  color: white;
+}
+
+/* ── PIN OVERLAY ── */
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.pin-overlay.open { display: flex; }
+.pin-card {
+  background: white;
+  border-radius: 28px;
+  padding: 32px 24px 24px;
+  width: min(360px, 92vw);
+  text-align: center;
+}
+.pin-avatar {
+  font-size: 52px;
+  margin-bottom: 6px;
+}
+.pin-member-name {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.pin-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.pin-dots {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  background: transparent;
+  transition: all 0.15s;
+}
+.pin-dot.filled {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.pin-dot.error {
+  background: #EF5350;
+  border-color: #EF5350;
+}
+.pin-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pin-key {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  background: #f5f5f5;
+  color: var(--text);
+  transition: all 0.15s;
+  max-width: 72px;
+  margin: 0 auto;
+  width: 100%;
+}
+.pin-key:active { transform: scale(0.88); background: #e0e0e0; }
+.pin-key.pin-zero { grid-column: 2; }
+.pin-key.pin-back { background: transparent; font-size: 18px; }
+.pin-cancel-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 50px;
+  border: 2px solid #eee;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+@keyframes pinShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-10px); }
+  40%      { transform: translateX(10px); }
+  60%      { transform: translateX(-8px); }
+  80%      { transform: translateX(8px); }
+}
+.pin-shake { animation: pinShake 0.4s ease; }
 </style>
 </head>
 <body>
@@ -1066,6 +1318,11 @@ textarea.form-input { resize: none; }
   </div>
 </div>
 
+<!-- SETTINGS SECTION -->
+<div class="section" id="sec-settings">
+  <div id="settings-content"></div>
+</div>
+
 </div><!-- end main-content -->
 
 <!-- BOTTOM NAV -->
@@ -1087,6 +1344,9 @@ textarea.form-input { resize: none; }
   </button>
   <button class="bottom-nav-item" onclick="openTab('journal')" id="nav-journal">
     <span class="bottom-nav-icon">📝</span>Journal
+  </button>
+  <button class="bottom-nav-item" onclick="openTab('settings')" id="nav-settings">
+    <span class="bottom-nav-icon">⚙️</span>Settings
   </button>
 </div>
 
@@ -1210,6 +1470,66 @@ textarea.form-input { resize: none; }
   </div>
 </div>
 
+<!-- PIN Overlay -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-card">
+    <div class="pin-avatar" id="pin-avatar">👤</div>
+    <div class="pin-member-name" id="pin-member-name">Member</div>
+    <div class="pin-subtitle">Enter PIN</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pin-dot-0"></div>
+      <div class="pin-dot" id="pin-dot-1"></div>
+      <div class="pin-dot" id="pin-dot-2"></div>
+      <div class="pin-dot" id="pin-dot-3"></div>
+    </div>
+    <div class="pin-numpad" id="pin-numpad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key pin-zero" onclick="pinKey('0')">0</button>
+      <button class="pin-key pin-back" onclick="pinBack()">⌫</button>
+    </div>
+    <button class="pin-cancel-btn" onclick="closePinOverlay()">Cancel</button>
+  </div>
+</div>
+
+<!-- Set PIN Modal -->
+<div class="modal-overlay" id="set-pin-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="set-pin-title">🔒 Set a PIN</div>
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);" id="set-pin-step-label">Step 1: Enter new PIN</div>
+    </div>
+    <div class="pin-dots" style="justify-content:center;margin-bottom:20px;" id="set-pin-dots">
+      <div class="pin-dot" id="sp-dot-0"></div>
+      <div class="pin-dot" id="sp-dot-1"></div>
+      <div class="pin-dot" id="sp-dot-2"></div>
+      <div class="pin-dot" id="sp-dot-3"></div>
+    </div>
+    <div class="pin-numpad" style="max-width:280px;margin:0 auto 14px;">
+      <button class="pin-key" onclick="setPinKey('1')">1</button>
+      <button class="pin-key" onclick="setPinKey('2')">2</button>
+      <button class="pin-key" onclick="setPinKey('3')">3</button>
+      <button class="pin-key" onclick="setPinKey('4')">4</button>
+      <button class="pin-key" onclick="setPinKey('5')">5</button>
+      <button class="pin-key" onclick="setPinKey('6')">6</button>
+      <button class="pin-key" onclick="setPinKey('7')">7</button>
+      <button class="pin-key" onclick="setPinKey('8')">8</button>
+      <button class="pin-key" onclick="setPinKey('9')">9</button>
+      <button class="pin-key pin-zero" onclick="setPinKey('0')">0</button>
+      <button class="pin-key pin-back" onclick="setPinBack()">⌫</button>
+    </div>
+    <button class="btn btn-secondary btn-full" onclick="closeModal('set-pin-modal');resetSetPin()">Cancel</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 //  DATA
@@ -1320,6 +1640,7 @@ const GROUP_MILESTONES = [
 // ═══════════════════════════════════════
 const GIST_TOKEN_KEY = 'ortizzle_gist_token';
 const GIST_ID_KEY = 'ortizzle_gist_id';
+const ADMIN_ID = 'chris';
 let state = {
   books: {},         // memberId -> [book]
   sessions: {},      // memberId -> [session]
@@ -1330,7 +1651,10 @@ let state = {
   milestones: {},    // memberId -> [milestoneId]
   groupMilestones: [],
   activity: [],
-  avatars: {}        // memberId -> emoji string
+  avatars: {},       // memberId -> emoji string
+  pins: {},          // memberId -> '1234'
+  themes: {},        // memberId -> 'standard' | 'sparkle'
+  defaultTabs: {}    // memberId -> tab name
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
@@ -1407,6 +1731,11 @@ function renderTab(tab) {
   if (tab === 'challenges') renderChallenges();
   if (tab === 'badges') renderBadges();
   if (tab === 'journal') renderJournal();
+  if (tab === 'settings') renderSettings();
+}
+
+function currentDefaultTab() {
+  return state.defaultTabs[currentMember] || 'home';
 }
 
 // ═══════════════════════════════════════
@@ -1428,6 +1757,17 @@ function buildMemberBar(containerId) {
 }
 
 function selectMember(id, barId) {
+  // If target has a PIN, show overlay first
+  const pin = (state.pins || {})[id];
+  if (pin) {
+    showPinOverlay(id);
+    return;
+  }
+  doSelectMember(id);
+}
+
+function doSelectMember(id) {
+  const prevMember = currentMember;
   currentMember = id;
   ensureMember(id);
   document.querySelectorAll('.member-select-bar').forEach(bar => {
@@ -1437,7 +1777,16 @@ function selectMember(id, barId) {
       av.style.borderColor = MEMBERS[i].id === id ? MEMBERS[i].color : '#eee';
     });
   });
-  renderTab(document.querySelector('.section.active').id.replace('sec-',''));
+  const wasSparkle = getThemeFor(prevMember) === 'sparkle';
+  applyTheme(id);
+  const isNowSparkle = getThemeFor(id) === 'sparkle';
+  if (isNowSparkle && !wasSparkle) fireSparkleParticles();
+  const activeTab = document.querySelector('.section.active').id.replace('sec-','');
+  if (activeTab === 'settings') {
+    renderSettings();
+  } else {
+    renderTab(activeTab);
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2272,22 +2621,341 @@ function closeMagicBanner() {
 }
 
 // ═══════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════
+const DEFAULT_SPARKLE_MEMBERS = ['sedona','river','hani'];
+
+function getThemeFor(memberId) {
+  if (state.themes && state.themes[memberId]) return state.themes[memberId];
+  return DEFAULT_SPARKLE_MEMBERS.includes(memberId) ? 'sparkle' : 'standard';
+}
+
+function applyTheme(memberId) {
+  const theme = getThemeFor(memberId);
+  document.body.classList.toggle('theme-sparkle', theme === 'sparkle');
+}
+
+function fireSparkleParticles() {
+  const emojis = ['⭐','✨','🌟','💫','⭐','✨','🌟','💫','⭐','✨','🌟','💫','⭐','✨','💫'];
+  emojis.forEach((em, i) => {
+    const el = document.createElement('div');
+    el.className = 'sparkle-particle';
+    el.textContent = em;
+    el.style.left = (5 + Math.random() * 90) + 'vw';
+    el.style.animationDelay = (i * 0.08) + 's';
+    el.style.animationDuration = (1.2 + Math.random() * 0.8) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  });
+}
+
+// ═══════════════════════════════════════
+//  PIN SYSTEM
+// ═══════════════════════════════════════
+let _pinTarget = null;
+let _pinBuffer = '';
+
+function showPinOverlay(memberId) {
+  _pinTarget = memberId;
+  _pinBuffer = '';
+  const m = MEMBERS.find(x => x.id === memberId);
+  document.getElementById('pin-avatar').textContent = getMemberEmoji(memberId);
+  document.getElementById('pin-member-name').textContent = m ? m.name : memberId;
+  updatePinDots('pin-dot', 0, false);
+  document.getElementById('pin-overlay').classList.add('open');
+}
+
+function closePinOverlay() {
+  document.getElementById('pin-overlay').classList.remove('open');
+  _pinTarget = null;
+  _pinBuffer = '';
+}
+
+function updatePinDots(prefix, count, error) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(prefix + '-' + i);
+    if (!dot) continue;
+    dot.classList.toggle('filled', i < count && !error);
+    dot.classList.toggle('error', error);
+  }
+}
+
+function pinKey(digit) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += digit;
+  updatePinDots('pin-dot', _pinBuffer.length, false);
+  if (_pinBuffer.length === 4) {
+    const correct = (state.pins || {})[_pinTarget];
+    if (_pinBuffer === correct) {
+      closePinOverlay();
+      doSelectMember(_pinTarget);
+    } else {
+      updatePinDots('pin-dot', 4, true);
+      document.querySelector('.pin-card').classList.add('pin-shake');
+      setTimeout(() => {
+        document.querySelector('.pin-card').classList.remove('pin-shake');
+        _pinBuffer = '';
+        updatePinDots('pin-dot', 0, false);
+      }, 500);
+    }
+  }
+}
+
+function pinBack() {
+  if (_pinBuffer.length > 0) {
+    _pinBuffer = _pinBuffer.slice(0, -1);
+    updatePinDots('pin-dot', _pinBuffer.length, false);
+  }
+}
+
+// Set PIN flow
+let _setPinTarget = null;
+let _setPinStep = 1; // 1=enter, 2=confirm
+let _setPinFirst = '';
+let _setPinBuffer = '';
+
+function openSetPin(memberId) {
+  _setPinTarget = memberId;
+  _setPinStep = 1;
+  _setPinFirst = '';
+  _setPinBuffer = '';
+  const m = MEMBERS.find(x => x.id === memberId);
+  document.getElementById('set-pin-title').textContent = '🔒 Set a PIN for ' + (m ? m.name : memberId);
+  document.getElementById('set-pin-step-label').textContent = 'Step 1: Enter new PIN';
+  updatePinDots('sp-dot', 0, false);
+  openModal('set-pin-modal');
+}
+
+function resetSetPin() {
+  _setPinTarget = null;
+  _setPinStep = 1;
+  _setPinFirst = '';
+  _setPinBuffer = '';
+}
+
+function setPinKey(digit) {
+  if (_setPinBuffer.length >= 4) return;
+  _setPinBuffer += digit;
+  updatePinDots('sp-dot', _setPinBuffer.length, false);
+  if (_setPinBuffer.length === 4) {
+    if (_setPinStep === 1) {
+      _setPinFirst = _setPinBuffer;
+      _setPinBuffer = '';
+      _setPinStep = 2;
+      document.getElementById('set-pin-step-label').textContent = 'Step 2: Confirm PIN';
+      updatePinDots('sp-dot', 0, false);
+    } else {
+      if (_setPinBuffer === _setPinFirst) {
+        if (!state.pins) state.pins = {};
+        state.pins[_setPinTarget] = _setPinBuffer;
+        saveToGist();
+        showToast('PIN set! 🔒');
+        closeModal('set-pin-modal');
+        resetSetPin();
+        renderSettings();
+      } else {
+        updatePinDots('sp-dot', 4, true);
+        document.querySelector('#set-pin-modal .pin-numpad').closest('.modal').style.animation = 'pinShake 0.4s ease';
+        setTimeout(() => {
+          document.querySelector('#set-pin-modal .pin-numpad').closest('.modal').style.animation = '';
+          _setPinBuffer = '';
+          _setPinStep = 1;
+          _setPinFirst = '';
+          document.getElementById('set-pin-step-label').textContent = 'PINs didn\'t match — try again';
+          updatePinDots('sp-dot', 0, false);
+        }, 500);
+      }
+    }
+  }
+}
+
+function setPinBack() {
+  if (_setPinBuffer.length > 0) {
+    _setPinBuffer = _setPinBuffer.slice(0, -1);
+    updatePinDots('sp-dot', _setPinBuffer.length, false);
+  }
+}
+
+function clearMemberPin(memberId) {
+  if (!confirm('Clear PIN for ' + (MEMBERS.find(m=>m.id===memberId)?.name||memberId) + '?')) return;
+  if (state.pins) delete state.pins[memberId];
+  saveToGist();
+  showToast('PIN cleared');
+  renderSettings();
+}
+
+// ═══════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════
+function renderSettings() {
+  const el = document.getElementById('settings-content');
+  const isAdmin = currentMember === ADMIN_ID;
+  const ALL_TABS = ['home','shelf','timer','challenges','badges','journal'];
+  const TAB_LABELS = { home:'🏠 Home', shelf:'📚 Shelf', timer:'⏱ Timer', challenges:'🎯 Goals', badges:'🎖 Badges', journal:'📝 Journal' };
+
+  let html = '';
+
+  if (isAdmin) {
+    // Gist config card
+    const gistId = localStorage.getItem(GIST_ID_KEY) || '';
+    const token   = localStorage.getItem(GIST_TOKEN_KEY) || '';
+    html += `
+    <div class="settings-card">
+      <div class="card-title">☁️ Gist Sync</div>
+      <span class="settings-label">Gist ID</span>
+      <input class="form-input" id="settings-gist-id" value="${gistId}" placeholder="GitHub Gist ID" style="margin-bottom:10px;">
+      <span class="settings-label">Personal Access Token</span>
+      <input class="form-input" id="settings-gist-token" type="password" value="${token}" placeholder="ghp_..." style="margin-bottom:10px;">
+      <div id="gist-connection-status"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" onclick="testGistConnection()">Test Connection</button>
+        <button class="btn btn-primary btn-sm" onclick="saveGistSettings()">Save</button>
+      </div>
+    </div>`;
+
+    // The Crew card
+    html += `<div class="settings-card"><div class="card-title">👨‍👩‍👧 The Crew</div>`;
+    MEMBERS.forEach(m => {
+      const hasPin = !!(state.pins && state.pins[m.id]);
+      const av = getMemberEmoji(m.id);
+      const pinBadge = hasPin
+        ? `<span class="pin-status-set">PIN set ✓</span>`
+        : `<span class="pin-status-none">No PIN</span>`;
+      let actions = '';
+      if (m.id !== ADMIN_ID) {
+        actions = hasPin
+          ? `<button class="btn btn-secondary btn-sm" onclick="openSetPin('${m.id}')">Change PIN</button>
+             <button class="btn btn-danger btn-sm" onclick="clearMemberPin('${m.id}')">Clear</button>`
+          : `<button class="btn btn-sky btn-sm" onclick="openSetPin('${m.id}')">Set PIN</button>`;
+      }
+      html += `
+      <div class="user-row">
+        <div class="user-row-avatar" style="background:${m.color}20;">${av}</div>
+        <div class="user-row-name">${m.name}</div>
+        ${pinBadge}
+        <div class="user-row-actions">${actions}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // My Personalization card (all users)
+  const myTheme = getThemeFor(currentMember);
+  const myDefaultTab = state.defaultTabs[currentMember] || 'home';
+  html += `
+  <div class="settings-card">
+    <div class="card-title">🎨 My Personalization</div>
+    <span class="settings-label">Default Tab</span>
+    <select class="form-select" id="settings-default-tab" style="margin-bottom:14px;" onchange="saveDefaultTab(this.value)">
+      ${ALL_TABS.map(t => `<option value="${t}" ${myDefaultTab===t?'selected':''}>${TAB_LABELS[t]}</option>`).join('')}
+    </select>
+    <span class="settings-label">Theme</span>
+    <div class="theme-toggle">
+      <button class="theme-toggle-btn ${myTheme==='standard'?'active':''}" onclick="setTheme('standard')">Standard</button>
+      <button class="theme-toggle-btn ${myTheme==='sparkle'?'active':''}" onclick="setTheme('sparkle')">✨ Sparkle</button>
+    </div>
+  </div>`;
+
+  // My Profile card (non-admin only, or everyone can see)
+  const m = MEMBERS.find(x => x.id === currentMember);
+  const hasMyPin = !!(state.pins && state.pins[currentMember]);
+  html += `
+  <div class="settings-card">
+    <div class="card-title">👤 My Profile</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+      <div style="font-size:48px;">${getMemberEmoji(currentMember)}</div>
+      <div>
+        <div style="font-weight:700;font-size:18px;">${m ? m.name : currentMember}</div>
+        <div style="font-size:12px;color:var(--muted);">Current member</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      ${hasMyPin
+        ? `<button class="btn btn-secondary btn-sm" onclick="openSetPin('${currentMember}')">Change My PIN</button>
+           <button class="btn btn-danger btn-sm" onclick="clearMemberPin('${currentMember}')">Clear PIN</button>`
+        : `<button class="btn btn-sky btn-sm" onclick="openSetPin('${currentMember}')">Set My PIN</button>`
+      }
+    </div>
+  </div>`;
+
+  // Danger zone
+  html += `
+  <div class="settings-card" style="border:2px solid #FFCDD2;">
+    <div class="card-title" style="color:#C62828;">⚠️ Danger Zone</div>
+    <button class="btn btn-danger btn-sm" onclick="clearAllMyData()">Clear All My Data</button>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+async function testGistConnection() {
+  const id = document.getElementById('settings-gist-id').value.trim();
+  const tok = document.getElementById('settings-gist-token').value.trim();
+  const statusEl = document.getElementById('gist-connection-status');
+  statusEl.innerHTML = '<span class="connection-status" style="color:var(--muted);">Testing…</span>';
+  try {
+    const r = await fetch(`https://api.github.com/gists/${id}`, {
+      headers: { Authorization: `token ${tok}` }
+    });
+    if (r.ok) {
+      statusEl.innerHTML = '<span class="connection-status ok">Connected</span>';
+    } else {
+      statusEl.innerHTML = '<span class="connection-status fail">Failed (' + r.status + ')</span>';
+    }
+  } catch(e) {
+    statusEl.innerHTML = '<span class="connection-status fail">Network error</span>';
+  }
+}
+
+function saveGistSettings() {
+  const id = document.getElementById('settings-gist-id').value.trim();
+  const tok = document.getElementById('settings-gist-token').value.trim();
+  localStorage.setItem(GIST_ID_KEY, id);
+  localStorage.setItem(GIST_TOKEN_KEY, tok);
+  showToast('Gist settings saved! Syncing…');
+  loadFromGist().then(() => renderHome());
+}
+
+function saveDefaultTab(tab) {
+  if (!state.defaultTabs) state.defaultTabs = {};
+  state.defaultTabs[currentMember] = tab;
+  saveToGist();
+  showToast('Default tab saved!');
+}
+
+function setTheme(theme) {
+  if (!state.themes) state.themes = {};
+  const wasSparkle = getThemeFor(currentMember) === 'sparkle';
+  state.themes[currentMember] = theme;
+  saveToGist();
+  applyTheme(currentMember);
+  const isNowSparkle = theme === 'sparkle';
+  if (isNowSparkle && !wasSparkle) fireSparkleParticles();
+  renderSettings();
+}
+
+function clearAllMyData() {
+  if (!confirm('Clear ALL your data (books, sessions, journal, badges)? This cannot be undone.')) return;
+  const id = currentMember;
+  state.books[id] = [];
+  state.sessions[id] = [];
+  state.badges[id] = [];
+  state.journal[id] = [];
+  state.library[id] = [];
+  state.milestones[id] = [];
+  saveToGist();
+  showToast('Your data has been cleared.');
+  renderSettings();
+}
+
+// ═══════════════════════════════════════
 //  SETUP / GIST CONFIG
 // ═══════════════════════════════════════
 function checkGistConfig() {
   const token = localStorage.getItem(GIST_TOKEN_KEY);
   const gistId = localStorage.getItem(GIST_ID_KEY);
   if (!token || !gistId) {
-    const configure = confirm('📖 Ortizzle Reading\n\nTo sync across family devices, you\'ll need your GitHub Gist token and Gist ID. Configure now?\n\n(Cancel to use local-only mode)');
-    if (configure) {
-      const t = prompt('GitHub Personal Access Token (with gist scope):');
-      const g = prompt('Gist ID (from your existing Howlers setup):');
-      if (t && g) {
-        localStorage.setItem(GIST_TOKEN_KEY, t);
-        localStorage.setItem(GIST_ID_KEY, g);
-        showToast('Gist configured! Syncing...');
-      }
-    }
+    setTimeout(() => showToast('⚙️ Open Settings to connect your Gist'), 800);
   }
 }
 
@@ -2298,6 +2966,11 @@ async function init() {
   checkGistConfig();
   await loadFromGist();
   MEMBERS.forEach(m => ensureMember(m.id));
+  // Ensure state sub-objects exist after load
+  if (!state.pins) state.pins = {};
+  if (!state.themes) state.themes = {};
+  if (!state.defaultTabs) state.defaultTabs = {};
+  applyTheme(currentMember);
   buildMemberBar('home-member-bar');
   buildMemberBar('shelf-member-bar');
   buildMemberBar('timer-member-bar');
