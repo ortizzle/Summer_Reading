@@ -982,6 +982,53 @@ body.theme-bubbles .bingo-cell.completed {
 }
 body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
 
+/* ── DARK THEME ── */
+body.theme-dark {
+  --cream: #1A1A2E;
+  --sand: #16213E;
+  --text: #E8E8E8;
+  --muted: #888;
+  --white: #0F3460;
+  --navy: #E8E8E8;
+  --card-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+body.theme-dark .app-header {
+  background: linear-gradient(135deg, #0F3460 0%, #16213E 100%);
+}
+body.theme-dark .app-header::before { content: '🌙'; }
+body.theme-dark .bottom-nav { background: #0F3460; border-top: 1px solid #1a2a4a; }
+body.theme-dark .book-card, body.theme-dark .settings-card, body.theme-dark .milestone-item, body.theme-dark .journal-entry, body.theme-dark .activity-item, body.theme-dark .modal { background: #16213E; color: var(--text); }
+body.theme-dark .form-select, body.theme-dark .form-input { background: #0F3460; color: var(--text); border-color: #1a2a4a; }
+body.theme-dark .shelf-front, body.theme-dark .shelf-back { background: #16213E; }
+body.theme-dark .nav-tab.active { background: var(--member-accent, #4ECDC4); }
+body.theme-dark .bottom-nav-item.active { color: var(--member-accent, #4ECDC4); }
+body.theme-dark .btn-primary { background: var(--member-accent, #4ECDC4); }
+body.theme-dark .stat-card { background: #16213E; }
+body.theme-dark .group-progress-card { background: linear-gradient(135deg, #0F3460, #16213E); }
+body.theme-dark .bingo-cell { background: #16213E; border-color: #1a2a4a; color: var(--text); }
+body.theme-dark .sys-item { background: #0F3460; }
+body.theme-dark .msg-bubble { background: #16213E; }
+body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
+
+/* ── SHELF FLIP CARDS ── */
+.shelf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px; }
+.shelf-flip-card { perspective: 800px; cursor: pointer; }
+.shelf-flip-inner { position: relative; width: 100%; padding-top: 160%; transition: transform 0.5s; transform-style: preserve-3d; }
+.shelf-flip-card.flipped .shelf-flip-inner { transform: rotateY(180deg); }
+.shelf-face { position: absolute; top:0; left:0; width:100%; height:100%; backface-visibility: hidden; border-radius: 16px; overflow: hidden; }
+.shelf-front { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.shelf-back { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: rotateY(180deg); padding: 14px; display: flex; flex-direction: column; }
+.shelf-cover { width: 100%; height: 58%; object-fit: cover; display: block; }
+.shelf-cover-fallback { width: 100%; height: 58%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+.shelf-front-info { padding: 10px; }
+.shelf-card-title { font-size: 13px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shelf-card-author { font-size: 11px; color: var(--muted); margin: 2px 0 6px; }
+.shelf-card-time { font-size: 10px; color: var(--muted); }
+.shelf-back-stars { display: flex; gap: 2px; font-size: 20px; color: var(--sun); margin: 6px 0; }
+.shelf-back-stars span { cursor: pointer; }
+.shelf-back-summary { font-size: 11px; color: var(--text); line-height: 1.5; flex: 1; overflow: hidden; }
+.shelf-back-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
 /* ── COLOR SWATCHES ── */
 .color-palette-grid {
   display: flex;
@@ -1381,8 +1428,8 @@ body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
   <div class="member-select-bar" id="shelf-member-bar"></div>
   <button class="btn btn-primary btn-full" onclick="openModal('add-book-modal')" style="margin-bottom:14px;">+ Add a Book</button>
 
-  <div class="card">
-    <div class="card-title">📚 My Books</div>
+  <div class="card" style="padding:18px 0 0;">
+    <div class="card-title" style="padding:0 18px;">📚 My Books</div>
     <div id="shelf-book-list">
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>
     </div>
@@ -1483,7 +1530,8 @@ body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
   <div class="card" id="bingo-card-container">
     <div class="card-title" id="bingo-card-title">🎲 Reading Bingo</div>
     <div class="bingo-grid" id="bingo-grid"></div>
-    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+    <div id="bingo-wins-display" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;"></div>
+    <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:12px;color:var(--muted);" id="bingo-count-label">0 squares completed</span>
       <button class="btn btn-sky btn-sm" id="bingo-line-check" onclick="checkBingo()">Check Lines</button>
     </div>
@@ -1687,6 +1735,16 @@ body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
       <label class="form-label">Your Thoughts</label>
       <textarea class="form-input" id="journal-text" rows="6" placeholder="What are you thinking about this book? Favorite part? Questions? Feelings?"></textarea>
     </div>
+    <div class="form-group">
+      <label class="form-label">Book Rating (optional)</label>
+      <div id="journal-star-picker" style="display:flex;gap:8px;font-size:28px;color:#ccc;cursor:pointer;margin-top:4px;">
+        <span onclick="pickJournalStar(1)" id="jstar-1">☆</span>
+        <span onclick="pickJournalStar(2)" id="jstar-2">☆</span>
+        <span onclick="pickJournalStar(3)" id="jstar-3">☆</span>
+        <span onclick="pickJournalStar(4)" id="jstar-4">☆</span>
+        <span onclick="pickJournalStar(5)" id="jstar-5">☆</span>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('journal-modal')">Cancel</button>
       <button class="btn btn-primary" style="flex:1;" onclick="saveJournalEntry()">Save Entry</button>
@@ -1781,6 +1839,20 @@ body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
       <button class="pin-key pin-back" onclick="setPinBack()">⌫</button>
     </div>
     <button class="btn btn-secondary btn-full" onclick="closeModal('set-pin-modal');resetSetPin()">Cancel</button>
+  </div>
+</div>
+
+<!-- Onboarding Overlay -->
+<div id="onboard-overlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:10000;overflow:auto;padding:30px 20px 100px;">
+  <div style="max-width:400px;margin:0 auto;">
+    <div style="font-size:48px;text-align:center;margin-bottom:8px;" id="onboard-emoji">👋</div>
+    <h2 style="font-family:'Fraunces',serif;text-align:center;margin-bottom:4px;" id="onboard-title">Welcome!</h2>
+    <p style="text-align:center;color:var(--muted);font-size:14px;margin-bottom:24px;" id="onboard-subtitle"></p>
+    <div id="onboard-body"></div>
+    <div style="display:flex;gap:10px;margin-top:24px;">
+      <button class="btn btn-secondary" id="onboard-skip" onclick="onboardSkip()" style="display:none;">Skip</button>
+      <button class="btn btn-primary" style="flex:1;" id="onboard-next" onclick="onboardNext()">Next →</button>
+    </div>
   </div>
 </div>
 
@@ -1883,8 +1955,10 @@ const ALL_BADGES = [
   { id:'novel_reader', emoji:'📗', label:'Novel Reader', desc:'Finish a full novel' },
   { id:'brave_reader', emoji:'🚩', label:'Brave Reader', desc:'DNF a book (no shame!)' },
   { id:'journaler', emoji:'📝', label:'Journaler', desc:'Write 10 journal entries' },
-  { id:'bingo_line', emoji:'🎲', label:'Bingo!', desc:'Complete a bingo line' },
-  { id:'bingo_full', emoji:'🎰', label:'Full Card!', desc:'Complete an entire bingo card' },
+  { id:'bingo_line',    emoji:'🎲', label:'Bingo!',       desc:'Complete a bingo line' },
+  { id:'bingo_corners', emoji:'🔲', label:'Four Corners', desc:'Mark all 4 corner squares' },
+  { id:'bingo_x',       emoji:'✖️', label:'X Marks It',  desc:'Complete both diagonals' },
+  { id:'bingo_full',    emoji:'🃏', label:'Blackout!',    desc:'Complete the entire bingo card' },
   { id:'early_bird', emoji:'🌅', label:'Early Bird', desc:'Read before 8am' },
   { id:'night_owl', emoji:'🌙', label:'Night Owl', desc:'Read past midnight' },
   { id:'genre_explorer', emoji:'🗺️', label:'Genre Explorer', desc:'Read 3 different genres' },
@@ -1931,10 +2005,12 @@ let state = {
   themes: {},        // memberId -> 'standard' | 'sparkle' | 'bubbles'
   defaultTabs: {},   // memberId -> tab name
   reactions: {},     // activityId -> { emoji: [memberIds] }
-  memberColors: {}   // memberId -> hex color (chosen from COLOR_PALETTE)
+  memberColors: {},  // memberId -> hex color (chosen from COLOR_PALETTE)
+  onboarded: {}      // memberId -> bool
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
+let journalStarRating = 0;
 let pendingBingoSquare = null;
 let pendingBookDetail = null;
 let selectedGenre = '';
@@ -2066,6 +2142,7 @@ function doSelectMember(id) {
   } else {
     renderTab(activeTab);
   }
+  if (!state.onboarded?.[id]) startOnboarding(id);
 }
 
 // ═══════════════════════════════════════
@@ -2280,39 +2357,107 @@ function postFeedMessage() {
 // ═══════════════════════════════════════
 //  SHELF
 // ═══════════════════════════════════════
+let _shelfFilter = 'all';
+
 function renderShelf() {
   ensureMember(currentMember);
   buildMemberBar('shelf-member-bar');
   const books = state.books[currentMember] || [];
   const el = document.getElementById('shelf-book-list');
+
+  // Filter bar
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'reading', label: '📖 Reading' },
+    { key: 'finished', label: '✅ Finished' },
+    { key: 'dnf', label: '🚩 DNF' },
+    { key: 'want', label: '🔖 Want' }
+  ];
+  const filterBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 12px;">` +
+    filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}"
+      onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
+
   if (!books.length) {
-    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet!</div>`;
+    el.innerHTML = filterBar + `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>`;
     return;
   }
+
   const order = ['reading','want','finished','dnf'];
-  const sorted = [...books].sort((a,b) => order.indexOf(a.status) - order.indexOf(b.status));
-  el.innerHTML = sorted.map(b => {
+  let filtered = [...books].sort((a,b) => order.indexOf(a.status) - order.indexOf(b.status));
+  if (_shelfFilter !== 'all') filtered = filtered.filter(b => b.status === _shelfFilter);
+
+  if (!filtered.length) {
+    el.innerHTML = filterBar + `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books in this category.</div>`;
+    return;
+  }
+
+  // Kick off summary+cover fetches for books that need it
+  filtered.forEach(b => {
+    if (!b.coverUrl || !b.summary) fetchAndStoreSummary(b);
+  });
+
+  const cards = filtered.map((b, idx) => {
     const sessions = (state.sessions[currentMember]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
-    const tagLabel = { novel:'Novel', graphic:'Graphic/Manga', nonfiction:'Nonfiction', poetry:'Poetry', article:'Article', other:'Book' };
     const statusTag = { reading:'reading', finished:'finished', dnf:'dnf', want:'want' };
+    const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
+
+    const coverHtml = b.coverUrl
+      ? `<img class="shelf-cover" src="${b.coverUrl}" alt="${b.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};display:none;">${bookEmoji(b.genre)}</div>`
+      : `<div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};">${bookEmoji(b.genre)}</div>`;
+
+    const summaryText = b.summary
+      ? (b.summary.length > 200 ? b.summary.slice(0, 197) + '...' : b.summary)
+      : 'Tap to see details';
+
+    const rating = b.rating || 0;
+    const stars = [1,2,3,4,5].map(n =>
+      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})">${rating>=n?'★':'☆'}</span>`
+    ).join('');
+
     return `
-    <div class="book-card" onclick="openBookDetail('${b.id}')">
-      <div class="book-cover" style="background:${bookColor(b.genre)}">${bookEmoji(b.genre)}</div>
-      <div class="book-info">
-        <div class="book-title-text">${b.title}</div>
-        <div class="book-author">${b.author||'Unknown author'}</div>
-        <div class="book-tags">
-          <span class="tag tag-${statusTag[b.status]}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
-          ${b.genre === 'novel' ? `<span class="tag tag-novel">📗 Novel</span>` : ''}
-          ${b.genre === 'graphic' ? `<span class="tag tag-graphic">🎨 Graphic</span>` : ''}
-          ${b.genre === 'nonfiction' ? `<span class="tag tag-nonfiction">📰 Nonfiction</span>` : ''}
+    <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
+      <div class="shelf-flip-inner">
+        <div class="shelf-face shelf-front">
+          ${coverHtml}
+          <div class="shelf-front-info">
+            <div class="shelf-card-title">${b.title}</div>
+            <div class="shelf-card-author">${b.author||'Unknown author'}</div>
+            <span class="tag tag-${statusTag[b.status]}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
+            ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
+          </div>
         </div>
-        ${mins > 0 ? `<div class="book-time">⏱ ${formatMins(mins)} read</div>` : ''}
-        ${b.rating ? `<div class="star-rating">${'★'.repeat(b.rating)}${'☆'.repeat(5-b.rating)}</div>` : ''}
+        <div class="shelf-face shelf-back">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${b.title}</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">${b.author||''}</div>
+          <div class="shelf-back-summary">${summaryText}</div>
+          ${mins > 0 ? `<div class="shelf-back-meta">⏱ ${formatMins(mins)} read</div>` : ''}
+          <div class="shelf-back-stars">${stars}</div>
+          <div class="shelf-back-meta">${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pages':''}</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+
+  el.innerHTML = filterBar + `<div class="shelf-grid">${cards}</div>`;
+}
+
+function setShelfFilter(f) {
+  _shelfFilter = f;
+  renderShelf();
+}
+
+function toggleFlipCard(id) {
+  document.getElementById(id).classList.toggle('flipped');
+}
+
+function rateBook(bookId, stars) {
+  const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
+  if (!book) return;
+  book.rating = stars;
+  saveToGist().then(() => renderShelf());
 }
 
 // ═══════════════════════════════════════
@@ -2541,6 +2686,34 @@ function renderBingoCard() {
     </div>`).join('');
   const count = Object.values(completed).filter(Boolean).length;
   document.getElementById('bingo-count-label').textContent = `${count + 1} squares completed`;
+  // Show existing win patterns without awarding (just update display)
+  renderBingoWins();
+}
+
+function renderBingoWins() {
+  const completed = state.bingo[activeBingoCard] || {};
+  const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
+  const isDone = i => squares[i].free || completed[squares[i].id];
+  const diag1 = [0,6,12,18,24];
+  const diag2 = [4,8,12,16,20];
+  const allLines = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    diag1, diag2
+  ];
+  const hasLine = allLines.some(line => line.every(i => isDone(i)));
+  const corners = [0,4,20,24].every(i => isDone(i));
+  const xPattern = diag1.every(i => isDone(i)) && diag2.every(i => isDone(i));
+  const allComplete = squares.every(sq => sq.free || completed[sq.id]);
+  const wins = [];
+  if (hasLine) wins.push('✓ Line');
+  if (corners) wins.push('✓ Corners');
+  if (xPattern) wins.push('✓ X');
+  if (allComplete) wins.push('✓ Blackout!');
+  const displayEl = document.getElementById('bingo-wins-display');
+  if (displayEl) {
+    displayEl.innerHTML = wins.map(w => `<span style="background:var(--sky);color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">${w}</span>`).join('');
+  }
 }
 
 function openBingoSquare(id) {
@@ -2576,25 +2749,67 @@ function confirmBingo() {
 function checkBingo() {
   const completed = state.bingo[activeBingoCard] || {};
   const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
-  const lines = [
-    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
-    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
-    [0,6,12,18,24],[4,8,12,16,20]
-  ];
+  const isDone = i => squares[i].free || completed[squares[i].id];
+
+  const rows = [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24]];
+  const cols = [[0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24]];
+  const diag1 = [0,6,12,18,24];
+  const diag2 = [4,8,12,16,20];
+  const allLines = [...rows, ...cols, diag1, diag2];
+
   let bingoLines = 0;
-  for (const line of lines) {
-    if (line.every(i => squares[i].free || completed[squares[i].id])) bingoLines++;
+  for (const line of allLines) {
+    if (line.every(i => isDone(i))) bingoLines++;
   }
+
   const allComplete = squares.every(sq => sq.free || completed[sq.id]);
-  if (bingoLines > 0 && !state.badges[currentMember]?.includes('bingo_line')) {
+  const corners = [0,4,20,24].every(i => isDone(i));
+  const xPattern = diag1.every(i => isDone(i)) && diag2.every(i => isDone(i));
+  const hasBadge = id => state.badges[currentMember]?.includes(id);
+
+  if (bingoLines > 0 && !hasBadge('bingo_line')) {
     awardBadge(currentMember, 'bingo_line');
     celebrate();
     showToast('🎲 BINGO! +100 bonus points!');
-    // Add bonus
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_bonus', bookTitle:'Bingo Line Bonus', minutes:100, date:todayStr(), ts:Date.now() });
     saveToGist();
   }
-  if (allComplete) awardBadge(currentMember, 'bingo_full');
+  if (corners && !hasBadge('bingo_corners')) {
+    awardBadge(currentMember, 'bingo_corners');
+    celebrate();
+    showToast('🔲 Four Corners! +60 bonus points!');
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push({ id:uid(), bookId:'bingo_corners', bookTitle:'Four Corners Bonus', minutes:60, date:todayStr(), ts:Date.now() });
+    saveToGist();
+  }
+  if (xPattern && !hasBadge('bingo_x')) {
+    awardBadge(currentMember, 'bingo_x');
+    celebrate();
+    showToast('✖️ X Marks It! +80 bonus points!');
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push({ id:uid(), bookId:'bingo_x', bookTitle:'X Pattern Bonus', minutes:80, date:todayStr(), ts:Date.now() });
+    saveToGist();
+  }
+  if (allComplete && !hasBadge('bingo_full')) {
+    awardBadge(currentMember, 'bingo_full');
+    celebrate();
+    showToast('🃏 BLACKOUT! +200 bonus points!');
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push({ id:uid(), bookId:'bingo_full', bookTitle:'Blackout Bonus', minutes:200, date:todayStr(), ts:Date.now() });
+    saveToGist();
+  }
+
+  // Update win display
+  const wins = [];
+  if (bingoLines > 0) wins.push('✓ Line');
+  if (corners) wins.push('✓ Corners');
+  if (xPattern) wins.push('✓ X');
+  if (allComplete) wins.push('✓ Blackout!');
+  const displayEl = document.getElementById('bingo-wins-display');
+  if (displayEl) {
+    displayEl.innerHTML = wins.map(w => `<span style="background:var(--sky);color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">${w}</span>`).join('');
+  }
 }
 
 function renderIndividualMilestones() {
@@ -2812,6 +3027,7 @@ function renderJournal() {
   el.innerHTML = entries.map(e => `
     <div class="journal-entry">
       <div class="journal-date">${new Date(e.ts).toLocaleDateString()} · ${e.bookTitle||'General'}</div>
+      ${e.rating ? `<div style="font-size:14px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
       <div class="journal-text">${e.text}</div>
     </div>`).join('');
 }
@@ -2821,17 +3037,46 @@ function saveJournalEntry() {
   if (!text) { showToast('Write something first!'); return; }
   const bookSel = document.getElementById('journal-book-select');
   const bookTitle = bookSel.options[bookSel.selectedIndex]?.text || 'General';
+  const bookId = bookSel.value;
   ensureMember(currentMember);
   if (!state.journal[currentMember]) state.journal[currentMember] = [];
-  state.journal[currentMember].push({ id:uid(), text, bookTitle, ts:Date.now() });
+  const entry = { id:uid(), text, bookTitle, ts:Date.now(), rating: journalStarRating || 0 };
+  state.journal[currentMember].push(entry);
+  // Save rating to linked book if present
+  if (bookId && journalStarRating > 0) {
+    const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
+    if (book) book.rating = journalStarRating;
+  }
   addActivity('📝', `${MEMBERS.find(m=>m.id===currentMember).name} wrote a journal entry about ${bookTitle}`, currentMember);
   document.getElementById('journal-text').value = '';
+  // Reset star picker
+  journalStarRating = 0;
+  resetJournalStars();
   saveToGist().then(() => {
     checkBadges(currentMember);
     showToast('Journal entry saved! 📝');
     closeModal('journal-modal');
     renderJournal();
   });
+}
+
+function pickJournalStar(n) {
+  journalStarRating = n;
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('jstar-' + i);
+    if (el) {
+      el.textContent = i <= n ? '★' : '☆';
+      el.style.color = i <= n ? 'var(--sun)' : '#ccc';
+    }
+  }
+}
+
+function resetJournalStars() {
+  journalStarRating = 0;
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('jstar-' + i);
+    if (el) { el.textContent = '☆'; el.style.color = '#ccc'; }
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2908,10 +3153,7 @@ function openBookDetail(bookId) {
   if (!book.summary) fetchAndStoreSummary(book);
 }
 
-function rateBook(bookId, rating) {
-  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
-  if (book) { book.rating = rating; saveToGist(); openBookDetail(bookId); }
-}
+// rateBook is defined in the shelf section above
 
 function markFinished() {
   const book = (state.books[currentMember]||[]).find(b=>b.id===pendingBookDetail);
@@ -2967,11 +3209,19 @@ async function fetchAndStoreSummary(book) {
     const q = encodeURIComponent(book.title + (book.author ? ' ' + book.author : ''));
     const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
     const data = await r.json();
-    const desc = data?.items?.[0]?.volumeInfo?.description;
-    if (!desc) return;
-    book.summary = desc.length > 400 ? desc.slice(0, 397) + '…' : desc;
-    await saveToGist();
-    if (pendingBookDetail === book.id) openBookDetail(book.id);
+    const info = data?.items?.[0]?.volumeInfo;
+    const desc = info?.description;
+    if (desc && !book.summary) {
+      book.summary = desc.length > 400 ? desc.slice(0, 397) + '…' : desc;
+    }
+    const imgLinks = info?.imageLinks;
+    if (imgLinks && !book.coverUrl) {
+      book.coverUrl = (imgLinks.thumbnail || imgLinks.smallThumbnail || '').replace('http:', 'https:');
+    }
+    if (desc || imgLinks) {
+      await saveToGist();
+      if (pendingBookDetail === book.id) openBookDetail(book.id);
+    }
   } catch(e) {}
 }
 
@@ -3100,7 +3350,10 @@ function populateJournalBooks() {
 }
 const origOpenModal = openModal;
 window.openModal = function(id) {
-  if (id==='journal-modal') populateJournalBooks();
+  if (id==='journal-modal') {
+    populateJournalBooks();
+    resetJournalStars();
+  }
   origOpenModal(id);
 };
 
@@ -3200,11 +3453,8 @@ function applyTheme(memberId) {
   document.documentElement.style.setProperty('--member-accent', color);
   document.body.classList.toggle('theme-sparkle', theme === 'sparkle');
   document.body.classList.toggle('theme-bubbles', theme === 'bubbles');
-  if (theme === 'bubbles') {
-    startBubbles();
-  } else {
-    stopBubbles();
-  }
+  document.body.classList.toggle('theme-dark', theme === 'dark');
+  if (theme === 'bubbles') { startBubbles(); } else { stopBubbles(); }
 }
 
 let _bubbleInterval = null;
@@ -3474,6 +3724,7 @@ function renderSettings() {
       <button class="theme-toggle-btn ${myTheme==='standard'?'active':''}" onclick="setTheme('standard')">Standard</button>
       <button class="theme-toggle-btn ${myTheme==='sparkle'?'active':''}" onclick="setTheme('sparkle')">✨ Sparkle</button>
       <button class="theme-toggle-btn ${myTheme==='bubbles'?'active':''}" onclick="setTheme('bubbles')">🫧 Bubbles</button>
+      <button class="theme-toggle-btn ${myTheme==='dark'?'active':''}" onclick="setTheme('dark')">🌙 Dark</button>
     </div>
     </div>
   </div>`;
@@ -3590,6 +3841,134 @@ async function clearAllMyData() {
 }
 
 // ═══════════════════════════════════════
+//  ONBOARDING
+// ═══════════════════════════════════════
+let onboardStep = 0;
+let onboardMember = null;
+
+function startOnboarding(memberId) {
+  if (state.onboarded?.[memberId]) return;
+  onboardMember = memberId;
+  onboardStep = 0;
+  document.getElementById('onboard-overlay').style.display = 'block';
+  renderOnboardStep();
+}
+
+function renderOnboardStep() {
+  const m = MEMBERS.find(x => x.id === onboardMember);
+  const emoji = document.getElementById('onboard-emoji');
+  const title = document.getElementById('onboard-title');
+  const subtitle = document.getElementById('onboard-subtitle');
+  const body = document.getElementById('onboard-body');
+  const skipBtn = document.getElementById('onboard-skip');
+  const nextBtn = document.getElementById('onboard-next');
+
+  if (onboardStep === 0) {
+    emoji.textContent = '👋';
+    title.textContent = `Hi, ${m.name}!`;
+    subtitle.textContent = 'First, pick your avatar.';
+    skipBtn.style.display = 'none';
+    nextBtn.textContent = 'Next →';
+    const current = getMemberEmoji(onboardMember);
+    body.innerHTML = AVATAR_SETS.map(set =>
+      `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:12px 0 6px;">${set.label}</div>
+       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">` +
+      set.avatars.map((av, i) => {
+        const idx = AVATAR_SETS.indexOf(set) * 100 + i;
+        const isSel = av === current;
+        return `<div data-av="${av}" onclick="onboardPickAvatar('${av}')"
+          style="font-size:28px;text-align:center;padding:8px;border-radius:12px;cursor:pointer;
+          border:3px solid ${isSel?'var(--member-accent)':'transparent'};
+          background:${isSel?'var(--sand)':'white'};">${av}</div>`;
+      }).join('') + `</div>`
+    ).join('');
+  } else if (onboardStep === 1) {
+    emoji.textContent = getMemberEmoji(onboardMember);
+    title.textContent = 'Your Color';
+    subtitle.textContent = 'Pick a unique accent color. Taken colors are grayed out.';
+    skipBtn.style.display = 'none';
+    nextBtn.textContent = 'Next →';
+    const takenColors = {};
+    MEMBERS.forEach(mm => { if (mm.id !== onboardMember) takenColors[getMemberColor(mm.id).toLowerCase()] = mm.name; });
+    body.innerHTML = `<div class="color-palette-grid">` + COLOR_PALETTE.map(c => {
+      const isMine = getMemberColor(onboardMember).toLowerCase() === c.hex.toLowerCase();
+      const taken = takenColors[c.hex.toLowerCase()];
+      return `<div class="color-swatch ${isMine?'selected':''} ${taken?'taken':''}"
+        style="background:${c.hex};"
+        title="${c.name}"
+        ${taken ? '' : `onclick="onboardPickColor('${c.hex}')"`}></div>`;
+    }).join('') + `</div>`;
+  } else if (onboardStep === 2) {
+    emoji.textContent = getMemberEmoji(onboardMember);
+    title.textContent = 'Your Vibe';
+    subtitle.textContent = 'Choose your theme — you can always change it later.';
+    skipBtn.style.display = 'none';
+    nextBtn.textContent = 'Next →';
+    const cur = getThemeFor(onboardMember);
+    body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
+      [['standard','☀️','Standard'],['sparkle','✨','Sparkle'],['bubbles','🫧','Bubbles'],['dark','🌙','Dark']].map(([key,em,label]) =>
+        `<button class="btn ${cur===key?'btn-primary':'btn-secondary'}" onclick="onboardPickTheme('${key}')" style="padding:18px;font-size:15px;">${em}<br>${label}</button>`
+      ).join('') + `</div>`;
+  } else if (onboardStep === 3) {
+    emoji.textContent = '🔒';
+    title.textContent = 'Set a PIN?';
+    subtitle.textContent = 'Protect your profile with a 4-digit PIN — totally optional.';
+    skipBtn.style.display = 'block';
+    skipBtn.textContent = 'Skip';
+    nextBtn.textContent = 'Set PIN';
+    body.innerHTML = `<p style="text-align:center;font-size:13px;color:var(--muted);">You can always set or change your PIN in Settings.</p>`;
+  }
+}
+
+function onboardPickAvatar(av) {
+  if (!state.avatars) state.avatars = {};
+  state.avatars[onboardMember] = av;
+  // Refresh selection highlight
+  document.querySelectorAll('[data-av]').forEach(el => {
+    const isSel = el.getAttribute('data-av') === av;
+    el.style.borderColor = isSel ? 'var(--member-accent)' : 'transparent';
+    el.style.background = isSel ? 'var(--sand)' : 'white';
+  });
+  document.getElementById('onboard-emoji').textContent = av;
+}
+
+function onboardPickColor(hex) {
+  if (!state.memberColors) state.memberColors = {};
+  state.memberColors[onboardMember] = hex;
+  document.documentElement.style.setProperty('--member-accent', hex);
+  renderOnboardStep();
+}
+
+function onboardPickTheme(theme) {
+  if (!state.themes) state.themes = {};
+  state.themes[onboardMember] = theme;
+  applyTheme(onboardMember);
+  renderOnboardStep();
+}
+
+function onboardNext() {
+  if (onboardStep === 3) {
+    finishOnboarding();
+    openSetPin(onboardMember);
+    return;
+  }
+  onboardStep++;
+  renderOnboardStep();
+}
+
+function onboardSkip() {
+  finishOnboarding();
+}
+
+function finishOnboarding() {
+  if (!state.onboarded) state.onboarded = {};
+  state.onboarded[onboardMember] = true;
+  document.getElementById('onboard-overlay').style.display = 'none';
+  saveToGist();
+  renderHome();
+}
+
+// ═══════════════════════════════════════
 //  SETUP / GIST CONFIG
 // ═══════════════════════════════════════
 function checkGistConfig() {
@@ -3608,6 +3987,7 @@ async function init() {
   if (!state.themes) state.themes = {};
   if (!state.defaultTabs) state.defaultTabs = {};
   if (!state.memberColors) state.memberColors = {};
+  if (!state.onboarded) state.onboarded = {};
   applyTheme(currentMember);
   buildMemberBar('home-member-bar');
   buildMemberBar('shelf-member-bar');
