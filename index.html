@@ -1374,54 +1374,47 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
 
-  <!-- My Stats (individual) -->
-  <div class="card" style="padding:12px 16px;margin-bottom:10px;">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;" id="my-stats-label">My Stats</div>
-    <div style="display:flex;justify-content:space-around;text-align:center;">
+  <!-- My Stats player card -->
+  <div id="my-stats-card" style="background:linear-gradient(135deg,var(--member-accent,#4ECDC4),color-mix(in srgb,var(--member-accent,#4ECDC4) 60%,#1A1A2E));border-radius:20px;padding:20px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="position:absolute;right:-20px;top:-20px;font-size:100px;opacity:0.12;line-height:1;" id="my-stat-bg-emoji">📚</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="font-size:36px;line-height:1;" id="my-stat-avatar">👤</div>
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sky);" id="my-stat-reading">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Reading</div>
-      </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sun);" id="my-stat-finished">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Finished</div>
-      </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--coral);" id="my-stat-mins">0m</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Read</div>
-      </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--lavender);" id="my-stat-pts">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
+        <div style="color:white;font-weight:700;font-size:16px;font-family:'Fraunces',serif;" id="my-stat-name">—</div>
+        <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;letter-spacing:0.5px;">MY READING STATS</div>
       </div>
     </div>
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
+      <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">📖 <span id="my-stat-reading">0</span> Reading</div>
+      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">✅ <span id="my-stat-finished">0</span> Finished</div>
+      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span></div>
+    </div>
+    <span id="my-stats-label" style="display:none;"></span>
   </div>
 
   <!-- Family totals -->
-  <div class="card" style="padding:12px 16px;">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">👨‍👩‍👧 Family Total</div>
-    <div style="display:flex;justify-content:space-around;text-align:center;">
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sky);" id="fam-total-reading">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Reading</div>
+  <div style="background:var(--navy);border-radius:20px;padding:20px;margin-bottom:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:14px;">👨‍👩‍👧 FAMILY TOTAL</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#4ECDC4;line-height:1;" id="fam-total-reading">0</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">📖 READING</div>
       </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--sun);" id="fam-total-books">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Finished</div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#FFE66D;line-height:1;" id="fam-total-books">0</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">✅ FINISHED</div>
       </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--coral);" id="fam-total-mins">0m</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Read</div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#FF8FA3;line-height:1;" id="fam-total-mins">0m</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">⏱ READ</div>
       </div>
-      <div style="width:1px;background:#eee;"></div>
-      <div>
-        <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--lavender);" id="fam-total-pts">0</div>
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">Points</div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#C3B1E1;line-height:1;" id="fam-total-pts">0</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">⭐ POINTS</div>
       </div>
     </div>
   </div>
@@ -2191,12 +2184,15 @@ function renderHome() {
   const myMins     = mySess.reduce((a,s) => a + (s.minutes||0), 0);
   const myPts      = getMemberPoints(currentMember);
   const myName     = MEMBERS.find(m => m.id === currentMember)?.name || 'My';
-  document.getElementById('my-stats-label').textContent = myName + ''s Stats';
+  document.getElementById('my-stats-label').textContent = myName + '’s Stats';
   document.getElementById('my-stat-reading').textContent  = myReading;
   document.getElementById('my-stat-finished').textContent = myFinished;
   document.getElementById('my-stat-mins').textContent = myMins >= 60
     ? Math.floor(myMins/60) + 'h ' + (myMins % 60) + 'm' : myMins + 'm';
   document.getElementById('my-stat-pts').textContent = myPts;
+  document.getElementById('my-stat-avatar').textContent = getMemberEmoji(currentMember);
+  document.getElementById('my-stat-name').textContent = myName;
+  document.getElementById('my-stat-bg-emoji').textContent = myFinished >= 3 ? '🏆' : myReading > 0 ? '📖' : '📚';
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
@@ -3899,6 +3895,7 @@ function renderSettings() {
         <button class="btn btn-secondary btn-sm" onclick="testGistConnection()">Test Connection</button>
         <button class="btn btn-primary btn-sm" onclick="saveGistSettings()">Save</button>
       </div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%;" onclick="copyShareLink()">🔗 Copy Family Share Link</button>
     </div>`;
 
     // The Crew card
@@ -4038,6 +4035,19 @@ function saveGistSettings() {
   localStorage.setItem(GIST_TOKEN_KEY, tok);
   showToast('Gist settings saved! Syncing…');
   loadFromGist().then(() => renderHome());
+}
+
+function copyShareLink() {
+  const id = localStorage.getItem(GIST_ID_KEY);
+  const tok = localStorage.getItem(GIST_TOKEN_KEY);
+  if (!id || !tok) { showToast('Save your Gist settings first!'); return; }
+  const url = window.location.origin + window.location.pathname + `?gist=${id}&token=${tok}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 Share link copied! Send it to your family.');
+  }).catch(() => {
+    // Fallback: show the URL in a prompt
+    prompt('Copy this link and send to family:', url);
+  });
 }
 
 function saveDefaultTab(tab) {
@@ -4229,6 +4239,15 @@ function checkGistConfig() {
 //  INIT
 // ═══════════════════════════════════════
 async function init() {
+  // Auto-configure Gist from URL params (for sharing)
+  const _urlParams = new URLSearchParams(window.location.search);
+  if (_urlParams.get('gist')) localStorage.setItem(GIST_ID_KEY, _urlParams.get('gist'));
+  if (_urlParams.get('token')) localStorage.setItem(GIST_TOKEN_KEY, _urlParams.get('token'));
+  if (_urlParams.get('gist') || _urlParams.get('token')) {
+    // Clean up URL without reload
+    history.replaceState({}, '', window.location.pathname);
+    showToast('🔗 Connected to family Gist!');
+  }
   checkGistConfig();
   await loadFromGist();
   MEMBERS.forEach(m => ensureMember(m.id));
