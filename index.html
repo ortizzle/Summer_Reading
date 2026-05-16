@@ -902,37 +902,31 @@ textarea.form-input { resize: none; }
 
 /* ── SPARKLE THEME ── */
 body.theme-sparkle {
-  --sun: #9B5DE5;
-  --sky: #F15BB5;
-  --lemon: #FEE440;
-  --coral: #FB5607;
   --cream: #FDF4FF;
   --sand: #F5E6FF;
 }
 .theme-sparkle .app-header {
-  background: linear-gradient(135deg, #6A0DAD 0%, #C71585 50%, #FFD700 100%);
+  background: linear-gradient(135deg, var(--member-accent, #9B5DE5) 0%, color-mix(in srgb, var(--member-accent, #9B5DE5) 50%, #FFD700) 60%, #FFD700 100%);
 }
-.theme-sparkle .app-header::before {
-  content: '⭐';
-}
-.theme-sparkle .stat-number { color: var(--sun); }
+.theme-sparkle .app-header::before { content: '⭐'; }
+.theme-sparkle .stat-number { color: var(--member-accent, #9B5DE5); }
 .theme-sparkle .group-progress-card {
-  background: linear-gradient(135deg, #4B0082, #8B008B);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--member-accent, #9B5DE5) 70%, black), color-mix(in srgb, var(--member-accent, #9B5DE5) 40%, black));
 }
-.theme-sparkle .nav-tab.active { background: #9B5DE5; }
-.theme-sparkle .bottom-nav-item.active { color: #9B5DE5; }
-.theme-sparkle .btn-primary { background: #9B5DE5; }
-.theme-sparkle .btn-sky { background: #F15BB5; }
+.theme-sparkle .nav-tab.active { background: var(--member-accent, #9B5DE5); }
+.theme-sparkle .bottom-nav-item.active { color: var(--member-accent, #9B5DE5); }
+.theme-sparkle .btn-primary { background: var(--member-accent, #9B5DE5); }
+.theme-sparkle .btn-sky { background: color-mix(in srgb, var(--member-accent, #9B5DE5) 60%, #F15BB5); }
 .theme-sparkle .bingo-cell.completed {
-  background: linear-gradient(135deg, #9B5DE5, #F15BB5);
-  border-color: #9B5DE5;
+  background: linear-gradient(135deg, var(--member-accent, #9B5DE5), color-mix(in srgb, var(--member-accent, #9B5DE5) 50%, #F15BB5));
+  border-color: var(--member-accent, #9B5DE5);
 }
-.theme-sparkle .progress-fill { background: #9B5DE5; }
+.theme-sparkle .progress-fill { background: var(--member-accent, #9B5DE5); }
 .theme-sparkle .milestone-item.unlocked {
-  background: linear-gradient(135deg, #F5E6FF, #FFE8F5);
-  border-color: #9B5DE5;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--member-accent, #9B5DE5) 15%, white), color-mix(in srgb, var(--member-accent, #9B5DE5) 10%, white));
+  border-color: var(--member-accent, #9B5DE5);
 }
-.theme-sparkle .card-title { color: #6A0DAD; }
+.theme-sparkle .card-title { color: color-mix(in srgb, var(--member-accent, #9B5DE5) 80%, black); }
 @keyframes sparkleShimmer {
   0%   { opacity: 0.15; transform: scaleX(0.8); }
   50%  { opacity: 0.35; transform: scaleX(1.1); }
@@ -954,6 +948,67 @@ body.theme-sparkle {
 @keyframes sparkleFloat {
   0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
   100% { transform: translateY(-60vh) rotate(360deg); opacity: 0; }
+}
+
+/* ── BUBBLES THEME ── */
+body.theme-bubbles {
+  --cream: #F0F8FF;
+  --sand: #E8F4FD;
+}
+body.theme-bubbles .app-header {
+  background: linear-gradient(135deg, var(--member-accent, #4ECDC4) 0%, color-mix(in srgb, var(--member-accent, #4ECDC4) 60%, white) 100%);
+}
+body.theme-bubbles .app-header::before { content: '🫧'; }
+.bubble-particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background: var(--member-accent, #4ECDC4);
+  animation: bubbleRise linear infinite;
+}
+@keyframes bubbleRise {
+  0%   { transform: translateY(100vh) scale(0.6); opacity: 0.15; }
+  80%  { opacity: 0.12; }
+  100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+}
+body.theme-bubbles .nav-tab.active { background: var(--member-accent, #4ECDC4); }
+body.theme-bubbles .bottom-nav-item.active { color: var(--member-accent, #4ECDC4); }
+body.theme-bubbles .btn-primary { background: var(--member-accent, #4ECDC4); }
+body.theme-bubbles .bingo-cell.completed {
+  background: color-mix(in srgb, var(--member-accent, #4ECDC4) 80%, white);
+  border-color: var(--member-accent, #4ECDC4);
+}
+body.theme-bubbles .progress-fill { background: var(--member-accent, #4ECDC4); }
+
+/* ── COLOR SWATCHES ── */
+.color-palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.color-swatch {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.color-swatch.selected { border-color: var(--navy); transform: scale(1.15); }
+.color-swatch.taken { opacity: 0.3; cursor: not-allowed; }
+.color-swatch:not(.taken):hover { transform: scale(1.1); }
+.color-swatch-owner {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  white-space: nowrap;
+  color: var(--muted);
 }
 
 /* ── SETTINGS ── */
@@ -1402,7 +1457,7 @@ body.theme-sparkle {
       📘 +30 pts to finish any book<br>
       🗞️ +25 pts to finish an article (e.g. New Yorker)<br>
       🎨 +20 pts to finish a graphic novel or manga<br>
-      🏛️ +25 pts per library visit<br>
+      🏛️ +20 pts per library visit + 5 pts per book checked out<br>
       🎯 Bingo square = 40 pts<br>
       🪄 Bingo line = 100 pts bonus
     </div>
@@ -1594,6 +1649,29 @@ body.theme-sparkle {
   </div>
 </div>
 
+<!-- Library Visit Modal -->
+<div class="modal-overlay" id="library-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏛️ Log Library Visit</div>
+    <div style="background:var(--sand);border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.6;">
+      <strong>+20 pts</strong> for visiting · <strong>+5 pts per book</strong> checked out
+    </div>
+    <div class="form-group">
+      <label class="form-label">Books Checked Out</label>
+      <input class="form-select" type="number" id="library-books-input" min="0" max="50" placeholder="0" style="margin-bottom:10px;">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input class="form-select" id="library-note-input" placeholder="e.g. Found a great mystery section!" style="margin-bottom:14px;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('library-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmLibraryVisit()">Log Visit</button>
+    </div>
+  </div>
+</div>
+
 <!-- Journal Modal -->
 <div class="modal-overlay" id="journal-modal">
   <div class="modal">
@@ -1718,11 +1796,28 @@ const MEMBERS = [
   { id: 'hani',   name: 'Hani',   emoji: '⭐', color: '#FFE66D' }
 ];
 
+const COLOR_PALETTE = [
+  { hex: '#4ECDC4', name: 'Teal' },
+  { hex: '#FF8FA3', name: 'Pink' },
+  { hex: '#C3B1E1', name: 'Lavender' },
+  { hex: '#95E1D3', name: 'Mint' },
+  { hex: '#FFE66D', name: 'Yellow' },
+  { hex: '#7FFFD4', name: 'Aquamarine' },
+  { hex: '#4A90E2', name: 'Blue' },
+  { hex: '#E84855', name: 'Red' },
+  { hex: '#FF9F43', name: 'Orange' },
+  { hex: '#9B59B6', name: 'Purple' }
+];
+
+function getMemberColor(id) {
+  return (state.memberColors && state.memberColors[id]) || (MEMBERS.find(m => m.id === id) || {}).color || '#4ECDC4';
+}
+
 const KIDS_BINGO = [
   { emoji:'📖', label:'Read Outside', desc:'Read for 30+ min outdoors', id:'kids_outside' },
-  { emoji:'🏊', label:'Pool Reading', desc:'Read by or at a pool', id:'kids_pool' },
+  { emoji:'🛳️', label:'Read on the Ship', desc:'Read on the Disney cruise ship', id:'kids_ship' },
   { emoji:'📚', label:'Library Visit', desc:'Visit the library', id:'kids_library' },
-  { emoji:'☕', label:'Starbucks Read', desc:'Read at Starbucks with a drink', id:'kids_starbucks' },
+  { emoji:'✈️', label:'Read on a Plane', desc:'Read during a flight', id:'kids_plane' },
   { emoji:'📗', label:'Full Novel', desc:'Finish a prose novel (200+ pages)', id:'kids_novel' },
   { emoji:'⏰', label:'Lost in a Book', desc:'Read for 2+ hours without stopping', id:'kids_2hr' },
   { emoji:'🎁', label:'Recommended', desc:'Read a book someone else picked for you', id:'kids_recommend' },
@@ -1730,27 +1825,27 @@ const KIDS_BINGO = [
   { emoji:'🌟', label:'Author Explorer', desc:'Read two books by the same author', id:'kids_author' },
   { emoji:'🚩', label:'Brave DNF', desc:'Try a book and decide it\'s not for you', id:'kids_dnf' },
   { emoji:'🌙', label:'Night Owl', desc:'Read past 10pm', id:'kids_nightowl' },
-  { emoji:'🌅', label:'Early Bird', desc:'Read before 8am', id:'kids_earlybird' },
+  { emoji:'🇨🇦', label:'Read in Canada', desc:'Read while in Vancouver, Canada', id:'kids_canada' },
   { emoji:'FREE', label:'FREE SPACE', desc:'', id:'kids_free', free: true },
   { emoji:'🗺️', label:'New Genre', desc:'Read a genre you\'ve never tried', id:'kids_genre' },
   { emoji:'📱', label:'Phone Free', desc:'Read instead of screen time for 1hr', id:'kids_phonefree' },
   { emoji:'🎨', label:'Draw a Scene', desc:'Illustrate your favorite scene', id:'kids_draw' },
-  { emoji:'🗣️', label:'Tell the Story', desc:'Summarize a book to a family member', id:'kids_summarize' },
+  { emoji:'🌊', label:'Read at Sea', desc:'Read while the ship is moving on the ocean', id:'kids_sea' },
   { emoji:'🍦', label:'Ice Cream Read', desc:'Read while eating ice cream', id:'kids_icecream' },
-  { emoji:'📰', label:'New Yorker', desc:'Read a New Yorker article', id:'kids_newyorker' },
+  { emoji:'🦅', label:'Wildlife Spotter', desc:'Read outside after spotting Alaska wildlife', id:'kids_wildlife' },
   { emoji:'🏕️', label:'Cozy Corner', desc:'Create a special reading nook', id:'kids_nook' },
   { emoji:'🌍', label:'Different World', desc:'Read a book set in another country', id:'kids_world' },
   { emoji:'🕰️', label:'Time Traveler', desc:'Read a book set in the past', id:'kids_historical' },
   { emoji:'🤝', label:'Buddy Read', desc:'Read the same book as another family member', id:'kids_buddy' },
   { emoji:'🔖', label:'5-Star Review', desc:'Rate a book and write 3 sentences about it', id:'kids_review' },
-  { emoji:'🐭', label:'Disney Read', desc:'Read a book with a Disney character, princess, or story', id:'kids_disney' }
+  { emoji:'🏔️', label:'Glacier Read', desc:'Read while viewing a glacier or mountain scenery', id:'kids_glacier' }
 ];
 
 const ADULTS_BINGO = [
   { emoji:'🌅', label:'Morning Read', desc:'Read before your first coffee or with it', id:'adults_morning' },
-  { emoji:'☕', label:'Starbucks Read', desc:'Read at Starbucks (adult card!)', id:'adults_starbucks' },
+  { emoji:'🛳️', label:'Read on the Ship', desc:'Read on the Disney cruise ship', id:'adults_ship' },
   { emoji:'📚', label:'Library Visit', desc:'Visit the library', id:'adults_library' },
-  { emoji:'🏊', label:'Pool Reading', desc:'Read by the pool', id:'adults_pool' },
+  { emoji:'✈️', label:'Read on a Plane', desc:'Read during a flight', id:'adults_plane' },
   { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together as a family', id:'adults_aloud' },
   { emoji:'⏰', label:'Lost in a Book', desc:'Read for 2+ hours without stopping', id:'adults_2hr' },
   { emoji:'📗', label:'Full Novel', desc:'Finish a novel (200+ pages)', id:'adults_novel' },
@@ -1760,9 +1855,9 @@ const ADULTS_BINGO = [
   { emoji:'🎁', label:'Someone\'s Pick', desc:'Read a book recommended by a family member', id:'adults_recommend' },
   { emoji:'🗺️', label:'New Genre', desc:'Read a genre you\'ve never tried before', id:'adults_genre' },
   { emoji:'FREE', label:'FREE SPACE', desc:'', id:'adults_free', free: true },
-  { emoji:'💬', label:'Book Talk', desc:'Discuss a book you\'re reading with someone', id:'adults_discuss' },
-  { emoji:'📝', label:'Journal 3x', desc:'Write 3 journal entries about your reading', id:'adults_journal3' },
-  { emoji:'🏛️', label:'B&N Trip', desc:'Visit Barnes & Noble or Changing Hands', id:'adults_bookstore' },
+  { emoji:'🇨🇦', label:'Read in Canada', desc:'Read while in Vancouver, Canada', id:'adults_canada' },
+  { emoji:'🌊', label:'Read at Sea', desc:'Read while the ship is underway on the ocean', id:'adults_sea' },
+  { emoji:'🏔️', label:'Glacier View', desc:'Read while looking at a glacier or mountain scenery', id:'adults_glacier' },
   { emoji:'🤝', label:'Buddy Read', desc:'Read the same book as another family member', id:'adults_buddy' },
   { emoji:'🌍', label:'Different World', desc:'Read a book set outside the US', id:'adults_world' },
   { emoji:'🔖', label:'5-Star Review', desc:'Rate & journal about a completed book', id:'adults_review' },
@@ -1771,7 +1866,7 @@ const ADULTS_BINGO = [
   { emoji:'🕰️', label:'Time Traveler', desc:'Read historical fiction', id:'adults_historical' },
   { emoji:'🍷', label:'Weekend Read', desc:'Read for 3+ hours on a Saturday or Sunday', id:'adults_weekend' },
   { emoji:'🌟', label:'Author Deep Dive', desc:'Read 2+ books by the same author', id:'adults_author' },
-  { emoji:'🎬', label:'Book to Film', desc:'Read a book that was adapted into a movie or Disney+ show', id:'adults_book2film' }
+  { emoji:'🦅', label:'Alaska Wildlife', desc:'Read outside after spotting Alaska wildlife (eagle, whale, bear)', id:'adults_wildlife' }
 ];
 
 const ALL_BADGES = [
@@ -1787,7 +1882,7 @@ const ALL_BADGES = [
   { id:'hat_trick', emoji:'🎩', label:'Hat Trick', desc:'Finish 3 books' },
   { id:'novel_reader', emoji:'📗', label:'Novel Reader', desc:'Finish a full novel' },
   { id:'brave_reader', emoji:'🚩', label:'Brave Reader', desc:'DNF a book (no shame!)' },
-  { id:'journaler', emoji:'📝', label:'Journaler', desc:'Write 5 journal entries' },
+  { id:'journaler', emoji:'📝', label:'Journaler', desc:'Write 10 journal entries' },
   { id:'bingo_line', emoji:'🎲', label:'Bingo!', desc:'Complete a bingo line' },
   { id:'bingo_full', emoji:'🎰', label:'Full Card!', desc:'Complete an entire bingo card' },
   { id:'early_bird', emoji:'🌅', label:'Early Bird', desc:'Read before 8am' },
@@ -1804,7 +1899,7 @@ const INDIVIDUAL_MILESTONES = [
   { id:'m_5hrs',    pts:300, name:'5 Hour Reader',          desc:'Read 5 hours total',             icon:'⏰', reward:'Family movie night 🍿 — you pick the movie and control the remote' },
   { id:'m_novel',   pts:50,  name:'Novel Finisher',         desc:'Finish a full novel (200+ pages)',icon:'📗', reward:'Reading nook upgrade ✨ — new bookmark, cozy blanket, or book light' },
   { id:'m_10hrs',   pts:500, name:'10 Hour Legend',         desc:'Read 10 hours total',            icon:'🕙', reward:'$10 toward a new book of your choice 📖' },
-  { id:'m_journal5',pts:50,  name:'Dear Diary',             desc:'Write 5 journal entries',        icon:'📝', reward:'Brand new journal or notebook of your choice 📒' },
+  { id:'m_journal5',pts:50,  name:'Dear Diary',             desc:'Write 10 journal entries',       icon:'📝', reward:'Brand new journal or notebook of your choice 📒' },
   { id:'m_bingo',   pts:100, name:'Bingo Champ',            desc:'Complete a full bingo card',     icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
 ];
 
@@ -1833,9 +1928,10 @@ let state = {
   activity: [],
   avatars: {},       // memberId -> emoji string
   pins: {},          // memberId -> '1234'
-  themes: {},        // memberId -> 'standard' | 'sparkle'
+  themes: {},        // memberId -> 'standard' | 'sparkle' | 'bubbles'
   defaultTabs: {},   // memberId -> tab name
-  reactions: {}      // activityId -> { emoji: [memberIds] }
+  reactions: {},     // activityId -> { emoji: [memberIds] }
+  memberColors: {}   // memberId -> hex color (chosen from COLOR_PALETTE)
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
@@ -1928,9 +2024,10 @@ function buildMemberBar(containerId) {
   el.innerHTML = MEMBERS.map(m => {
     const isActive = m.id === currentMember;
     const av = getMemberEmoji(m.id);
+    const col = getMemberColor(m.id);
     return `
     <div class="member-chip ${isActive?'active':''}" data-memberid="${m.id}" onclick="selectMember('${m.id}','${containerId}')">
-      <div class="member-avatar" style="background:${m.color}20;border-color:${isActive?m.color:'#eee'};position:relative;">${av}</div>
+      <div class="member-avatar" style="background:${col}20;border-color:${isActive?col:'#eee'};position:relative;">${av}</div>
       <span class="member-chip-name">${m.name}</span>
     </div>`;
   }).join('');
@@ -1954,7 +2051,9 @@ function doSelectMember(id) {
     bar.querySelectorAll('.member-chip').forEach((chip, i) => {
       chip.classList.toggle('active', MEMBERS[i].id === id);
       const av = chip.querySelector('.member-avatar');
-      av.style.borderColor = MEMBERS[i].id === id ? MEMBERS[i].color : '#eee';
+      const col = getMemberColor(MEMBERS[i].id);
+      av.style.borderColor = MEMBERS[i].id === id ? col : '#eee';
+      av.style.background = col + '20';
     });
   });
   const wasSparkle = getThemeFor(prevMember) === 'sparkle';
@@ -2019,7 +2118,7 @@ function renderHome() {
   document.getElementById('lb-list').innerHTML = ranked.map((m,i) => `
     <div class="lb-row">
       <div class="lb-rank ${i<3?'lb-rank-top':''}">${i<3 ? rankEmoji[i] : i+1}</div>
-      <div class="lb-avatar" style="background:${m.color}20">${getMemberEmoji(m.id)}</div>
+      <div class="lb-avatar" style="background:${getMemberColor(m.id)}20">${getMemberEmoji(m.id)}</div>
       <div class="lb-info">
         <div class="lb-name">${m.name}${m.finished ? ` <span style="font-size:11px;color:var(--muted);">(${m.finished} book${m.finished>1?'s':''})</span>` : ''}</div>
         <div class="lb-book">${m.activeBook ? `📖 ${m.activeBook.title}` : '<span style="opacity:.5;">No book yet</span>'}</div>
@@ -2079,7 +2178,7 @@ function renderActivityList(containerId, limit) {
       lastDateStr = itemDate;
     }
     const isMsg = a.type === 'message';
-    const memberColor = memberObj ? memberObj.color : '#ccc';
+    const memberColor = memberObj ? getMemberColor(memberObj.id) : '#ccc';
     const replyName = memberObj ? memberObj.name : '';
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     if (isMsg) {
@@ -2519,7 +2618,7 @@ function renderIndividualMilestones() {
     if (m.id==='m_5hrs')     met = totalMins >= 300;
     if (m.id==='m_10hrs')    met = totalMins >= 600;
     if (m.id==='m_novel')    met = books.some(b=>b.status==='finished'&&b.genre==='novel');
-    if (m.id==='m_journal5') met = journals >= 5;
+    if (m.id==='m_journal5') met = journals >= 10;
     if (m.id==='m_bingo')    met = bingoCompleted >= 25;
     const freshUnlock = met && !earned.includes(m.id);
     if (freshUnlock) {
@@ -2591,7 +2690,7 @@ function renderBadges() {
           <div class="library-date">${new Date(v.ts).toLocaleDateString()}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div class="library-pts">+25 pts</div>
+          <div class="library-pts">+${v.pts||25} pts</div>
           <button onclick="deleteLibraryVisit('${v.id}')" title="Remove visit"
             style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;line-height:1;">🗑️</button>
         </div>
@@ -2603,7 +2702,7 @@ function deleteLibraryVisit(visitId) {
   const visits = state.library[currentMember] || [];
   const visit = visits.find(v => v.id === visitId);
   if (!visit) return;
-  if (!confirm('Remove this library visit and deduct 25 pts?')) return;
+  if (!confirm(`Remove this library visit and deduct ${visit.pts||25} pts?`)) return;
   state.library[currentMember] = visits.filter(v => v.id !== visitId);
   state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(
     s => !(s.bookId === 'library' && Math.abs((s.ts||0) - (visit.ts||0)) < 2000)
@@ -2670,20 +2769,30 @@ function checkGroupMilestones() {
 }
 
 function logLibraryVisit() {
+  openModal('library-modal');
+}
+
+function confirmLibraryVisit() {
   ensureMember(currentMember);
-  const rawNote = prompt('Add a note? (e.g. "Got 4 new books!", or leave blank)');
-  if (rawNote === null) return;
-  const note = rawNote.trim() || 'Library visit';
+  const rawNote = document.getElementById('library-note-input').value.trim() || 'Library visit';
+  const booksChecked = parseInt(document.getElementById('library-books-input').value, 10) || 0;
+  const pts = 20 + (booksChecked * 5);
+  const ts = Date.now();
   if (!state.library[currentMember]) state.library[currentMember] = [];
-  state.library[currentMember].push({ id:uid(), note, ts:Date.now() });
-  // +25 pts as a session
+  const visitId = uid();
+  state.library[currentMember].push({ id:visitId, note:rawNote, booksChecked, pts, ts });
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push({ id:uid(), bookId:'library', bookTitle:'Library Visit', minutes:25, date:todayStr(), ts:Date.now() });
-  addActivity('🏛️', `${MEMBERS.find(m=>m.id===currentMember).name} visited the library: ${note}`, currentMember);
+  state.sessions[currentMember].push({ id:visitId, bookId:'library', bookTitle:'Library Visit', minutes:pts, date:todayStr(), ts });
+  const who = MEMBERS.find(m=>m.id===currentMember).name;
+  const bookStr = booksChecked ? ` (${booksChecked} book${booksChecked>1?'s':''} checked out)` : '';
+  addActivity('🏛️', `${who} visited the library${bookStr}`, currentMember);
+  closeModal('library-modal');
+  document.getElementById('library-note-input').value = '';
+  document.getElementById('library-books-input').value = '';
   saveToGist().then(() => {
     checkBadges(currentMember);
     checkGroupMilestones();
-    showToast('+25 pts! Library visit logged! 🏛️');
+    showToast(`+${pts} pts! Library visit logged! 🏛️`);
     renderBadges();
   });
 }
@@ -3087,7 +3196,42 @@ function getThemeFor(memberId) {
 
 function applyTheme(memberId) {
   const theme = getThemeFor(memberId);
+  const color = getMemberColor(memberId);
+  document.documentElement.style.setProperty('--member-accent', color);
   document.body.classList.toggle('theme-sparkle', theme === 'sparkle');
+  document.body.classList.toggle('theme-bubbles', theme === 'bubbles');
+  if (theme === 'bubbles') {
+    startBubbles();
+  } else {
+    stopBubbles();
+  }
+}
+
+let _bubbleInterval = null;
+function startBubbles() {
+  stopBubbles();
+  const container = document.body;
+  function spawnBubble() {
+    const el = document.createElement('div');
+    el.className = 'bubble-particle';
+    const size = 30 + Math.random() * 80;
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.left = (Math.random() * 100) + 'vw';
+    el.style.bottom = '-120px';
+    el.style.zIndex = '0';
+    const dur = 8 + Math.random() * 12;
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (Math.random() * -dur) + 's';
+    container.appendChild(el);
+    setTimeout(() => el.remove(), (dur + 2) * 1000);
+  }
+  for (let i = 0; i < 8; i++) spawnBubble();
+  _bubbleInterval = setInterval(spawnBubble, 2500);
+}
+function stopBubbles() {
+  if (_bubbleInterval) { clearInterval(_bubbleInterval); _bubbleInterval = null; }
+  document.querySelectorAll('.bubble-particle').forEach(el => el.remove());
 }
 
 function fireSparkleParticles() {
@@ -3297,17 +3441,40 @@ function renderSettings() {
   // My Personalization card (all users)
   const myTheme = getThemeFor(currentMember);
   const myDefaultTab = state.defaultTabs[currentMember] || 'home';
+  const myColor = getMemberColor(currentMember);
+  // Build taken color map (other members' chosen colors)
+  const takenColors = {};
+  MEMBERS.forEach(m => {
+    if (m.id !== currentMember) {
+      const c = getMemberColor(m.id);
+      takenColors[c.toLowerCase()] = m.name;
+    }
+  });
+  const swatches = COLOR_PALETTE.map(c => {
+    const isSelected = c.hex.toLowerCase() === myColor.toLowerCase();
+    const takenBy = takenColors[c.hex.toLowerCase()];
+    const cls = ['color-swatch', isSelected ? 'selected' : '', takenBy ? 'taken' : ''].filter(Boolean).join(' ');
+    const onclick = takenBy ? '' : `onclick="setMemberColor('${c.hex}')"`;
+    const owner = takenBy ? `<span class="color-swatch-owner">${takenBy}</span>` : '';
+    return `<div class="${cls}" style="background:${c.hex};" title="${c.name}${takenBy?' (taken by '+takenBy+')':''}" ${onclick}>${owner}</div>`;
+  }).join('');
   html += `
   <div class="settings-card">
     <div class="card-title">🎨 My Personalization</div>
+    <span class="settings-label">My Color</span>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:6px;">Pick your unique accent color. Each person gets one — taken colors are grayed out.</p>
+    <div class="color-palette-grid">${swatches}</div>
+    <div style="margin-top:24px;">
     <span class="settings-label">Default Tab</span>
     <select class="form-select" id="settings-default-tab" style="margin-bottom:14px;" onchange="saveDefaultTab(this.value)">
       ${ALL_TABS.map(t => `<option value="${t}" ${myDefaultTab===t?'selected':''}>${TAB_LABELS[t]}</option>`).join('')}
     </select>
     <span class="settings-label">Theme</span>
-    <div class="theme-toggle">
+    <div class="theme-toggle" style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="theme-toggle-btn ${myTheme==='standard'?'active':''}" onclick="setTheme('standard')">Standard</button>
       <button class="theme-toggle-btn ${myTheme==='sparkle'?'active':''}" onclick="setTheme('sparkle')">✨ Sparkle</button>
+      <button class="theme-toggle-btn ${myTheme==='bubbles'?'active':''}" onclick="setTheme('bubbles')">🫧 Bubbles</button>
+    </div>
     </div>
   </div>`;
 
@@ -3385,9 +3552,25 @@ function setTheme(theme) {
   state.themes[currentMember] = theme;
   saveToGist();
   applyTheme(currentMember);
-  const isNowSparkle = theme === 'sparkle';
-  if (isNowSparkle && !wasSparkle) fireSparkleParticles();
+  if (theme === 'sparkle' && !wasSparkle) fireSparkleParticles();
   renderSettings();
+}
+
+function setMemberColor(hex) {
+  if (!state.memberColors) state.memberColors = {};
+  // Check not taken by someone else
+  const taken = MEMBERS.find(m => m.id !== currentMember && getMemberColor(m.id).toLowerCase() === hex.toLowerCase());
+  if (taken) { showToast(`${taken.name} already has that color!`); return; }
+  state.memberColors[currentMember] = hex;
+  saveToGist();
+  applyTheme(currentMember);
+  // Refresh member bars to reflect new color
+  document.querySelectorAll('.member-select-bar').forEach(bar => {
+    const activeTab = document.querySelector('.section.active').id.replace('sec-','');
+    buildMemberBar(bar.id);
+  });
+  renderSettings();
+  showToast('Color saved!');
 }
 
 async function clearAllMyData() {
@@ -3410,11 +3593,7 @@ async function clearAllMyData() {
 //  SETUP / GIST CONFIG
 // ═══════════════════════════════════════
 function checkGistConfig() {
-  const token = localStorage.getItem(GIST_TOKEN_KEY);
-  const gistId = localStorage.getItem(GIST_ID_KEY);
-  if (!token || !gistId) {
-    setTimeout(() => showToast('⚙️ Open Settings to connect your Gist'), 800);
-  }
+  // Gist setup reminder is shown inline in Settings — no startup toast needed
 }
 
 // ═══════════════════════════════════════
@@ -3428,6 +3607,7 @@ async function init() {
   if (!state.pins) state.pins = {};
   if (!state.themes) state.themes = {};
   if (!state.defaultTabs) state.defaultTabs = {};
+  if (!state.memberColors) state.memberColors = {};
   applyTheme(currentMember);
   buildMemberBar('home-member-bar');
   buildMemberBar('shelf-member-bar');
