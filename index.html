@@ -3414,6 +3414,17 @@ function pickAvatar(av) {
   });
 }
 
+function pickAvatarInSettings(av) {
+  if (!state.avatars) state.avatars = {};
+  state.avatars[currentMember] = av;
+  saveToGist();
+  ['home-member-bar','shelf-member-bar','timer-member-bar','badges-member-bar','journal-member-bar','feed-member-bar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) buildMemberBar(id);
+  });
+  renderSettings();
+}
+
 function closeAvatarPicker() {
   document.getElementById('avatar-picker-overlay').classList.remove('open');
   document.body.style.overflow = '';
@@ -3728,21 +3739,32 @@ function renderSettings() {
     </div>
   </div>`;
 
-  // My Profile card (non-admin only, or everyone can see)
+  // My Profile card
   const m = MEMBERS.find(x => x.id === currentMember);
   const hasMyPin = !!(state.pins && state.pins[currentMember]);
+  const currentAvatar = getMemberEmoji(currentMember);
+  const inlineAvatarGrid = AVATAR_SETS.map(set => `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:12px 0 5px;">${set.label}</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">
+      ${set.avatars.map(av => `
+        <div onclick="pickAvatarInSettings('${av}')"
+          style="font-size:26px;text-align:center;padding:6px;border-radius:10px;cursor:pointer;
+          border:3px solid ${av === currentAvatar ? 'var(--member-accent)' : 'transparent'};
+          background:${av === currentAvatar ? 'var(--sand)' : 'transparent'};">${av}</div>
+      `).join('')}
+    </div>`).join('');
   html += `
   <div class="settings-card">
     <div class="card-title">👤 My Profile</div>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-      <div style="font-size:48px;">${getMemberEmoji(currentMember)}</div>
-      <div style="flex:1;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="font-size:52px;line-height:1;">${currentAvatar}</div>
+      <div>
         <div style="font-weight:700;font-size:18px;">${m ? m.name : currentMember}</div>
-        <div style="font-size:12px;color:var(--muted);">Current member</div>
+        <div style="font-size:12px;color:var(--muted);">Tap any emoji to change</div>
       </div>
-      <button class="btn btn-sky btn-sm" onclick="openAvatarPicker('${currentMember}')">Change Avatar</button>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
+    ${inlineAvatarGrid}
+    <div style="display:flex;gap:8px;align-items:center;margin-top:16px;">
       ${hasMyPin
         ? `<button class="btn btn-secondary btn-sm" onclick="openSetPin('${currentMember}')">Change My PIN</button>
            <button class="btn btn-danger btn-sm" onclick="clearMemberPin('${currentMember}')">Clear PIN</button>`
