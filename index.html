@@ -599,7 +599,7 @@ body {
 /* ── TOAST ── */
 .toast {
   position: fixed;
-  bottom: 80px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(100px);
   background: var(--navy);
@@ -1627,7 +1627,11 @@ const ALL_BADGES = [
   { id:'hour_club', emoji:'⏰', label:'Hour Club', desc:'Read 1 hour total' },
   { id:'five_hours', emoji:'🕐', label:'5 Hour Club', desc:'Read 5 hours total' },
   { id:'ten_hours', emoji:'🕙', label:'10 Hour Club', desc:'Read 10 hours total' },
+  { id:'fifteen_hours', emoji:'🌟', label:'15 Hour Hero', desc:'Read 15 hours total' },
+  { id:'twenty_five_hours', emoji:'🔥', label:'25 Hour Flame', desc:'Read 25 hours total' },
+  { id:'thirty_hours', emoji:'🏆', label:'Marathon Reader', desc:'Read 30 hours total' },
   { id:'library_rat', emoji:'🏛️', label:'Library Rat', desc:'Visit the library 3 times' },
+  { id:'hat_trick', emoji:'🎩', label:'Hat Trick', desc:'Finish 3 books' },
   { id:'novel_reader', emoji:'📗', label:'Novel Reader', desc:'Finish a full novel' },
   { id:'brave_reader', emoji:'🚩', label:'Brave Reader', desc:'DNF a book (no shame!)' },
   { id:'journaler', emoji:'📝', label:'Journaler', desc:'Write 5 journal entries' },
@@ -2260,8 +2264,12 @@ function checkBadges(memberId) {
   if (totalMins >= 60) awardBadge(memberId, 'hour_club');
   if (totalMins >= 300) awardBadge(memberId, 'five_hours');
   if (totalMins >= 600) awardBadge(memberId, 'ten_hours');
+  if (totalMins >= 900) awardBadge(memberId, 'fifteen_hours');
   if (totalMins >= 1200) awardBadge(memberId, 'summer_scholar');
+  if (totalMins >= 1500) awardBadge(memberId, 'twenty_five_hours');
+  if (totalMins >= 1800) awardBadge(memberId, 'thirty_hours');
   if (libraryVisits >= 3) awardBadge(memberId, 'library_rat');
+  if (finished.length >= 3) awardBadge(memberId, 'hat_trick');
   if (finished.some(b=>b.genre==='novel')) awardBadge(memberId, 'novel_reader');
   if (books.some(b=>b.status==='dnf')) awardBadge(memberId, 'brave_reader');
   if (journals >= 5) awardBadge(memberId, 'journaler');
@@ -2285,7 +2293,9 @@ function checkGroupMilestones() {
 
 function logLibraryVisit() {
   ensureMember(currentMember);
-  const note = prompt('Add a note? (e.g. "Got 4 new books!", or leave blank)') || 'Library visit';
+  const rawNote = prompt('Add a note? (e.g. "Got 4 new books!", or leave blank)');
+  if (rawNote === null) return;
+  const note = rawNote.trim() || 'Library visit';
   if (!state.library[currentMember]) state.library[currentMember] = [];
   state.library[currentMember].push({ id:uid(), note, ts:Date.now() });
   // +25 pts as a session
@@ -2368,9 +2378,11 @@ function saveBook() {
 
 function awardFinishPoints(memberId, book) {
   const pages = book.pages || 0;
-  let bonus = 30;
-  if (pages >= 200) bonus = 50;
-  if (book.genre !== 'graphic') bonus += 20;
+  let bonus;
+  if (book.genre === 'graphic') bonus = 20;
+  else if (book.genre === 'article') bonus = 25;
+  else if (pages >= 200) bonus = 50;
+  else bonus = 30;
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
   state.sessions[memberId].push({ id:uid(), bookId:book.id, bookTitle:book.title+'(finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
   addActivity('✅', `${MEMBERS.find(m=>m.id===memberId).name} finished: ${book.title} (+${bonus} pts)`, memberId);
