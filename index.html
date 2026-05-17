@@ -600,9 +600,9 @@ body {
 /* ── TOAST ── */
 .toast {
   position: fixed;
-  bottom: calc(72px + env(safe-area-inset-bottom));
+  top: calc(env(safe-area-inset-top) + 16px);
   left: 50%;
-  transform: translateX(-50%) translateY(100px);
+  transform: translateX(-50%) translateY(-120px);
   background: var(--navy);
   color: white;
   padding: 12px 20px;
@@ -3505,11 +3505,13 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
+let _toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 function celebrate() {
