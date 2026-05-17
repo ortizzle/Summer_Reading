@@ -613,8 +613,9 @@ body {
   transition: transform 0.3s ease;
   white-space: nowrap;
   max-width: 90vw;
+  pointer-events: none;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
 /* ── MODAL ── */
 .modal-overlay {
