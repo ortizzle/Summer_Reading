@@ -2021,11 +2021,10 @@ const ALL_BADGES = [
 ];
 
 const INDIVIDUAL_MILESTONES = [
-  { id:'m_1book',    pts:30,   name:'First Book Finished!',     desc:'Complete your first book',             icon:'🔖', reward:'Special bookmark — your pick! 🔖' },
-  { id:'m_100pts',  pts:100,  name:'Century Club',              desc:'Earn 100 reading points',              icon:'💯', reward:'Starbucks or Sonic run ☕🧊 — your order, your choice' },
-  { id:'m_3books',  pts:90,   name:'Trilogy',                   desc:'Finish 3 books',                       icon:'📚', reward:'Movie night pick 🎬 — you choose the movie + snacks for everyone' },
-  { id:'m_15hrs',   pts:900,  name:'15 Hour Reader',            desc:'Read 15 hours total',                  icon:'⏰', reward:'Special treat of your choice 🎉' },
-  { id:'m_novel',   pts:50,   name:'Novel Finisher (for kids)', desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 to spend at Target 🎯' },
+  { id:'m_100pts',  pts:100,  name:'Century Club',              desc:'Earn 100 reading points',              icon:'💯', reward:'Special bookmark — your pick! 🔖' },
+  { id:'m_3books',  pts:90,   name:'Trilogy',                   desc:'Finish 3 books',                       icon:'📚', reward:'Starbucks or Sonic run ☕🧊 — your order, your choice' },
+  { id:'m_15hrs',   pts:900,  name:'15 Hour Reader',            desc:'Read 15 hours total',                  icon:'⏰', reward:'Up to $15 toward any book of your choice 📚' },
+  { id:'m_novel',   pts:50,   name:'Novel Finisher (for kids)', desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 trip to Target — stock your reading nook 🎯' },
   { id:'m_50hrs',   pts:3000, name:'Legend',                    desc:'Read 50 hours total — ultimate grind', icon:'🏆', reward:'$25 toward Amazon or Barnes & Noble 📖' },
   { id:'m_journal20',pts:50,  name:'Dear Diary',                desc:'Write 20 journal entries',             icon:'📝', reward:'New notebook or journal from Changing Hands bookstore 📒' },
   { id:'m_bingo',   pts:100,  name:'Bingo Champ',               desc:'Complete a full bingo card',           icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
@@ -2944,7 +2943,6 @@ function renderIndividualMilestones() {
 
   el.innerHTML = INDIVIDUAL_MILESTONES.map(m => {
     let met = false;
-    if (m.id==='m_1book')     met = finished >= 1;
     if (m.id==='m_100pts')    met = pts >= 100;
     if (m.id==='m_3books')    met = finished >= 3;
     if (m.id==='m_15hrs')     met = totalMins >= 900;
