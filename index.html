@@ -1472,45 +1472,13 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
-<!-- TIMER SECTION -->
+<!-- LOG SECTION -->
 <div class="section" id="sec-timer">
   <div class="member-select-bar" id="timer-member-bar"></div>
 
+  <!-- Manual entry — top -->
   <div class="card">
-    <div class="timer-display">
-      <div class="timer-face" id="timer-display">00:00:00</div>
-      <div class="timer-book-title" id="timer-book-name">Select a book to start</div>
-      <div style="margin-bottom:12px;">
-        <select class="form-select" id="timer-book-select" style="max-width:280px;margin:0 auto;display:block;">
-          <option value="">— Choose a book —</option>
-        </select>
-      </div>
-      <!-- Quick presets -->
-      <div id="timer-presets" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
-        <button class="btn btn-sky btn-sm" onclick="timerPreset(10)">10 min</button>
-        <button class="btn btn-sky btn-sm" onclick="timerPreset(20)">20 min</button>
-        <button class="btn btn-sky btn-sm" onclick="timerPreset(30)">30 min</button>
-        <button class="btn btn-sky btn-sm" onclick="timerPreset(45)">45 min</button>
-        <button class="btn btn-sky btn-sm" onclick="timerPreset(60)">1 hr</button>
-      </div>
-      <div class="timer-controls">
-        <button class="btn btn-primary" id="timer-start-btn" onclick="timerStart()">▶ Start</button>
-        <button class="btn btn-secondary" id="timer-pause-btn" onclick="timerPause()" style="display:none;">⏸ Pause</button>
-        <button class="btn btn-danger" id="timer-stop-btn" onclick="timerStop()" style="display:none;">⏹ Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">⏱ Today's Sessions</div>
-    <div id="today-sessions">
-      <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No reading logged today yet!</div>
-    </div>
-  </div>
-
-  <!-- Manual entry -->
-  <div class="card">
-    <div class="card-title">📖 Log Reading Manually</div>
+    <div class="card-title">📖 Log Reading</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Read away from your phone? Log it here.</div>
     <div class="form-group">
       <label class="form-label">Book</label>
@@ -1529,6 +1497,39 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       </div>
     </div>
     <button class="btn btn-primary btn-full" onclick="logManualSession()">+ Log Session</button>
+  </div>
+
+  <!-- Timer -->
+  <div class="card">
+    <div class="timer-display">
+      <div class="timer-face" id="timer-display">00:00:00</div>
+      <div class="timer-book-title" id="timer-book-name">Select a book to start</div>
+      <div style="margin-bottom:12px;">
+        <select class="form-select" id="timer-book-select" style="max-width:280px;margin:0 auto;display:block;">
+          <option value="">— Choose a book —</option>
+        </select>
+      </div>
+      <div id="timer-presets" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(10)">10 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(20)">20 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(30)">30 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(45)">45 min</button>
+        <button class="btn btn-sky btn-sm" onclick="timerPreset(60)">1 hr</button>
+      </div>
+      <div class="timer-controls">
+        <button class="btn btn-primary" id="timer-start-btn" onclick="timerStart()">▶ Start</button>
+        <button class="btn btn-secondary" id="timer-pause-btn" onclick="timerPause()" style="display:none;">⏸ Pause</button>
+        <button class="btn btn-danger" id="timer-stop-btn" onclick="timerStop()" style="display:none;">⏹ Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Sessions -->
+  <div class="card">
+    <div class="card-title">⏱ Today's Sessions</div>
+    <div id="today-sessions">
+      <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No reading logged today yet!</div>
+    </div>
   </div>
 
   <!-- Points key -->
@@ -1649,7 +1650,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <span class="bottom-nav-icon">📚</span>Shelf
   </button>
   <button class="bottom-nav-item" onclick="openTab('timer')" id="nav-timer">
-    <span class="bottom-nav-icon">⏱</span>Timer
+    <span class="bottom-nav-icon">⏱</span>Log
   </button>
   <button class="bottom-nav-item" onclick="openTab('challenges')" id="nav-challenges">
     <span class="bottom-nav-icon">🎯</span>Goals
@@ -2020,14 +2021,14 @@ const ALL_BADGES = [
 ];
 
 const INDIVIDUAL_MILESTONES = [
-  { id:'m_1book',    pts:30,  name:'First Book Finished!',  desc:'Complete your first book',       icon:'📕', reward:'Movie night pick 🎬 — you choose the movie + snacks for everyone' },
-  { id:'m_100pts',  pts:100, name:'Century Club',           desc:'Earn 100 reading points',        icon:'💯', reward:'Boba or Slurpee run 🧋 — pick your own flavor' },
-  { id:'m_3books',  pts:90,  name:'Trilogy',                desc:'Finish 3 books',                 icon:'📚', reward:'$10 toward a book of your choice at any bookstore 📚' },
-  { id:'m_5hrs',    pts:300, name:'5 Hour Reader',          desc:'Read 5 hours total',             icon:'⏰', reward:'Family movie night 🍿 — you pick the movie and control the remote' },
-  { id:'m_novel',   pts:50,  name:'Novel Finisher',         desc:'Finish a full novel (200+ pages)',icon:'📗', reward:'Reading nook upgrade ✨ — new bookmark, cozy blanket, or book light' },
-  { id:'m_10hrs',   pts:500, name:'10 Hour Legend',         desc:'Read 10 hours total',            icon:'🕙', reward:'$20 toward a new book of your choice 📖' },
-  { id:'m_journal5',pts:50,  name:'Dear Diary',             desc:'Write 10 journal entries',       icon:'📝', reward:'Brand new journal or notebook of your choice 📒' },
-  { id:'m_bingo',   pts:100, name:'Bingo Champ',            desc:'Complete a full bingo card',     icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
+  { id:'m_1book',    pts:30,   name:'First Book Finished!',     desc:'Complete your first book',             icon:'🔖', reward:'Special bookmark — your pick! 🔖' },
+  { id:'m_100pts',  pts:100,  name:'Century Club',              desc:'Earn 100 reading points',              icon:'💯', reward:'Starbucks or Sonic run ☕🧊 — your order, your choice' },
+  { id:'m_3books',  pts:90,   name:'Trilogy',                   desc:'Finish 3 books',                       icon:'📚', reward:'Movie night pick 🎬 — you choose the movie + snacks for everyone' },
+  { id:'m_15hrs',   pts:900,  name:'15 Hour Reader',            desc:'Read 15 hours total',                  icon:'⏰', reward:'Special treat of your choice 🎉' },
+  { id:'m_novel',   pts:50,   name:'Novel Finisher (for kids)', desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 to spend at Target 🎯' },
+  { id:'m_50hrs',   pts:3000, name:'Legend',                    desc:'Read 50 hours total — ultimate grind', icon:'🏆', reward:'$25 toward Amazon or Barnes & Noble 📖' },
+  { id:'m_journal20',pts:50,  name:'Dear Diary',                desc:'Write 20 journal entries',             icon:'📝', reward:'New notebook or journal from Changing Hands bookstore 📒' },
+  { id:'m_bingo',   pts:100,  name:'Bingo Champ',               desc:'Complete a full bingo card',           icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
 ];
 
 const GROUP_MILESTONES = [
@@ -2943,14 +2944,14 @@ function renderIndividualMilestones() {
 
   el.innerHTML = INDIVIDUAL_MILESTONES.map(m => {
     let met = false;
-    if (m.id==='m_1book')    met = finished >= 1;
-    if (m.id==='m_100pts')   met = pts >= 100;
-    if (m.id==='m_3books')   met = finished >= 3;
-    if (m.id==='m_5hrs')     met = totalMins >= 300;
-    if (m.id==='m_10hrs')    met = totalMins >= 600;
-    if (m.id==='m_novel')    met = books.some(b=>b.status==='finished'&&b.genre==='novel');
-    if (m.id==='m_journal5') met = journals >= 10;
-    if (m.id==='m_bingo')    met = bingoCompleted >= 25;
+    if (m.id==='m_1book')     met = finished >= 1;
+    if (m.id==='m_100pts')    met = pts >= 100;
+    if (m.id==='m_3books')    met = finished >= 3;
+    if (m.id==='m_15hrs')     met = totalMins >= 900;
+    if (m.id==='m_novel')     met = books.some(b=>b.status==='finished'&&(b.genre==='novel'||b.genre==='other'));
+    if (m.id==='m_50hrs')     met = totalMins >= 3000;
+    if (m.id==='m_journal20') met = journals >= 20;
+    if (m.id==='m_bingo')     met = bingoCompleted >= 25;
     const freshUnlock = met && !earned.includes(m.id);
     if (freshUnlock) {
       state.milestones[currentMember].push(m.id);
