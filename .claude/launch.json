@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "summer-reading",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4401", "."],
+      "port": 4401
+    },
+    {
+      "name": "presentation",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4405", "."],
+      "port": 4405
+    }
+  ]
+}
