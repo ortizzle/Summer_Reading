@@ -2382,14 +2382,14 @@ function renderActivityList(containerId, limit) {
   el.innerHTML = acts.map(a => {
     const actId = a.id || (a.ts + a.member);
     const reactData = (state.reactions || {})[actId] || {};
+    const cardElId = `${containerId}-flip-${actId}`;
     const reactionBtns = REACTION_EMOJIS.map(e => {
       const reactors = reactData[e] || [];
       const count = reactors.length;
       const mine = reactors.includes(currentMember);
-      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
+      const countBadge = count ? ` <span onclick="event.stopPropagation();flipMsgCard('${cardElId}','${actId}')" style="cursor:pointer;">${count}</span>` : '';
+      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${countBadge}</button>`;
     }).join('');
-    const cardElId = `${containerId}-flip-${actId}`;
-    const flipBtn = `<button class="msg-flip-btn" onclick="flipMsgCard('${cardElId}','${actId}')" title="See reactions">👥</button>`;
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
     const itemDate = a.ts ? new Date(a.ts).toLocaleDateString(undefined, {weekday:'short',month:'short',day:'numeric'}) : null;
@@ -2414,7 +2414,7 @@ function renderActivityList(containerId, limit) {
             <div class="msg-speech" id="msg-text-${actId}">${a.text}</div>
           </div>
         </div>
-        <div class="reaction-row">${reactionBtns}${flipBtn}${replyBtn}</div>
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
       </div>`;
     }
     return `${dateSep}
@@ -2426,7 +2426,7 @@ function renderActivityList(containerId, limit) {
             <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
           </div>
         </div>
-        <div class="reaction-row">${reactionBtns}${flipBtn}${replyBtn}</div>
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
       </div>`;
   }).join('');
 }
