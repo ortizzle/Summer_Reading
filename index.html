@@ -436,15 +436,37 @@ body {
 .reaction-btn.reacted { background: var(--sand); border-color: var(--sun); }
 .reaction-btn span { font-size: 11px; font-weight: 700; color: var(--muted); }
 .reaction-btn.reacted span { color: var(--sun); }
-.reaction-popover {
-  position: fixed; z-index: 9000;
-  background: #222; color: #fff;
-  border-radius: 10px; padding: 8px 12px;
-  font-size: 12px; font-family: 'DM Sans', sans-serif;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  max-width: 220px; line-height: 1.5;
-  pointer-events: none;
+@keyframes cardFlipOut {
+  from { transform: rotateY(0deg); opacity: 1; }
+  to   { transform: rotateY(90deg); opacity: 0; }
 }
+@keyframes cardFlipIn {
+  from { transform: rotateY(-90deg); opacity: 0; }
+  to   { transform: rotateY(0deg); opacity: 1; }
+}
+.msg-flip-anim-out { animation: cardFlipOut 0.18s ease-in forwards; }
+.msg-flip-anim-in  { animation: cardFlipIn  0.18s ease-out forwards; }
+.msg-back-face {
+  padding: 4px 0 8px;
+}
+.msg-back-face .back-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 10px;
+}
+.msg-back-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid #f3f3f3;
+  font-size: 14px;
+}
+.msg-back-row:last-of-type { border-bottom: none; }
+.msg-back-names { font-size: 13px; color: var(--muted); }
+.msg-flip-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; color: var(--muted); padding: 0 4px;
+  line-height: 1; -webkit-tap-highlight-color: transparent;
+  opacity: 0.6;
+}
+.msg-flip-btn:active { opacity: 1; }
 .msg-menu-btn {
   background: none; border: none; cursor: pointer;
   font-size: 18px; color: var(--muted); padding: 0 2px;
@@ -2364,10 +2386,10 @@ function renderActivityList(containerId, limit) {
       const reactors = reactData[e] || [];
       const count = reactors.length;
       const mine = reactors.includes(currentMember);
-      const reactorNames = reactors.map(id => MEMBERS.find(m=>m.id===id)?.name || id).join(', ');
-      const countBadge = count ? ` <span onclick="event.stopPropagation();showReactorPopover(event,'${e} ${reactorNames}')" style="cursor:pointer;">${count}</span>` : '';
-      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${countBadge}</button>`;
+      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
     }).join('');
+    const cardElId = `${containerId}-flip-${actId}`;
+    const flipBtn = `<button class="msg-flip-btn" onclick="flipMsgCard('${cardElId}','${actId}')" title="See reactions">👥</button>`;
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
     const itemDate = a.ts ? new Date(a.ts).toLocaleDateString(undefined, {weekday:'short',month:'short',day:'numeric'}) : null;
@@ -2381,10 +2403,10 @@ function renderActivityList(containerId, limit) {
     const replyName = memberObj ? memberObj.name : '';
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     const isMine = a.member === currentMember;
-    const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${actId}')">···</button>` : '';
+    const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}')">···</button>` : '';
     if (isMsg) {
       return `${dateSep}
-      <div class="activity-item msg-bubble" style="border-left-color:${memberColor};">
+      <div class="activity-item msg-bubble" id="${cardElId}" style="border-left-color:${memberColor};">
         <div class="activity-main">
           <div class="activity-emoji">${getMemberEmoji(memberObj ? memberObj.id : '')}</div>
           <div class="activity-body">
@@ -2392,11 +2414,11 @@ function renderActivityList(containerId, limit) {
             <div class="msg-speech" id="msg-text-${actId}">${a.text}</div>
           </div>
         </div>
-        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
+        <div class="reaction-row">${reactionBtns}${flipBtn}${replyBtn}</div>
       </div>`;
     }
     return `${dateSep}
-      <div class="activity-item sys-item">
+      <div class="activity-item sys-item" id="${cardElId}">
         <div class="activity-main">
           <div class="activity-emoji">${a.emoji}</div>
           <div class="activity-body">
@@ -2404,7 +2426,7 @@ function renderActivityList(containerId, limit) {
             <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
           </div>
         </div>
-        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
+        <div class="reaction-row">${reactionBtns}${flipBtn}${replyBtn}</div>
       </div>`;
   }).join('');
 }
@@ -3479,27 +3501,48 @@ function toggleReaction(actId, emoji) {
   saveToGist();
 }
 
-let _reactionPopoverTimer = null;
-function showReactorPopover(e, label) {
-  const rect = e.target.getBoundingClientRect();
-  let pop = document.getElementById('reaction-popover');
-  if (!pop) {
-    pop = document.createElement('div');
-    pop.id = 'reaction-popover';
-    pop.className = 'reaction-popover';
-    document.body.appendChild(pop);
-  }
-  pop.textContent = label;
-  pop.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
-  pop.style.top = Math.max(rect.top - 44, 60) + 'px';
-  pop.style.display = 'block';
-  clearTimeout(_reactionPopoverTimer);
-  _reactionPopoverTimer = setTimeout(() => { pop.style.display = 'none'; }, 2500);
+function flipMsgCard(cardElId, actId) {
+  const card = document.getElementById(cardElId);
+  if (!card) return;
+  card.classList.add('msg-flip-anim-out');
+  setTimeout(() => {
+    card.classList.remove('msg-flip-anim-out');
+    card.innerHTML = buildReactionBackFace(cardElId, actId);
+    card.classList.add('msg-flip-anim-in');
+    setTimeout(() => card.classList.remove('msg-flip-anim-in'), 200);
+  }, 180);
+}
+
+function flipMsgCardBack(cardElId) {
+  const card = document.getElementById(cardElId);
+  if (!card) return;
+  card.classList.add('msg-flip-anim-out');
+  setTimeout(() => {
+    card.classList.remove('msg-flip-anim-out');
+    renderFeed();
+  }, 180);
+}
+
+function buildReactionBackFace(cardElId, actId) {
+  const reactData = (state.reactions || {})[actId] || {};
+  const rows = REACTION_EMOJIS
+    .filter(e => (reactData[e] || []).length > 0)
+    .map(e => {
+      const names = (reactData[e] || []).map(id => MEMBERS.find(m => m.id === id)?.name || id).join(', ');
+      return `<div class="msg-back-row"><span style="font-size:18px;">${e}</span><span class="msg-back-names">${names}</span></div>`;
+    }).join('');
+  return `<div class="msg-back-face">
+    <div class="back-title">Reactions</div>
+    ${rows || '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px 0;">No reactions yet</div>'}
+    <button class="btn btn-secondary btn-sm btn-full" onclick="flipMsgCardBack('${cardElId}')" style="margin-top:12px;">← Back</button>
+  </div>`;
 }
 
 let _msgMenuActId = null;
-function openMsgMenu(actId) {
+let _msgMenuCardElId = null;
+function openMsgMenu(cardElId, actId) {
   _msgMenuActId = actId;
+  _msgMenuCardElId = cardElId;
   let overlay = document.getElementById('msg-action-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -3517,6 +3560,7 @@ function openMsgMenu(actId) {
   }
   sheet.innerHTML = `
     <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Message</div>
+    <button class="msg-action-sheet-btn" onclick="closeMsgMenu();flipMsgCard('${cardElId}','${actId}')">👥 See Reactions</button>
     <button class="msg-action-sheet-btn" onclick="editMsg('${actId}')">✏️ Edit</button>
     <button class="msg-action-sheet-btn destructive" onclick="deleteMsg('${actId}')">🗑️ Delete</button>
     <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
