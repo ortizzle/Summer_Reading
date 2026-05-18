@@ -436,6 +436,38 @@ body {
 .reaction-btn.reacted { background: var(--sand); border-color: var(--sun); }
 .reaction-btn span { font-size: 11px; font-weight: 700; color: var(--muted); }
 .reaction-btn.reacted span { color: var(--sun); }
+.reaction-popover {
+  position: fixed; z-index: 9000;
+  background: #222; color: #fff;
+  border-radius: 10px; padding: 8px 12px;
+  font-size: 12px; font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  max-width: 220px; line-height: 1.5;
+  pointer-events: none;
+}
+.msg-menu-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--muted); padding: 0 2px;
+  line-height: 1; -webkit-tap-highlight-color: transparent;
+}
+.msg-action-sheet {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px; z-index: 9100;
+  background: white; border-radius: 18px 18px 0 0;
+  padding: 12px 0 32px; box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+}
+.msg-action-sheet-btn {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; padding: 14px 24px;
+  font-size: 16px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+  color: var(--text);
+}
+.msg-action-sheet-btn:active { background: var(--cream); }
+.msg-action-sheet-btn.destructive { color: #e53935; }
+.msg-action-sheet-overlay {
+  position: fixed; inset: 0; z-index: 9099;
+  background: rgba(0,0,0,0.35);
+}
 
 /* ── BADGES ── */
 .badges-grid {
@@ -2332,7 +2364,9 @@ function renderActivityList(containerId, limit) {
       const reactors = reactData[e] || [];
       const count = reactors.length;
       const mine = reactors.includes(currentMember);
-      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
+      const reactorNames = reactors.map(id => MEMBERS.find(m=>m.id===id)?.name || id).join(', ');
+      const peekAttr = count ? ` data-reactors="${e} ${reactorNames}"` : '';
+      return `<button class="reaction-btn${mine?' reacted':''}"${peekAttr} onclick="handleReactionTap(event,'${actId}','${e}',${count})">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
     }).join('');
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
@@ -2346,14 +2380,16 @@ function renderActivityList(containerId, limit) {
     const memberColor = memberObj ? getMemberColor(memberObj.id) : '#ccc';
     const replyName = memberObj ? memberObj.name : '';
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
+    const isMine = a.member === currentMember;
+    const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${actId}')">···</button>` : '';
     if (isMsg) {
       return `${dateSep}
       <div class="activity-item msg-bubble" style="border-left-color:${memberColor};">
         <div class="activity-main">
           <div class="activity-emoji">${getMemberEmoji(memberObj ? memberObj.id : '')}</div>
           <div class="activity-body">
-            <div class="activity-meta" style="margin-bottom:4px;">${who} · ${timeAgo(a.ts)}</div>
-            <div class="msg-speech">${a.text}</div>
+            <div class="activity-meta" style="margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">${who} · ${timeAgo(a.ts)}${msgMenuBtn}</div>
+            <div class="msg-speech" id="msg-text-${actId}">${a.text}</div>
           </div>
         </div>
         <div class="reaction-row">${reactionBtns}${replyBtn}</div>
@@ -3438,7 +3474,99 @@ function toggleReaction(actId, emoji) {
   if (idx >= 0) reactors.splice(idx, 1);
   else reactors.push(currentMember);
   state.reactions[actId][emoji] = reactors;
-  // Optimistic: update UI immediately, save in background
+  renderHome();
+  renderFeed();
+  saveToGist();
+}
+
+let _reactionPopoverTimer = null;
+function handleReactionTap(e, actId, emoji, count) {
+  if (count > 0) {
+    const label = e.currentTarget.dataset.reactors;
+    const rect = e.currentTarget.getBoundingClientRect();
+    let pop = document.getElementById('reaction-popover');
+    if (!pop) {
+      pop = document.createElement('div');
+      pop.id = 'reaction-popover';
+      pop.className = 'reaction-popover';
+      document.body.appendChild(pop);
+    }
+    pop.textContent = label;
+    const top = rect.top - 8 - 36;
+    pop.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
+    pop.style.top = Math.max(top, 60) + 'px';
+    pop.style.display = 'block';
+    clearTimeout(_reactionPopoverTimer);
+    _reactionPopoverTimer = setTimeout(() => { pop.style.display = 'none'; }, 2200);
+  }
+  toggleReaction(actId, emoji);
+}
+
+let _msgMenuActId = null;
+function openMsgMenu(actId) {
+  _msgMenuActId = actId;
+  let overlay = document.getElementById('msg-action-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'msg-action-overlay';
+    overlay.className = 'msg-action-sheet-overlay';
+    overlay.onclick = closeMsgMenu;
+    document.body.appendChild(overlay);
+  }
+  let sheet = document.getElementById('msg-action-sheet');
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.id = 'msg-action-sheet';
+    sheet.className = 'msg-action-sheet';
+    document.body.appendChild(sheet);
+  }
+  sheet.innerHTML = `
+    <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Message</div>
+    <button class="msg-action-sheet-btn" onclick="editMsg('${actId}')">✏️ Edit</button>
+    <button class="msg-action-sheet-btn destructive" onclick="deleteMsg('${actId}')">🗑️ Delete</button>
+    <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
+  `;
+  overlay.style.display = 'block';
+  sheet.style.display = 'block';
+}
+function closeMsgMenu() {
+  const overlay = document.getElementById('msg-action-overlay');
+  const sheet = document.getElementById('msg-action-sheet');
+  if (overlay) overlay.style.display = 'none';
+  if (sheet) sheet.style.display = 'none';
+  _msgMenuActId = null;
+}
+function editMsg(actId) {
+  closeMsgMenu();
+  const act = (state.activity || []).find(a => (a.id || (a.ts + a.member)) === actId);
+  if (!act) return;
+  const el = document.getElementById('msg-text-' + actId);
+  if (!el) return;
+  const orig = act.text;
+  el.innerHTML = `<textarea id="msg-edit-input" style="width:100%;font-size:14px;font-family:'DM Sans',sans-serif;border:1.5px solid var(--sky);border-radius:8px;padding:6px 10px;resize:none;box-sizing:border-box;" rows="3">${orig}</textarea>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-primary btn-sm" onclick="saveEditMsg('${actId}')">Save</button>
+      <button class="btn btn-secondary btn-sm" onclick="cancelEditMsg('${actId}','${orig.replace(/'/g,"\\'")}')">Cancel</button>
+    </div>`;
+  document.getElementById('msg-edit-input')?.focus();
+}
+function saveEditMsg(actId) {
+  const val = document.getElementById('msg-edit-input')?.value?.trim();
+  if (!val) return;
+  const act = (state.activity || []).find(a => (a.id || (a.ts + a.member)) === actId);
+  if (act) act.text = val;
+  renderFeed();
+  saveToGist();
+}
+function cancelEditMsg(actId, orig) {
+  const el = document.getElementById('msg-text-' + actId);
+  if (el) el.innerHTML = orig;
+}
+function deleteMsg(actId) {
+  closeMsgMenu();
+  if (!confirm('Delete this message?')) return;
+  state.activity = (state.activity || []).filter(a => (a.id || (a.ts + a.member)) !== actId);
+  if (state.reactions) delete state.reactions[actId];
   renderHome();
   renderFeed();
   saveToGist();
