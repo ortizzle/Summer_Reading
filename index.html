@@ -2365,8 +2365,8 @@ function renderActivityList(containerId, limit) {
       const count = reactors.length;
       const mine = reactors.includes(currentMember);
       const reactorNames = reactors.map(id => MEMBERS.find(m=>m.id===id)?.name || id).join(', ');
-      const peekAttr = count ? ` data-reactors="${e} ${reactorNames}"` : '';
-      return `<button class="reaction-btn${mine?' reacted':''}"${peekAttr} onclick="handleReactionTap(event,'${actId}','${e}',${count})">${e}${count ? ` <span>${count}</span>` : ''}</button>`;
+      const countBadge = count ? ` <span onclick="event.stopPropagation();showReactorPopover(event,'${e} ${reactorNames}')" style="cursor:pointer;">${count}</span>` : '';
+      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${countBadge}</button>`;
     }).join('');
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
@@ -3480,26 +3480,21 @@ function toggleReaction(actId, emoji) {
 }
 
 let _reactionPopoverTimer = null;
-function handleReactionTap(e, actId, emoji, count) {
-  if (count > 0) {
-    const label = e.currentTarget.dataset.reactors;
-    const rect = e.currentTarget.getBoundingClientRect();
-    let pop = document.getElementById('reaction-popover');
-    if (!pop) {
-      pop = document.createElement('div');
-      pop.id = 'reaction-popover';
-      pop.className = 'reaction-popover';
-      document.body.appendChild(pop);
-    }
-    pop.textContent = label;
-    const top = rect.top - 8 - 36;
-    pop.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
-    pop.style.top = Math.max(top, 60) + 'px';
-    pop.style.display = 'block';
-    clearTimeout(_reactionPopoverTimer);
-    _reactionPopoverTimer = setTimeout(() => { pop.style.display = 'none'; }, 2200);
+function showReactorPopover(e, label) {
+  const rect = e.target.getBoundingClientRect();
+  let pop = document.getElementById('reaction-popover');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'reaction-popover';
+    pop.className = 'reaction-popover';
+    document.body.appendChild(pop);
   }
-  toggleReaction(actId, emoji);
+  pop.textContent = label;
+  pop.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
+  pop.style.top = Math.max(rect.top - 44, 60) + 'px';
+  pop.style.display = 'block';
+  clearTimeout(_reactionPopoverTimer);
+  _reactionPopoverTimer = setTimeout(() => { pop.style.display = 'none'; }, 2500);
 }
 
 let _msgMenuActId = null;
