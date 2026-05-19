@@ -2896,7 +2896,12 @@ function openBingoSquare(id) {
   const sq = squares.find(s=>s.id===id);
   if (!sq) return;
   const completed = state.bingo[activeBingoCard] || {};
-  if (completed[id]) { showToast('Already completed! ✅'); return; }
+  if (completed[id]) {
+    if (confirm(`Unmark "${sq.label}"?\nThis will remove the square and its points.`)) {
+      deselectBingo(id, sq);
+    }
+    return;
+  }
   pendingBingoSquare = id;
   document.getElementById('bingo-modal-emoji').textContent = sq.emoji;
   document.getElementById('bingo-modal-label').textContent = sq.label;
@@ -2910,7 +2915,7 @@ function confirmBingo() {
   state.bingo[activeBingoCard][pendingBingoSquare] = true;
   // Add points
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push({ id:uid(), bookId:'bingo', bookTitle:'Bingo Square', minutes:40, date:todayStr(), ts:Date.now() });
+  state.sessions[currentMember].push({ id:uid(), bookId:'bingo', squareId:pendingBingoSquare, bookTitle:'Bingo Square', minutes:40, date:todayStr(), ts:Date.now() });
   addActivity('🎯', `Bingo square completed: ${(activeBingoCard==='kids'?KIDS_BINGO:ADULTS_BINGO).find(s=>s.id===pendingBingoSquare)?.label}`, currentMember);
   saveToGist().then(() => {
     checkBingo();
@@ -2919,6 +2924,18 @@ function confirmBingo() {
     renderBingoCard();
   });
   closeModal('bingo-modal');
+}
+
+function deselectBingo(id, sq) {
+  delete state.bingo[activeBingoCard][id];
+  // Remove the matching session so points are refunded
+  if (state.sessions[currentMember]) {
+    const idx = state.sessions[currentMember].findLastIndex(s => s.bookId === 'bingo' && s.squareId === id);
+    if (idx >= 0) state.sessions[currentMember].splice(idx, 1);
+  }
+  renderBingoCard();
+  saveToGist();
+  showToast(`"${sq.label}" unmarked ↩`);
 }
 
 function checkBingo() {
