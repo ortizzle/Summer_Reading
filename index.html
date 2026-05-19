@@ -1973,7 +1973,7 @@ const MEMBERS = [
   { id: 'kat',    name: 'Kat',    emoji: '👩🏾', color: '#FF8FA3', adult: true  },
   { id: 'sedona', name: 'Sedona', emoji: '🧒🏾', color: '#C3B1E1', adult: false },
   { id: 'river',  name: 'River',  emoji: '🌊',   color: '#95E1D3', adult: false },
-  { id: 'hani',   name: 'Hani',   emoji: '⭐',   color: '#FFE66D', adult: false }
+  { id: 'hani',   name: 'Hani',   emoji: '⭐',   color: '#FFE66D', adult: true  }
 ];
 
 const COLOR_PALETTE = [
@@ -2049,6 +2049,14 @@ const ADULTS_BINGO = [
   { emoji:'🦅', label:'Alaska Wildlife', desc:'Read outside after spotting Alaska wildlife (eagle, whale, bear)', id:'adults_wildlife' }
 ];
 
+// Hani's card — same as adults but replaces the two Alaska travel squares
+// with dog-sitting squares for Cookie and Biscuit
+const HANI_BINGO = ADULTS_BINGO.map(sq => {
+  if (sq.id === 'adults_canada') return { emoji:'🍪', label:'Read with Cookie', desc:'Snuggle up and read with Cookie by your side', id:'hani_cookie' };
+  if (sq.id === 'adults_sea')    return { emoji:'🐶', label:'Read with Biscuit', desc:'Curl up and read with Biscuit keeping you company', id:'hani_biscuit' };
+  return sq;
+});
+
 const ALL_BADGES = [
   { id:'first_book', emoji:'🌱', label:'First Chapter', desc:'Log your first book' },
   { id:'first_finish', emoji:'🏅', label:'Page Turner', desc:'Finish your first book' },
@@ -2101,7 +2109,7 @@ const DEVICE_MEMBER_KEY = 'ak26-device-member';
 let state = {
   books: {},         // memberId -> [book]
   sessions: {},      // memberId -> [session]
-  bingo: { kids: {}, adults: {} },  // card -> squareId -> bool
+  bingo: { kids: {}, adults: {}, hani: {} },  // card -> squareId -> bool
   badges: {},        // memberId -> [badgeId]
   journal: {},       // memberId -> [entry]
   library: {},       // memberId -> [visit]
@@ -2832,11 +2840,25 @@ function logManualSession() {
 // ═══════════════════════════════════════
 //  CHALLENGES
 // ═══════════════════════════════════════
+function getBingoSquares(card) {
+  if (card === 'kids') return KIDS_BINGO;
+  if (card === 'hani') return HANI_BINGO;
+  return ADULTS_BINGO;
+}
+
 function renderChallenges() {
   const member = MEMBERS.find(m => m.id === currentMember);
-  activeBingoCard = member?.adult ? 'adults' : 'kids';
-  document.getElementById('bingo-kids-btn').className = `btn btn-sm ${activeBingoCard==='kids'?'btn-primary':'btn-secondary'}`;
-  document.getElementById('bingo-adults-btn').className = `btn btn-sm ${activeBingoCard==='adults'?'btn-primary':'btn-secondary'}`;
+  if (currentMember === 'hani') {
+    activeBingoCard = 'hani';
+    document.getElementById('bingo-kids-btn').style.display = 'none';
+    document.getElementById('bingo-adults-btn').style.display = 'none';
+  } else {
+    activeBingoCard = member?.adult ? 'adults' : 'kids';
+    document.getElementById('bingo-kids-btn').style.display = '';
+    document.getElementById('bingo-adults-btn').style.display = '';
+    document.getElementById('bingo-kids-btn').className = `btn btn-sm ${activeBingoCard==='kids'?'btn-primary':'btn-secondary'}`;
+    document.getElementById('bingo-adults-btn').className = `btn btn-sm ${activeBingoCard==='adults'?'btn-primary':'btn-secondary'}`;
+  }
   buildMemberBar('badges-member-bar');
   renderBadges();
   renderBingoCard();
@@ -2852,11 +2874,11 @@ function switchBingo(card) {
 }
 
 function renderBingoCard() {
-  const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
+  const squares = getBingoSquares(activeBingoCard);
   const completed = state.bingo[activeBingoCard] || {};
   const grid = document.getElementById('bingo-grid');
-  document.getElementById('bingo-card-title').textContent =
-    activeBingoCard === 'kids' ? '🧒 Kids Bingo Card' : '🧑 Adults Bingo Card';
+  const titles = { kids: '🧒 Kids Bingo Card', adults: '🧑 Adults Bingo Card', hani: '🐾 Hani\'s Dog-Sitting Card' };
+  document.getElementById('bingo-card-title').textContent = titles[activeBingoCard] || '🧑 Adults Bingo Card';
   grid.innerHTML = squares.map(sq => `
     <div class="bingo-cell ${sq.free?'free-space':''} ${completed[sq.id]?'completed':''}"
          onclick="${sq.free?'':`openBingoSquare('${sq.id}')`}">
@@ -2871,7 +2893,7 @@ function renderBingoCard() {
 
 function renderBingoWins() {
   const completed = state.bingo[activeBingoCard] || {};
-  const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
+  const squares = getBingoSquares(activeBingoCard);
   const isDone = i => squares[i].free || completed[squares[i].id];
   const diag1 = [0,6,12,18,24];
   const diag2 = [4,8,12,16,20];
@@ -2896,7 +2918,7 @@ function renderBingoWins() {
 }
 
 function openBingoSquare(id) {
-  const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
+  const squares = getBingoSquares(activeBingoCard);
   const sq = squares.find(s=>s.id===id);
   if (!sq) return;
   const completed = state.bingo[activeBingoCard] || {};
@@ -2918,7 +2940,7 @@ function confirmBingo() {
   // Add points
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
   state.sessions[currentMember].push({ id:uid(), bookId:'bingo', squareId:pendingBingoSquare, bookTitle:'Bingo Square', minutes:40, date:todayStr(), ts:Date.now() });
-  addActivity('🎯', `Bingo square completed: ${(activeBingoCard==='kids'?KIDS_BINGO:ADULTS_BINGO).find(s=>s.id===pendingBingoSquare)?.label}`, currentMember);
+  addActivity('🎯', `Bingo square completed: ${getBingoSquares(activeBingoCard).find(s=>s.id===pendingBingoSquare)?.label}`, currentMember);
   saveToGist().then(() => {
     checkBingo();
     checkBadges(currentMember);
@@ -2969,7 +2991,7 @@ function deselectBingo(id, sq) {
 
 function checkBingo() {
   const completed = state.bingo[activeBingoCard] || {};
-  const squares = activeBingoCard === 'kids' ? KIDS_BINGO : ADULTS_BINGO;
+  const squares = getBingoSquares(activeBingoCard);
   const isDone = i => squares[i].free || completed[squares[i].id];
 
   const rows = [[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24]];
@@ -3044,7 +3066,7 @@ function renderIndividualMilestones() {
   const finished = books.filter(b=>b.status==='finished').length;
   const journals = (state.journal[currentMember]||[]).length;
 
-  const bingoCompleted = Object.keys((state.bingo?.kids||{})).length + Object.keys((state.bingo?.adults||{})).length;
+  const bingoCompleted = Object.keys((state.bingo?.kids||{})).length + Object.keys((state.bingo?.adults||{})).length + Object.keys((state.bingo?.hani||{})).length;
 
   el.innerHTML = INDIVIDUAL_MILESTONES.map(m => {
     let met = false;
@@ -4418,7 +4440,7 @@ async function clearAllMyData() {
   state.journal[id] = [];
   state.library[id] = [];
   state.milestones[id] = [];
-  if (state.bingo) { state.bingo.kids = {}; state.bingo.adults = {}; }
+  if (state.bingo) { state.bingo.kids = {}; state.bingo.adults = {}; state.bingo.hani = {}; }
   state.activity = (state.activity||[]).filter(a => a.member !== id);
   await saveToGist();
   showToast('All data cleared.');
