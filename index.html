@@ -1969,11 +1969,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 //  DATA
 // ═══════════════════════════════════════
 const MEMBERS = [
-  { id: 'chris',  name: 'Chris',  emoji: '👨🏾', color: '#4ECDC4' },
-  { id: 'kat',    name: 'Kat',    emoji: '👩🏾', color: '#FF8FA3' },
-  { id: 'sedona', name: 'Sedona', emoji: '🧒🏾', color: '#C3B1E1' },
-  { id: 'river',  name: 'River',  emoji: '🌊',   color: '#95E1D3' },
-  { id: 'hani',   name: 'Hani',   emoji: '⭐',   color: '#FFE66D' }
+  { id: 'chris',  name: 'Chris',  emoji: '👨🏾', color: '#4ECDC4', adult: true  },
+  { id: 'kat',    name: 'Kat',    emoji: '👩🏾', color: '#FF8FA3', adult: true  },
+  { id: 'sedona', name: 'Sedona', emoji: '🧒🏾', color: '#C3B1E1', adult: false },
+  { id: 'river',  name: 'River',  emoji: '🌊',   color: '#95E1D3', adult: false },
+  { id: 'hani',   name: 'Hani',   emoji: '⭐',   color: '#FFE66D', adult: false }
 ];
 
 const COLOR_PALETTE = [
@@ -2833,6 +2833,10 @@ function logManualSession() {
 //  CHALLENGES
 // ═══════════════════════════════════════
 function renderChallenges() {
+  const member = MEMBERS.find(m => m.id === currentMember);
+  activeBingoCard = member?.adult ? 'adults' : 'kids';
+  document.getElementById('bingo-kids-btn').className = `btn btn-sm ${activeBingoCard==='kids'?'btn-primary':'btn-secondary'}`;
+  document.getElementById('bingo-adults-btn').className = `btn btn-sm ${activeBingoCard==='adults'?'btn-primary':'btn-secondary'}`;
   buildMemberBar('badges-member-bar');
   renderBadges();
   renderBingoCard();
@@ -2958,6 +2962,7 @@ function deselectBingo(id, sq) {
     if (idx >= 0) state.sessions[currentMember].splice(idx, 1);
   }
   renderBingoCard();
+  renderHome();
   saveToGist();
   showToast(`"${sq.label}" unmarked ↩`);
 }
