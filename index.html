@@ -2219,14 +2219,15 @@ function buildMemberBar(containerId) {
 
 function selectMember(id, barId) {
   if (id === currentMember) return;
-  // Always require a PIN to switch INTO a PIN-protected member (even on admin device)
-  const pin = (state.pins || {})[id];
-  if (pin) { showPinOverlay(id); return; }
-  // Non-admin, non-device-owner: block switching to unprotected members (encourage PINs)
-  const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
-  if (deviceMember && deviceMember !== ADMIN_ID && id !== deviceMember) {
-    showToast('Ask ' + (MEMBERS.find(m=>m.id===id)?.name||id) + ' to set a PIN to protect their account!');
-    return;
+  // Admin (Chris) can switch to anyone freely
+  if (currentMember !== ADMIN_ID) {
+    const pin = (state.pins || {})[id];
+    if (pin) { showPinOverlay(id); return; }
+    const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
+    if (deviceMember && deviceMember !== ADMIN_ID && id !== deviceMember) {
+      showToast('Ask ' + (MEMBERS.find(m=>m.id===id)?.name||id) + ' to set a PIN to protect their account!');
+      return;
+    }
   }
   doSelectMember(id);
 }
