@@ -2897,9 +2897,7 @@ function openBingoSquare(id) {
   if (!sq) return;
   const completed = state.bingo[activeBingoCard] || {};
   if (completed[id]) {
-    if (confirm(`Unmark "${sq.label}"?\nThis will remove the square and its points.`)) {
-      deselectBingo(id, sq);
-    }
+    showBingoUndoSheet(id, sq);
     return;
   }
   pendingBingoSquare = id;
@@ -2924,6 +2922,32 @@ function confirmBingo() {
     renderBingoCard();
   });
   closeModal('bingo-modal');
+}
+
+function showBingoUndoSheet(id, sq) {
+  let overlay = document.getElementById('msg-action-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'msg-action-overlay';
+    overlay.className = 'msg-action-sheet-overlay';
+    document.body.appendChild(overlay);
+  }
+  let sheet = document.getElementById('msg-action-sheet');
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.id = 'msg-action-sheet';
+    sheet.className = 'msg-action-sheet';
+    document.body.appendChild(sheet);
+  }
+  overlay.onclick = () => { overlay.style.display='none'; sheet.style.display='none'; };
+  sheet.innerHTML = `
+    <div style="text-align:center;padding:6px 0 4px;font-size:22px;">${sq.emoji}</div>
+    <div style="text-align:center;padding:0 0 10px;font-size:14px;color:var(--muted);font-family:'DM Sans',sans-serif;">${sq.label}</div>
+    <button class="msg-action-sheet-btn destructive" onclick="deselectBingo('${id}',{label:'${sq.label.replace(/'/g,"\\'")}',emoji:'${sq.emoji}'});document.getElementById('msg-action-overlay').style.display='none';document.getElementById('msg-action-sheet').style.display='none';">↩ Unmark this square</button>
+    <button class="msg-action-sheet-btn" onclick="document.getElementById('msg-action-overlay').style.display='none';document.getElementById('msg-action-sheet').style.display='none';" style="color:var(--muted);">Cancel</button>
+  `;
+  overlay.style.display = 'block';
+  sheet.style.display = 'block';
 }
 
 function deselectBingo(id, sq) {
@@ -4381,7 +4405,7 @@ function setMemberColor(hex) {
 }
 
 async function clearAllMyData() {
-  if (!confirm('Clear ALL your data (books, sessions, journal, badges, library visits)? This cannot be undone.')) return;
+  if (!confirm('Clear ALL your data (books, sessions, journal, bingo, badges, library visits)? This cannot be undone.')) return;
   const id = currentMember;
   state.books[id] = [];
   state.sessions[id] = [];
@@ -4389,11 +4413,13 @@ async function clearAllMyData() {
   state.journal[id] = [];
   state.library[id] = [];
   state.milestones[id] = [];
+  if (state.bingo) { state.bingo.kids = {}; state.bingo.adults = {}; }
   state.activity = (state.activity||[]).filter(a => a.member !== id);
   await saveToGist();
   showToast('All data cleared.');
   renderHome();
   renderSettings();
+  renderBingoCard?.();
 }
 
 // ═══════════════════════════════════════
