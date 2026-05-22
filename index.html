@@ -1845,7 +1845,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <span class="bottom-nav-icon">📝</span>Journal
   </button>
   <button class="bottom-nav-item" onclick="openTab('feed')" id="nav-feed">
-    <span class="bottom-nav-icon">💬</span>Exchange
+    <span class="bottom-nav-icon" style="position:relative;display:inline-block;">💬<span id="feed-badge" style="display:none;position:absolute;top:-4px;right:-8px;background:#E53935;color:white;font-size:10px;font-weight:800;border-radius:10px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 3px;font-family:'DM Sans',sans-serif;pointer-events:none;"></span></span>Exchange
   </button>
   <button class="bottom-nav-item" onclick="openTab('settings')" id="nav-settings">
     <span class="bottom-nav-icon">⚙️</span>Settings
@@ -2444,8 +2444,29 @@ function renderTab(tab) {
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
   if (tab === 'journal') { _journalViewMember = currentMember; renderJournal(); }
-  if (tab === 'feed') renderFeed();
+  if (tab === 'feed') {
+    // Mark feed as seen — clear the badge
+    if (!state.lastSeenFeed) state.lastSeenFeed = {};
+    state.lastSeenFeed[currentMember] = Date.now();
+    updateFeedBadge();
+    renderFeed();
+  }
   if (tab === 'settings') renderSettings();
+}
+
+function updateFeedBadge() {
+  const badge = document.getElementById('feed-badge');
+  if (!badge) return;
+  const lastSeen = (state.lastSeenFeed || {})[currentMember] || 0;
+  const unseen = (state.activity || []).filter(a =>
+    (a.ts || 0) > lastSeen && a.member !== currentMember
+  ).length;
+  if (unseen > 0) {
+    badge.textContent = unseen > 9 ? '9+' : unseen;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 function currentDefaultTab() {
@@ -2565,6 +2586,7 @@ function buildPointsAudit(memberId) {
 function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
+  updateFeedBadge();
 
   // My stats (individual)
   const myBooks   = state.books[currentMember] || [];
