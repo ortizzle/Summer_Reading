@@ -2662,43 +2662,52 @@ function renderShelf() {
   const cards = filtered.map((b, idx) => {
     const sessions = (state.sessions[_shelfViewMember]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
-    const statusTag = { reading:'reading', finished:'finished', dnf:'dnf', want:'want' };
     const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
 
-    const coverHtml = b.coverUrl
+    const frontCover = b.coverUrl
       ? `<img class="shelf-cover" src="${b.coverUrl}" alt="${b.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
          <div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};display:none;">${bookEmoji(b.genre)}</div>`
       : `<div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};">${bookEmoji(b.genre)}</div>`;
 
-    const summaryText = b.summary
-      ? (b.summary.length > 200 ? b.summary.slice(0, 197) + '...' : b.summary)
-      : 'Tap to see details';
+    // Back: cover strip on left, summary on right
+    const backCoverStrip = b.coverUrl
+      ? `<img src="${b.coverUrl}" style="width:54px;min-width:54px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.18);align-self:flex-start;" onerror="this.style.display='none'">`
+      : `<div style="width:54px;min-width:54px;height:76px;border-radius:6px;background:${bookColor(b.genre)};display:flex;align-items:center;justify-content:center;font-size:28px;">${bookEmoji(b.genre)}</div>`;
+
+    const summaryText = b.summary || (b.coverUrl ? 'Loading summary…' : 'Tap Details for more info');
 
     const rating = b.rating || 0;
     const stars = [1,2,3,4,5].map(n =>
-      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})">${rating>=n?'★':'☆'}</span>`
+      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:18px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
     ).join('');
 
     return `
     <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
       <div class="shelf-flip-inner">
         <div class="shelf-face shelf-front">
-          ${coverHtml}
+          ${frontCover}
           <div class="shelf-front-info">
             <div class="shelf-card-title">${b.title}</div>
             <div class="shelf-card-author">${b.author||'Unknown author'}</div>
-            <span class="tag tag-${statusTag[b.status]}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
+            <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
             ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
           </div>
         </div>
-        <div class="shelf-face shelf-back">
-          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${b.title}</div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">${b.author||''}</div>
-          <div class="shelf-back-summary">${summaryText}</div>
-          ${mins > 0 ? `<div class="shelf-back-meta">⏱ ${formatMins(mins)} read</div>` : ''}
-          <div class="shelf-back-stars">${stars}</div>
-          <div class="shelf-back-meta">${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pages':''}</div>
-          <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
+        <div class="shelf-face shelf-back" style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            ${backCoverStrip}
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:800;line-height:1.3;margin-bottom:2px;">${b.title}</div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">${b.author||''}</div>
+              <div style="font-size:10px;color:var(--muted);">${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pg':''}</div>
+              ${mins > 0 ? `<div style="font-size:10px;color:var(--muted);">⏱ ${formatMins(mins)}</div>` : ''}
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text);line-height:1.55;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;">${summaryText}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+            <div>${stars}</div>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -2715,6 +2724,8 @@ function renderShelfAll() {
     const books = (state.books[m.id] || []).filter(b => _shelfFilter === 'all' || b.status === _shelfFilter);
     if (!books.length) return null;
     const sorted = [...books].sort((a,b) => order.indexOf(a.status) - order.indexOf(b.status));
+    // Kick off cover/summary fetches for this member's books
+    sorted.forEach(b => { if (!b.coverUrl || !b.summary) fetchAndStoreSummary(b); });
     return { m, books: sorted };
   }).filter(Boolean);
 
@@ -3598,16 +3609,21 @@ async function fetchAndStoreSummary(book) {
     const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
     const data = await r.json();
     const info = data?.items?.[0]?.volumeInfo;
-    const desc = info?.description;
+    const rawDesc = info?.description || '';
+    // Strip HTML tags from description
+    const desc = rawDesc.replace(/<[^>]*>/g, '').trim();
     if (desc && !book.summary) {
-      book.summary = desc.length > 400 ? desc.slice(0, 397) + '…' : desc;
+      book.summary = desc.length > 600 ? desc.slice(0, 597) + '…' : desc;
     }
     const imgLinks = info?.imageLinks;
     if (imgLinks && !book.coverUrl) {
-      book.coverUrl = (imgLinks.thumbnail || imgLinks.smallThumbnail || '').replace('http:', 'https:');
+      // Prefer larger cover images; replace zoom param for best quality
+      const raw = imgLinks.extraLarge || imgLinks.large || imgLinks.medium || imgLinks.thumbnail || imgLinks.smallThumbnail || '';
+      book.coverUrl = raw.replace('http:', 'https:').replace(/&zoom=\d/, '&zoom=1');
     }
     if (desc || imgLinks) {
-      await saveToGist();
+      saveToGist();
+      renderShelf(); // refresh cards to show newly loaded cover + summary
       if (pendingBookDetail === book.id) openBookDetail(book.id);
     }
   } catch(e) {}
