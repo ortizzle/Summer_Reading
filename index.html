@@ -3441,7 +3441,8 @@ function confirmBingo() {
   // Add points
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
   state.sessions[currentMember].push({ id:uid(), bookId:'bingo', squareId:pendingBingoSquare, bookTitle:'Bingo Square', minutes:40, date:todayStr(), ts:Date.now() });
-  addActivity('🎯', `Bingo square completed: ${getBingoSquares(activeBingoCard).find(s=>s.id===pendingBingoSquare)?.label}`, currentMember);
+  if (!state.activity) state.activity = [];
+  state.activity.push({ id: uid(), emoji: '🎯', text: `Bingo square completed: ${getBingoSquares(activeBingoCard).find(s=>s.id===pendingBingoSquare)?.label}`, member: currentMember, ts: Date.now(), squareId: pendingBingoSquare });
   saveToGist().then(() => {
     checkBingo();
     checkBadges(currentMember);
@@ -3497,6 +3498,11 @@ function deselectBingo() {
   if (state.sessions[currentMember]) {
     const idx = state.sessions[currentMember].findLastIndex(s => s.bookId === 'bingo' && s.squareId === id);
     if (idx >= 0) state.sessions[currentMember].splice(idx, 1);
+  }
+  // Remove the matching activity post from the Exchange
+  if (state.activity) {
+    const actIdx = state.activity.findLastIndex(a => a.squareId === id && a.member === currentMember);
+    if (actIdx >= 0) state.activity.splice(actIdx, 1);
   }
   saveToGist();
   renderBingoCard();
