@@ -3451,42 +3451,56 @@ function confirmBingo() {
   closeModal('bingo-modal');
 }
 
+let _pendingBingoUndo = null; // { id, sq }
+
 function showBingoUndoSheet(id, sq) {
-  let overlay = document.getElementById('msg-action-overlay');
+  _pendingBingoUndo = { id, sq };
+  let overlay = document.getElementById('bingo-undo-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
-    overlay.id = 'msg-action-overlay';
+    overlay.id = 'bingo-undo-overlay';
     overlay.className = 'msg-action-sheet-overlay';
+    overlay.onclick = closeBingoUndoSheet;
     document.body.appendChild(overlay);
   }
-  let sheet = document.getElementById('msg-action-sheet');
+  let sheet = document.getElementById('bingo-undo-sheet');
   if (!sheet) {
     sheet = document.createElement('div');
-    sheet.id = 'msg-action-sheet';
+    sheet.id = 'bingo-undo-sheet';
     sheet.className = 'msg-action-sheet';
     document.body.appendChild(sheet);
   }
-  overlay.onclick = () => { overlay.style.display='none'; sheet.style.display='none'; };
   sheet.innerHTML = `
     <div style="text-align:center;padding:6px 0 4px;font-size:22px;">${sq.emoji}</div>
     <div style="text-align:center;padding:0 0 10px;font-size:14px;color:var(--muted);font-family:'DM Sans',sans-serif;">${sq.label}</div>
-    <button class="msg-action-sheet-btn destructive" onclick="deselectBingo('${id}',{label:'${sq.label.replace(/'/g,"\\'")}',emoji:'${sq.emoji}'});document.getElementById('msg-action-overlay').style.display='none';document.getElementById('msg-action-sheet').style.display='none';">↩ Unmark this square</button>
-    <button class="msg-action-sheet-btn" onclick="document.getElementById('msg-action-overlay').style.display='none';document.getElementById('msg-action-sheet').style.display='none';" style="color:var(--muted);">Cancel</button>
+    <button class="msg-action-sheet-btn destructive" onclick="deselectBingo()">↩ Unmark this square</button>
+    <button class="msg-action-sheet-btn" onclick="closeBingoUndoSheet()" style="color:var(--muted);">Cancel</button>
   `;
   overlay.style.display = 'block';
   sheet.style.display = 'block';
 }
 
-function deselectBingo(id, sq) {
+function closeBingoUndoSheet() {
+  const overlay = document.getElementById('bingo-undo-overlay');
+  const sheet = document.getElementById('bingo-undo-sheet');
+  if (overlay) overlay.style.display = 'none';
+  if (sheet) sheet.style.display = 'none';
+  _pendingBingoUndo = null;
+}
+
+function deselectBingo() {
+  if (!_pendingBingoUndo) return;
+  const { id, sq } = _pendingBingoUndo;
+  closeBingoUndoSheet();
   delete state.bingo[activeBingoCard][id];
   // Remove the matching session so points are refunded
   if (state.sessions[currentMember]) {
     const idx = state.sessions[currentMember].findLastIndex(s => s.bookId === 'bingo' && s.squareId === id);
     if (idx >= 0) state.sessions[currentMember].splice(idx, 1);
   }
+  saveToGist();
   renderBingoCard();
   renderHome();
-  saveToGist();
   showToast(`"${sq.label}" unmarked ↩`);
 }
 
