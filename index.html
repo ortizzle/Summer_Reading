@@ -1056,22 +1056,22 @@ body.theme-dark .msg-bubble { background: #16213E; }
 body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 /* ── SHELF FLIP CARDS ── */
-.shelf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px; }
-.shelf-flip-card { perspective: 800px; cursor: pointer; }
-.shelf-flip-inner { position: relative; width: 100%; padding-top: 160%; transition: transform 0.5s; transform-style: preserve-3d; }
+.shelf-grid { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 16px; }
+.shelf-flip-card { perspective: 1200px; cursor: pointer; height: 200px; }
+.shelf-flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
 .shelf-flip-card.flipped .shelf-flip-inner { transform: rotateY(180deg); }
 .shelf-face { position: absolute; top:0; left:0; width:100%; height:100%; backface-visibility: hidden; border-radius: 16px; overflow: hidden; }
-.shelf-front { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.shelf-front { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; flex-direction: row; }
 .shelf-back { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: rotateY(180deg); padding: 14px; display: flex; flex-direction: column; }
-.shelf-cover { width: 100%; height: 58%; object-fit: cover; display: block; }
-.shelf-cover-fallback { width: 100%; height: 58%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-.shelf-front-info { padding: 10px; }
-.shelf-card-title { font-size: 13px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.shelf-card-author { font-size: 11px; color: var(--muted); margin: 2px 0 6px; }
-.shelf-card-time { font-size: 10px; color: var(--muted); }
+.shelf-cover { width: 130px; min-width: 130px; height: 100%; object-fit: cover; display: block; border-radius: 16px 0 0 16px; }
+.shelf-cover-fallback { width: 130px; min-width: 130px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; border-radius: 16px 0 0 16px; }
+.shelf-front-info { padding: 14px; display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; }
+.shelf-card-title { font-size: 15px; font-weight: 800; line-height: 1.3; margin-bottom: 4px; }
+.shelf-card-author { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+.shelf-card-time { font-size: 11px; color: var(--muted); margin-top: 6px; }
 .shelf-back-stars { display: flex; gap: 2px; font-size: 20px; color: var(--sun); margin: 6px 0; }
 .shelf-back-stars span { cursor: pointer; }
-.shelf-back-summary { font-size: 11px; color: var(--text); line-height: 1.5; flex: 1; overflow: hidden; }
+.shelf-back-summary { font-size: 12px; color: var(--text); line-height: 1.55; flex: 1; overflow-y: auto; margin: 6px 0; }
 .shelf-back-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 /* ── COLOR SWATCHES ── */
@@ -1648,9 +1648,9 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <!-- JOURNAL SECTION -->
 <div class="section" id="sec-journal">
   <div class="member-select-bar" id="journal-member-bar"></div>
-  <button class="btn btn-primary btn-full" onclick="openModal('journal-modal')" style="margin-bottom:14px;">✏️ Write a Journal Entry</button>
+  <button class="btn btn-primary btn-full" id="journal-write-btn" onclick="openModal('journal-modal')" style="margin-bottom:14px;">✏️ Write a Journal Entry</button>
   <div class="card">
-    <div class="card-title">📝 My Reading Journal</div>
+    <div class="card-title" id="journal-card-title">📝 My Reading Journal</div>
     <div id="journal-entries">
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Your reading thoughts will appear here.</div>
     </div>
@@ -1668,6 +1668,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
   <!-- Message composer -->
   <div class="card" style="padding:12px 16px;">
+    <div id="reply-quote-bar" style="display:none;align-items:center;background:var(--sand);border-radius:8px;padding:6px 10px;margin-bottom:8px;gap:6px;"></div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
       <div style="flex:1;position:relative;">
         <textarea id="feed-input" class="form-select" placeholder="Say something to the family… use @name to mention someone" rows="2"
@@ -2267,7 +2268,7 @@ function renderTab(tab) {
   if (tab === 'shelf') { _shelfViewMember = currentMember; _shelfFilter = 'all'; renderShelf(); syncShelf(); }
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
-  if (tab === 'journal') renderJournal();
+  if (tab === 'journal') { _journalViewMember = currentMember; renderJournal(); }
   if (tab === 'feed') renderFeed();
   if (tab === 'settings') renderSettings();
 }
@@ -2295,15 +2296,18 @@ function buildMemberBar(containerId) {
 
 function selectMember(id, barId) {
   if (id === currentMember) return;
-  // Admin (Chris) can switch to anyone freely
-  if (currentMember !== ADMIN_ID) {
-    const pin = (state.pins || {})[id];
-    if (pin) { showPinOverlay(id); return; }
-    const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
-    if (deviceMember && deviceMember !== ADMIN_ID && id !== deviceMember) {
-      showToast('Ask ' + (MEMBERS.find(m=>m.id===id)?.name||id) + ' to set a PIN to protect their account!');
-      return;
-    }
+  // If this is Chris's device, always switch freely (no PIN barriers)
+  const deviceMember = localStorage.getItem(DEVICE_MEMBER_KEY);
+  if (deviceMember === ADMIN_ID || currentMember === ADMIN_ID) {
+    doSelectMember(id);
+    return;
+  }
+  // Non-admin device: enforce PINs
+  const pin = (state.pins || {})[id];
+  if (pin) { showPinOverlay(id); return; }
+  if (deviceMember && id !== deviceMember) {
+    showToast('Ask ' + (MEMBERS.find(m=>m.id===id)?.name||id) + ' to set a PIN to protect their account!');
+    return;
   }
   doSelectMember(id);
 }
@@ -2478,17 +2482,26 @@ function renderActivityList(containerId, limit) {
     const isMsg = a.type === 'message';
     const memberColor = memberObj ? getMemberColor(memberObj.id) : '#ccc';
     const replyName = memberObj ? memberObj.name : '';
-    const replyBtn = replyName ? `<button onclick="feedReply('${replyName}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
+    const replyText = (a.text || '').replace(/^[^:]+:\s*/, '').replace(/'/g, "\\'").slice(0, 80);
+    const replyBtn = replyName ? `<button onclick="feedReply('${replyName}','${replyText}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     const isMine = a.member === currentMember;
     const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}')">···</button>` : '';
     if (isMsg) {
+      // Split off any inline reply quote (↩ re: "...") for styled rendering
+      const rawText = a.text || '';
+      const quoteMatch = rawText.match(/^([\s\S]*?)\n↩ re: (.+)$/);
+      const msgBody = quoteMatch ? quoteMatch[1] : rawText;
+      const quoteBlock = quoteMatch
+        ? `<div style="font-size:11px;color:var(--muted);font-style:italic;background:var(--sand);border-radius:6px;padding:4px 8px;margin-bottom:4px;border-left:2px solid var(--muted);">↩ ${quoteMatch[2]}</div>`
+        : '';
       return `${dateSep}
       <div class="activity-item msg-bubble" id="${cardElId}" style="border-left-color:${memberColor};">
         <div class="activity-main">
           <div class="activity-emoji">${getMemberEmoji(memberObj ? memberObj.id : '')}</div>
           <div class="activity-body">
             <div class="activity-meta" style="margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">${who} · ${timeAgo(a.ts)}${msgMenuBtn}</div>
-            <div class="msg-speech" id="msg-text-${actId}">${a.text}</div>
+            ${quoteBlock}
+            <div class="msg-speech" id="msg-text-${actId}">${msgBody}</div>
           </div>
         </div>
         <div class="reaction-row">${reactionBtns}${replyBtn}</div>
@@ -2555,7 +2568,20 @@ function insertMention(name) {
   hideMentionDropdown();
 }
 
-function feedReply(name) {
+let _replyQuote = null; // { name, text }
+
+function feedReply(name, quoteText) {
+  _replyQuote = quoteText ? { name, text: quoteText } : null;
+  const bar = document.getElementById('reply-quote-bar');
+  if (bar) {
+    if (_replyQuote) {
+      bar.style.display = 'flex';
+      bar.innerHTML = `<div style="flex:1;font-size:12px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">↩ Replying to <strong>${name}</strong>: "${quoteText}"</div>
+        <button onclick="clearReplyQuote()" style="background:none;border:none;font-size:16px;color:var(--muted);cursor:pointer;padding:0 0 0 6px;line-height:1;">×</button>`;
+    } else {
+      bar.style.display = 'none';
+    }
+  }
   const ta = document.getElementById('feed-input');
   ta.value = '@' + name + ' ';
   ta.focus();
@@ -2564,15 +2590,26 @@ function feedReply(name) {
   ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function clearReplyQuote() {
+  _replyQuote = null;
+  const bar = document.getElementById('reply-quote-bar');
+  if (bar) bar.style.display = 'none';
+}
+
 function postFeedMessage() {
   const input = document.getElementById('feed-input');
   const text = (input.value || '').trim();
   if (!text) { showToast('Type something first!'); return; }
   const member = MEMBERS.find(m => m.id === currentMember);
   if (!state.activity) state.activity = [];
-  state.activity.push({ id: uid(), emoji: '💬', text: `${member.name}: ${text}`, member: currentMember, ts: Date.now(), type: 'message' });
+  const quoteSnippet = _replyQuote ? `"${_replyQuote.text.slice(0,60)}${_replyQuote.text.length>60?'…':''}"` : null;
+  const fullText = quoteSnippet
+    ? `${member.name}: ${text}\n↩ re: ${quoteSnippet}`
+    : `${member.name}: ${text}`;
+  state.activity.push({ id: uid(), emoji: '💬', text: fullText, member: currentMember, ts: Date.now(), type: 'message' });
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
   input.value = '';
+  clearReplyQuote();
   hideMentionDropdown();
   saveToGist().then(() => renderFeed());
 }
@@ -2582,6 +2619,7 @@ function postFeedMessage() {
 // ═══════════════════════════════════════
 let _shelfFilter = 'all';
 let _shelfViewMember = null; // null gets set to currentMember on tab open
+let _journalViewMember = null; // null gets set to currentMember on tab open
 
 function setShelfView(id) {
   _shelfViewMember = id;
@@ -2659,9 +2697,9 @@ function renderShelf() {
     return;
   }
 
-  // Kick off summary+cover fetches for books that need it
+  // Kick off summary+cover fetches for books that need it (summary===undefined means never fetched)
   filtered.forEach(b => {
-    if (!b.coverUrl || !b.summary) fetchAndStoreSummary(b);
+    if ((!b.coverUrl || b.summary === undefined) && !b._fetchingMeta) fetchAndStoreSummary(b);
   });
 
   const cards = filtered.map((b, idx) => {
@@ -2674,17 +2712,19 @@ function renderShelf() {
          <div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};display:none;">${bookEmoji(b.genre)}</div>`
       : `<div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};">${bookEmoji(b.genre)}</div>`;
 
-    // Back: cover strip on left, summary on right
-    const backCoverStrip = b.coverUrl
-      ? `<img src="${b.coverUrl}" style="width:54px;min-width:54px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.18);align-self:flex-start;" onerror="this.style.display='none'">`
-      : `<div style="width:54px;min-width:54px;height:76px;border-radius:6px;background:${bookColor(b.genre)};display:flex;align-items:center;justify-content:center;font-size:28px;">${bookEmoji(b.genre)}</div>`;
-
-    const summaryText = b.summary || (b.coverUrl ? 'Loading summary…' : 'Tap Details for more info');
+    const summaryText = b.summary
+      ? b.summary
+      : b.summary === ''
+        ? 'No description available.'
+        : b._fetchingMeta ? 'Loading summary…' : '';
 
     const rating = b.rating || 0;
     const stars = [1,2,3,4,5].map(n =>
-      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:18px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
+      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:20px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
     ).join('');
+
+    const memberOwnerEmoji = _shelfViewMember !== currentMember && _shelfViewMember !== 'all'
+      ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${getMemberEmoji(_shelfViewMember)} ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||''}'s book</div>` : '';
 
     return `
     <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
@@ -2696,22 +2736,21 @@ function renderShelf() {
             <div class="shelf-card-author">${b.author||'Unknown author'}</div>
             <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
             ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
+            ${memberOwnerEmoji}
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;opacity:0.6;">Tap to flip ↩</div>
           </div>
         </div>
-        <div class="shelf-face shelf-back" style="padding:12px;display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;gap:10px;align-items:flex-start;">
-            ${backCoverStrip}
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12px;font-weight:800;line-height:1.3;margin-bottom:2px;">${b.title}</div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">${b.author||''}</div>
-              <div style="font-size:10px;color:var(--muted);">${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pg':''}</div>
-              ${mins > 0 ? `<div style="font-size:10px;color:var(--muted);">⏱ ${formatMins(mins)}</div>` : ''}
+        <div class="shelf-face shelf-back">
+          <div style="display:flex;gap:0;height:100%;">
+            <div style="flex:1;padding:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+              <div style="font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;">${b.title}</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${b.author||''} · ${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pg':''}</div>
+              <div class="shelf-back-summary">${summaryText || '<span style="color:var(--muted);font-style:italic;">No description yet.</span>'}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;flex-shrink:0;">
+                <div>${stars}</div>
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
+              </div>
             </div>
-          </div>
-          <div style="font-size:11px;color:var(--text);line-height:1.55;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;">${summaryText}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
-            <div>${stars}</div>
-            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
           </div>
         </div>
       </div>
@@ -2730,7 +2769,7 @@ function renderShelfAll() {
     if (!books.length) return null;
     const sorted = [...books].sort((a,b) => order.indexOf(a.status) - order.indexOf(b.status));
     // Kick off cover/summary fetches for this member's books
-    sorted.forEach(b => { if (!b.coverUrl || !b.summary) fetchAndStoreSummary(b); });
+    sorted.forEach(b => { if ((!b.coverUrl || b.summary === undefined) && !b._fetchingMeta) fetchAndStoreSummary(b); });
     return { m, books: sorted };
   }).filter(Boolean);
 
@@ -3411,13 +3450,42 @@ function confirmLibraryVisit() {
 // ═══════════════════════════════════════
 //  JOURNAL
 // ═══════════════════════════════════════
+function buildJournalMemberBar() {
+  const el = document.getElementById('journal-member-bar');
+  if (!el) return;
+  el.innerHTML = MEMBERS.map(m => {
+    const isViewing = m.id === (_journalViewMember || currentMember);
+    const isMe = m.id === currentMember;
+    const col = getMemberColor(m.id);
+    return `<div class="member-chip ${isViewing?'active':''}" onclick="setJournalView('${m.id}')" style="cursor:pointer;">
+      <div class="member-avatar" style="background:${col}20;border-color:${isViewing?col:'#eee'};">${getMemberEmoji(m.id)}</div>
+      <span class="member-chip-name">${isMe?'Me':m.name}</span>
+    </div>`;
+  }).join('');
+}
+
+function setJournalView(memberId) {
+  _journalViewMember = memberId;
+  renderJournal();
+}
+
 function renderJournal() {
   ensureMember(currentMember);
-  buildMemberBar('journal-member-bar');
-  const entries = (state.journal[currentMember] || []).slice().reverse();
+  if (!_journalViewMember) _journalViewMember = currentMember;
+  buildJournalMemberBar();
+
+  const isOwn = _journalViewMember === currentMember;
+  const writeBtn = document.getElementById('journal-write-btn');
+  if (writeBtn) writeBtn.style.display = isOwn ? '' : 'none';
+
+  const viewName = MEMBERS.find(m => m.id === _journalViewMember)?.name || _journalViewMember;
+  const titleEl = document.getElementById('journal-card-title');
+  if (titleEl) titleEl.textContent = isOwn ? '📝 My Reading Journal' : `📝 ${viewName}'s Journal`;
+
+  const entries = (state.journal[_journalViewMember] || []).slice().reverse();
   const el = document.getElementById('journal-entries');
   if (!entries.length) {
-    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Your thoughts will appear here.</div>`;
+    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">${isOwn ? 'Your thoughts will appear here.' : `${viewName} hasn't written any entries yet.`}</div>`;
     return;
   }
   el.innerHTML = entries.map(e => `
@@ -3609,6 +3677,8 @@ async function lookupISBN() {
 }
 
 async function fetchAndStoreSummary(book) {
+  // Mark as fetching so we don't fire duplicate requests while awaiting
+  book._fetchingMeta = true;
   try {
     const q = encodeURIComponent(book.title + (book.author ? ' ' + book.author : ''));
     const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
@@ -3617,8 +3687,10 @@ async function fetchAndStoreSummary(book) {
     const rawDesc = info?.description || '';
     // Strip HTML tags from description
     const desc = rawDesc.replace(/<[^>]*>/g, '').trim();
-    if (desc && !book.summary) {
+    if (desc && book.summary === undefined) {
       book.summary = desc.length > 600 ? desc.slice(0, 597) + '…' : desc;
+    } else if (!desc && book.summary === undefined) {
+      book.summary = ''; // sentinel: fetched, nothing found — prevents re-fetch loops
     }
     const imgLinks = info?.imageLinks;
     if (imgLinks && !book.coverUrl) {
@@ -3626,13 +3698,14 @@ async function fetchAndStoreSummary(book) {
       const raw = imgLinks.extraLarge || imgLinks.large || imgLinks.medium || imgLinks.thumbnail || imgLinks.smallThumbnail || '';
       book.coverUrl = raw.replace('http:', 'https:').replace(/&zoom=\d/, '&zoom=1');
     }
-    if (desc || imgLinks) {
-      saveToGist();
-      renderShelf(); // refresh cards to show newly loaded cover + summary
-      if (pendingBookDetail === book.id) openBookDetail(book.id);
-    }
-  } catch(e) {}
+    saveToGist();
+    renderShelf();
+    if (pendingBookDetail === book.id) openBookDetail(book.id);
+  } catch(e) {
+    book._fetchingMeta = false; // allow retry on error
+  }
 }
+
 
 let _scannerStream = null;
 let _scannerRAF = null;
