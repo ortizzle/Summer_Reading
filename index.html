@@ -814,6 +814,9 @@ body {
   z-index: 9998;
   display: none;
 }
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+@keyframes bounceIn { 0%{transform:scale(0.6);opacity:0} 60%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+.fgc-bounce { animation: bounceIn 0.5s cubic-bezier(.34,1.56,.64,1) both; }
 .confetti-piece {
   position: absolute;
   width: 10px;
@@ -1520,6 +1523,28 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div class="group-progress-label">
       <span id="group-progress-current">0 pts</span>
       <span id="group-progress-next">Next: Ice Cream 🍦</span>
+    </div>
+    <!-- Earned milestone trophies -->
+    <div id="earned-milestones-row" style="display:none;margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:12px;">
+      <div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:8px;">UNLOCKED</div>
+      <div id="earned-milestones-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- Family Goal Celebration Overlay -->
+  <div id="family-goal-celebration" style="display:none;position:fixed;inset:0;z-index:19999;background:rgba(10,10,30,0.92);align-items:center;justify-content:center;padding:24px;">
+    <div style="background:white;border-radius:28px;padding:32px 24px;text-align:center;max-width:340px;width:100%;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <!-- shimmer strip -->
+      <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#FF6B35,#FFE66D,#4ECDC4,#FF8FA3,#FF6B35);background-size:200%;animation:shimmer 2s linear infinite;"></div>
+      <div id="fgc-icon" style="font-size:80px;line-height:1;margin:16px 0 10px;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.2));">🍦</div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:2.5px;color:var(--coral);margin-bottom:6px;">FAMILY GOAL UNLOCKED!</div>
+      <div id="fgc-name" style="font-family:'Fraunces',serif;font-size:26px;font-weight:900;color:var(--navy);line-height:1.2;margin-bottom:16px;"></div>
+      <div style="background:linear-gradient(135deg,#fff9ec,#fff3d6);border:2px solid #FFE66D;border-radius:16px;padding:14px 16px;margin-bottom:20px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">🎁 YOUR REWARD</div>
+        <div id="fgc-reward" style="font-size:14px;font-weight:700;color:var(--navy);line-height:1.4;"></div>
+      </div>
+      <div id="fgc-avatars" style="display:flex;justify-content:center;gap:6px;margin-bottom:22px;flex-wrap:wrap;"></div>
+      <button onclick="closeFamilyGoalCelebration()" class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;border-radius:16px;font-weight:800;">🎉 Let's Go!</button>
     </div>
   </div>
 
@@ -2554,15 +2579,31 @@ function renderHome() {
 
   // Group progress
   document.getElementById('group-progress-current').textContent = famPts + ' pts';
-  const nextGM = GROUP_MILESTONES.find(gm => !(state.groupMilestones||[]).includes(gm.id));
+  const earned = state.groupMilestones || [];
+  const nextGM = GROUP_MILESTONES.find(gm => !earned.includes(gm.id));
   if (nextGM) {
     const pct = Math.min(100, (famPts / nextGM.threshold) * 100);
     document.getElementById('group-progress-fill').style.width = pct + '%';
     document.getElementById('group-progress-next').textContent = `Next: ${nextGM.reward}`;
-    document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold + ' pts';
+    document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold.toLocaleString() + ' pts';
   } else {
     document.getElementById('group-progress-fill').style.width = '100%';
     document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
+    document.getElementById('group-milestone-label').textContent = 'Every goal unlocked!';
+  }
+  // Earned milestone chips
+  const earnedRow = document.getElementById('earned-milestones-row');
+  const earnedChips = document.getElementById('earned-milestones-chips');
+  const earnedGMs = GROUP_MILESTONES.filter(gm => earned.includes(gm.id));
+  if (earnedGMs.length && earnedRow && earnedChips) {
+    earnedRow.style.display = 'block';
+    earnedChips.innerHTML = earnedGMs.map(gm => `
+      <div onclick="showFamilyGoalDetails('${gm.id}')" style="background:rgba(255,255,255,0.15);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;border:1px solid rgba(255,255,255,0.25);">
+        <span style="font-size:18px;">${gm.icon}</span>
+        <span style="color:white;font-size:11px;font-weight:700;">${gm.name}</span>
+      </div>`).join('');
+  } else if (earnedRow) {
+    earnedRow.style.display = 'none';
   }
 
   // Leaderboard
@@ -3568,10 +3609,41 @@ function checkGroupMilestones() {
     if (allPts >= gm.threshold && !state.groupMilestones.includes(gm.id)) {
       state.groupMilestones.push(gm.id);
       addActivity('🎉', `Family milestone unlocked: ${gm.name}! ${gm.reward}`, 'family');
-      celebrateThemed();
-      showToast(`🎉 Family Milestone: ${gm.name}!`);
+      showFamilyGoalCelebration(gm);
     }
   }
+}
+
+function showFamilyGoalCelebration(gm) {
+  const overlay = document.getElementById('family-goal-celebration');
+  if (!overlay) return;
+  document.getElementById('fgc-icon').textContent = gm.icon;
+  document.getElementById('fgc-name').textContent = gm.name;
+  document.getElementById('fgc-reward').textContent = gm.reward;
+  document.getElementById('fgc-avatars').innerHTML = MEMBERS.map(m =>
+    `<div style="font-size:36px;line-height:1;" title="${m.name}">${getMemberEmoji(m.id)}</div>`
+  ).join('');
+  // Animate the inner card
+  const card = overlay.querySelector('div');
+  if (card) { card.classList.remove('fgc-bounce'); void card.offsetWidth; card.classList.add('fgc-bounce'); }
+  overlay.style.display = 'flex';
+  // Fire confetti waves
+  celebrate();
+  setTimeout(celebrate, 1000);
+  setTimeout(celebrate, 2200);
+  celebrateThemed();
+}
+
+function showFamilyGoalDetails(gmId) {
+  const gm = GROUP_MILESTONES.find(g => g.id === gmId);
+  if (gm) showFamilyGoalCelebration(gm);
+}
+
+function closeFamilyGoalCelebration() {
+  const overlay = document.getElementById('family-goal-celebration');
+  if (overlay) overlay.style.display = 'none';
+  renderHome(); // refresh to show earned chips
+  saveToGist();
 }
 
 function logLibraryVisit() {
