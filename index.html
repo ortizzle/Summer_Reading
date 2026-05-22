@@ -2883,8 +2883,9 @@ function renderShelf() {
     { key: 'dnf', label: '🚩 DNF' },
     { key: 'want', label: '🔖 Want' }
   ];
-  const filterBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 12px;">` +
+  const filterBar = `<div style="display:flex;gap:6px;padding:4px 0 14px;">` +
     filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}"
+      style="flex:1;text-align:center;padding:8px 4px;font-size:11px;"
       onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
 
   if (!books.length) {
@@ -3031,8 +3032,8 @@ function renderShelfAll() {
     { key: 'dnf', label: '🚩 DNF' },
     { key: 'want', label: '🔖 Want' }
   ];
-  const filterBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 12px;">` +
-    filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}" onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
+  const filterBar = `<div style="display:flex;gap:6px;padding:4px 0 14px;">` +
+    filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}" style="flex:1;text-align:center;padding:8px 4px;font-size:11px;" onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
 
   if (!sections.length) {
     el.innerHTML = filterBar + `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — everyone's shelf is empty!</div>`;
