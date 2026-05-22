@@ -1371,13 +1371,17 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 .mention-item:hover { background: var(--sand); }
 
 /* ── FEED MESSAGE BUBBLE ── */
+/* ── USER MESSAGE BUBBLE — left accent only ── */
 .activity-item.msg-bubble {
-  background: white;
-  border-radius: 14px;
+  background: transparent;
+  border-radius: 0;
   border-left: 4px solid #ccc;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  box-shadow: none;
 }
 .activity-item.msg-bubble .activity-main { margin-bottom: 6px; }
 .activity-item.msg-bubble .activity-emoji { font-size: 28px; }
@@ -1390,13 +1394,13 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   margin-top: 4px;
 }
 
-/* ── FEED SYSTEM ITEM ── */
+/* ── SYSTEM ACTIVITY — full bordered bracket ── */
 .activity-item.sys-item {
   border-radius: 12px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  border-left: 4px solid #ccc;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  border: 2px solid #ccc;
+  background: transparent;
 }
 .sys-item .activity-emoji {
   font-size: 26px;
@@ -2743,7 +2747,7 @@ function renderActivityList(containerId, limit) {
       return { border:'#90A4AE', bg:'rgba(144,164,174,0.07)', iconBg:'rgba(144,164,174,0.15)' };
     })();
     return `${dateSep}
-      <div class="activity-item sys-item" id="${cardElId}" style="border-left-color:${sysAccent.border};background:${sysAccent.bg};">
+      <div class="activity-item sys-item" id="${cardElId}" style="border-color:${sysAccent.border};background:${sysAccent.bg};">
         <div class="activity-main">
           <div class="activity-emoji" style="background:${sysAccent.iconBg};">${a.emoji}</div>
           <div class="activity-body">
