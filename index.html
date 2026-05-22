@@ -913,9 +913,9 @@ textarea.form-input { resize: none; }
   cursor: pointer;
 }
 
-/* Selected avatar edit indicator */
-.member-chip.active .member-avatar { position: relative; }
-.member-chip.active .member-avatar::after {
+/* Selected avatar edit indicator — scoped to onboarding only */
+#onboard-body .member-chip.active .member-avatar { position: relative; }
+#onboard-body .member-chip.active .member-avatar::after {
   content: '✏️';
   position: absolute; bottom: -2px; right: -2px;
   font-size: 12px;
@@ -2160,11 +2160,41 @@ async function saveToGist() {
   localStorage.setItem('ortizzle_local', JSON.stringify(state));
   if (!token || !gistId) return;
   try {
+    // Pull latest Gist state first so we don't overwrite other members' data
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const raw = data.files['ortizzle-reading.json'];
+      if (raw) {
+        const remote = JSON.parse(raw.content);
+        // Merge per-member collections: keep the union of remote + local
+        ['books','sessions','journal','library','milestones','badges'].forEach(key => {
+          if (!remote[key]) return;
+          MEMBERS.forEach(m => {
+            if (!remote[key][m.id]) return;
+            // If remote has data for a member this device doesn't know about, adopt it
+            if (!state[key][m.id] || state[key][m.id].length === 0) {
+              state[key][m.id] = remote[key][m.id];
+            }
+          });
+        });
+        // Merge activity: union by id
+        if (remote.activity && Array.isArray(remote.activity)) {
+          const localIds = new Set((state.activity||[]).map(a => a.id));
+          const merged = [...(state.activity||[])];
+          remote.activity.forEach(a => { if (!localIds.has(a.id)) merged.push(a); });
+          state.activity = merged.sort((a,b) => (a.ts||0) - (b.ts||0));
+        }
+      }
+    }
     await fetch(`https://api.github.com/gists/${gistId}`, {
       method: 'PATCH',
       headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ files: { 'ortizzle-reading.json': { content: JSON.stringify(state) } } })
     });
+    localStorage.setItem('ortizzle_local', JSON.stringify(state));
   } catch(e) {}
 }
 
