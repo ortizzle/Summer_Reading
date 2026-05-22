@@ -3501,8 +3501,12 @@ function deselectBingo() {
     if (idx >= 0) state.sessions[currentMember].splice(idx, 1);
   }
   // Remove the matching activity post from the Exchange
+  // Match by squareId (new entries) or by label text (older entries before squareId was added)
   if (state.activity) {
-    const actIdx = state.activity.findLastIndex(a => a.squareId === id && a.member === currentMember);
+    const actIdx = state.activity.findLastIndex(a =>
+      a.member === currentMember && a.emoji === '🎯' &&
+      (a.squareId === id || a.text?.includes(sq.label))
+    );
     if (actIdx >= 0) state.activity.splice(actIdx, 1);
   }
   saveToGist();
