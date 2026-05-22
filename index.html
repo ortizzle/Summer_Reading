@@ -4896,12 +4896,12 @@ async function init() {
     setTimeout(() => {
       dismissSplash();
       setTimeout(fireThemeIntro, 650);
-    }, 1800);
+    }, 1200);
   } else {
     // No device identity — dismiss splash then show "Who are you?"
     setTimeout(() => {
       dismissSplash(() => showWhoOverlay());
-    }, 1800);
+    }, 1200);
   }
 }
 
