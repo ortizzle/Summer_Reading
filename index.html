@@ -1510,13 +1510,16 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 <!-- SHELF SECTION -->
 <div class="section" id="sec-shelf">
-  <div class="member-select-bar" id="shelf-member-bar"></div>
+  <div id="shelf-member-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
   <button class="btn btn-primary btn-full" id="shelf-add-btn" onclick="openModal('add-book-modal')" style="margin-bottom:14px;">+ Add a Book</button>
 
   <div class="card" style="padding:18px 0 0;">
-    <div class="card-title" style="padding:0 18px;" id="shelf-card-title">📚 My Books</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;">
+      <div class="card-title" style="padding:0;" id="shelf-card-title">📚 Everyone's Shelf</div>
+      <button onclick="syncShelf()" id="shelf-sync-btn" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px;" title="Sync latest from family">↻</button>
+    </div>
     <div id="shelf-book-list">
-      <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Loading…</div>
     </div>
   </div>
 </div>
@@ -2192,7 +2195,7 @@ function openTab(tab) {
 
 function renderTab(tab) {
   if (tab === 'home') renderHome();
-  if (tab === 'shelf') { _shelfViewMember = null; renderShelf(); }
+  if (tab === 'shelf') { _shelfViewMember = 'all'; _shelfFilter = 'all'; renderShelf(); syncShelf(); }
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
   if (tab === 'journal') renderJournal();
@@ -2509,39 +2512,58 @@ function postFeedMessage() {
 //  SHELF
 // ═══════════════════════════════════════
 let _shelfFilter = 'all';
-let _shelfViewMember = null; // null = viewing own shelf
+let _shelfViewMember = 'all'; // 'all' = everyone's shelf
 
 function setShelfView(id) {
   _shelfViewMember = id;
+  _shelfFilter = 'all';
   renderShelf();
 }
 
+function syncShelf() {
+  const btn = document.getElementById('shelf-sync-btn');
+  if (btn) btn.style.opacity = '0.4';
+  loadFromGist().then(() => {
+    if (btn) btn.style.opacity = '';
+    renderShelf();
+    showToast('Shelf synced! ↻');
+  });
+}
+
 function buildShelfMemberBar() {
-  const viewId = _shelfViewMember || currentMember;
   const el = document.getElementById('shelf-member-bar');
-  el.innerHTML = MEMBERS.map(m => {
-    const isViewing = m.id === viewId;
+  const allActive = _shelfViewMember === 'all';
+  const chips = [
+    `<div class="member-chip ${allActive?'active':''}" onclick="setShelfView('all')" style="cursor:pointer;">
+      <div class="member-avatar" style="background:#eee;border-color:${allActive?'var(--sun)':'#eee'};font-size:16px;">👨‍👩‍👧</div>
+      <span class="member-chip-name">All</span>
+    </div>`
+  ].concat(MEMBERS.map(m => {
+    const isViewing = m.id === _shelfViewMember;
     const isMe = m.id === currentMember;
     const col = getMemberColor(m.id);
-    return `<div class="member-chip ${isViewing?'active':''}" onclick="setShelfView('${m.id}')">
+    return `<div class="member-chip ${isViewing?'active':''}" onclick="setShelfView('${m.id}')" style="cursor:pointer;">
       <div class="member-avatar" style="background:${col}20;border-color:${isViewing?col:'#eee'};position:relative;">${getMemberEmoji(m.id)}</div>
       <span class="member-chip-name">${isMe?'Me':m.name}</span>
     </div>`;
-  }).join('');
+  }));
+  el.innerHTML = chips.join('');
 }
 
 function renderShelf() {
   ensureMember(currentMember);
-  const viewId = _shelfViewMember || currentMember;
   buildShelfMemberBar();
 
-  // Show/hide add button and update title
-  const isOwnShelf = viewId === currentMember;
+  const isAll = _shelfViewMember === 'all';
+  const isOwnShelf = _shelfViewMember === currentMember;
   document.getElementById('shelf-add-btn').style.display = isOwnShelf ? '' : 'none';
-  const viewName = MEMBERS.find(m => m.id === viewId)?.name || viewId;
-  document.getElementById('shelf-card-title').textContent = isOwnShelf ? '📚 My Books' : `📚 ${viewName}'s Books`;
+  document.getElementById('shelf-card-title').textContent = isAll ? '📚 Everyone\'s Shelf'
+    : isOwnShelf ? '📚 My Books'
+    : `📚 ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||_shelfViewMember}'s Books`;
 
-  const books = state.books[viewId] || [];
+  if (isAll) { renderShelfAll(); return; }
+
+  const books = state.books[_shelfViewMember] || [];
   const el = document.getElementById('shelf-book-list');
 
   // Filter bar
@@ -2622,29 +2644,55 @@ function renderShelf() {
 
   el.innerHTML = filterBar + `<div class="shelf-grid">${cards}</div>`;
 
-  // "What everyone else is reading" section
-  const everyoneCard = document.getElementById('shelf-everyone-card');
-  const everyoneList = document.getElementById('shelf-everyone-list');
-  const otherReading = [];
-  MEMBERS.forEach(m => {
-    if (m.id === currentMember) return;
-    const active = (state.books[m.id] || []).filter(b => b.status === 'reading');
-    active.forEach(b => otherReading.push({ member: m, book: b }));
-  });
-  if (otherReading.length && everyoneCard && everyoneList) {
-    everyoneCard.style.display = '';
-    everyoneList.innerHTML = otherReading.map(({ member, book }) => `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);">
-        <div style="font-size:28px;width:36px;text-align:center;flex-shrink:0;">${getMemberEmoji(member.id)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${book.title}</div>
-          <div style="font-size:12px;color:var(--muted);">${book.author || 'Unknown author'}</div>
-        </div>
-        <div style="font-size:11px;font-weight:700;color:${getMemberColor(member.id)};flex-shrink:0;">${member.name}</div>
-      </div>`).join('');
-  } else if (everyoneCard) {
-    everyoneCard.style.display = 'none';
+}
+
+function renderShelfAll() {
+  const el = document.getElementById('shelf-book-list');
+  const order = ['reading','want','finished','dnf'];
+  const sections = MEMBERS.map(m => {
+    const books = (state.books[m.id] || []).filter(b => _shelfFilter === 'all' || b.status === _shelfFilter);
+    if (!books.length) return null;
+    const sorted = [...books].sort((a,b) => order.indexOf(a.status) - order.indexOf(b.status));
+    return { m, books: sorted };
+  }).filter(Boolean);
+
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'reading', label: '📖 Reading' },
+    { key: 'finished', label: '✅ Finished' },
+    { key: 'dnf', label: '🚩 DNF' },
+    { key: 'want', label: '🔖 Want' }
+  ];
+  const filterBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 12px;">` +
+    filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}" onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
+
+  if (!sections.length) {
+    el.innerHTML = filterBar + `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — everyone's shelf is empty!</div>`;
+    return;
   }
+
+  const rows = sections.map(({ m, books }) => {
+    const col = getMemberColor(m.id);
+    const bookRows = books.map(b => {
+      const sessions = (state.sessions[m.id]||[]).filter(s=>s.bookId===b.id);
+      const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);">
+        <div style="width:40px;height:56px;border-radius:6px;background:${bookColor(b.genre)};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${bookEmoji(b.genre)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;line-height:1.2;margin-bottom:2px;">${b.title}</div>
+          <div style="font-size:12px;color:var(--muted);">${b.author||'Unknown author'}</div>
+          ${mins>0?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">⏱ ${formatMins(mins)}</div>`:''}
+        </div>
+        <span class="tag tag-${b.status}" style="flex-shrink:0;">${statusIcon(b.status)}</span>
+      </div>`;
+    }).join('');
+    return `<div style="padding:14px 18px 0;">
+      <div style="font-weight:800;font-size:13px;color:${col};margin-bottom:2px;">${getMemberEmoji(m.id)} ${m.name}</div>
+      ${bookRows}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = filterBar + rows;
 }
 
 function setShelfFilter(f) {
@@ -4666,7 +4714,7 @@ async function init() {
   const savedDevice = localStorage.getItem(DEVICE_MEMBER_KEY);
   applyTheme(currentMember);
   buildMemberBar('home-member-bar');
-  buildMemberBar('shelf-member-bar');
+  buildShelfMemberBar();
   buildMemberBar('timer-member-bar');
   buildMemberBar('badges-member-bar');
   buildMemberBar('journal-member-bar');
