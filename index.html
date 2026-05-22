@@ -2200,12 +2200,18 @@ async function loadFromGist() {
           ['books','sessions','journal','library','milestones','badges'].forEach(key => {
             if (!local[key]) return;
             MEMBERS.forEach(m => {
-              if (clearedAt[m.id]) return; // member was intentionally cleared
+              // clearedAt is a timestamp — only skip items added BEFORE the clear
+              // Items added AFTER the clear are new data and should always be rescued
+              const clearedTs = clearedAt[m.id] || 0;
               const localArr = local[key][m.id] || [];
               if (!localArr.length) return;
               const gistArr = state[key][m.id] || [];
               const gistIds = new Set(gistArr.map(x => x.id).filter(Boolean));
-              const rescued = localArr.filter(x => x.id && !gistIds.has(x.id));
+              const rescued = localArr.filter(x =>
+                x.id &&
+                !gistIds.has(x.id) &&
+                (x.addedTs || x.ts || Infinity) > clearedTs
+              );
               if (rescued.length) {
                 state[key][m.id] = [...gistArr, ...rescued];
               }
@@ -3549,6 +3555,7 @@ function saveJournalEntry() {
   if (!state.journal[currentMember]) state.journal[currentMember] = [];
   const entry = { id:uid(), text, bookTitle, ts:Date.now(), rating: journalStarRating || 0 };
   state.journal[currentMember].push(entry);
+  if (state.clearedMembers?.[currentMember]) delete state.clearedMembers[currentMember];
   // Save rating to linked book if present
   if (bookId && journalStarRating > 0) {
     const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
@@ -3606,6 +3613,8 @@ function saveBook() {
   window._pendingCoverUrl = null;
   if (!state.books[currentMember]) state.books[currentMember] = [];
   state.books[currentMember].push(book);
+  // Adding new data means this member is active again — lift the cleared flag
+  if (state.clearedMembers?.[currentMember]) delete state.clearedMembers[currentMember];
   addActivity('📖', `${MEMBERS.find(m=>m.id===currentMember).name} added: ${title}`, currentMember);
   if (book.status === 'finished') awardFinishPoints(currentMember, book);
   saveToGist().then(() => {
