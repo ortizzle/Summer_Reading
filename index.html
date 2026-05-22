@@ -2202,12 +2202,15 @@ async function saveToGist() {
       const raw = data.files['ortizzle-reading.json'];
       if (raw) {
         const remote = JSON.parse(raw.content);
-        // Merge per-member collections: keep the union of remote + local
+        // Merge per-member collections: adopt remote data only for members
+        // whose data was never intentionally cleared on this device
+        const clearedAt = state.clearedMembers || {};
         ['books','sessions','journal','library','milestones','badges'].forEach(key => {
           if (!remote[key]) return;
           MEMBERS.forEach(m => {
-            if (!remote[key][m.id]) return;
-            // If remote has data for a member this device doesn't know about, adopt it
+            if (!remote[key][m.id]?.length) return;
+            // Skip if this member's data was explicitly cleared locally
+            if (clearedAt[m.id]) return;
             if (!state[key][m.id] || state[key][m.id].length === 0) {
               state[key][m.id] = remote[key][m.id];
             }
@@ -4498,6 +4501,7 @@ function renderSettings() {
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn btn-danger btn-sm" onclick="clearMyMessages()">🗑️ Clear My Messages</button>
       <button class="btn btn-danger btn-sm" onclick="clearAllMyData()">Clear All My Data</button>
+      ${currentMember === ADMIN_ID ? `<button class="btn btn-danger btn-sm" onclick="resetEverything()" style="background:#7f0000;">🧹 Reset Everything (All Members)</button>` : ''}
     </div>
   </div>`;
 
@@ -4625,18 +4629,62 @@ async function clearAllMyData() {
   state.journal[id] = [];
   state.library[id] = [];
   state.milestones[id] = [];
-  if (state.bingo) { state.bingo.kids = {}; state.bingo.adults = {}; state.bingo.hani = {}; }
-  // Track deleted activity IDs so the Gist merge doesn't re-add them
+  if (state.bingo) {
+    if (id === 'hani') { state.bingo.hani = {}; }
+    else { state.bingo.kids = {}; state.bingo.adults = {}; }
+  }
+  // Mark this member as cleared so the Gist merge never restores their data
+  if (!state.clearedMembers) state.clearedMembers = {};
+  state.clearedMembers[id] = Date.now();
+  // Track deleted activity IDs
   const toDelete = (state.activity||[]).filter(a => a.member === id).map(a => a.id);
   if (!state.deletedActivityIds) state.deletedActivityIds = [];
   state.deletedActivityIds.push(...toDelete);
   state.activity = (state.activity||[]).filter(a => a.member !== id);
   if (state.reactions) toDelete.forEach(aid => delete state.reactions[aid]);
   await saveToGist();
-  showToast('All data cleared.');
+  showToast('All your data cleared.');
   renderHome();
   renderSettings();
   renderBingoCard?.();
+}
+
+async function resetEverything() {
+  if (!confirm('Reset ALL data for ALL members? This wipes the Gist completely and cannot be undone.')) return;
+  if (!confirm('Are you sure? This deletes everyone\'s books, sessions, journals, and messages.')) return;
+  // Wipe state completely for all members
+  MEMBERS.forEach(m => {
+    state.books[m.id] = [];
+    state.sessions[m.id] = [];
+    state.badges[m.id] = [];
+    state.journal[m.id] = [];
+    state.library[m.id] = [];
+    state.milestones[m.id] = [];
+  });
+  state.activity = [];
+  state.reactions = {};
+  state.bingo = { kids: {}, adults: {}, hani: {} };
+  state.groupMilestones = [];
+  state.deletedActivityIds = [];
+  if (!state.clearedMembers) state.clearedMembers = {};
+  MEMBERS.forEach(m => { state.clearedMembers[m.id] = Date.now(); });
+  // Write directly to Gist without the read-before-write merge
+  const token = localStorage.getItem(GIST_TOKEN_KEY);
+  const gistId = localStorage.getItem(GIST_ID_KEY);
+  localStorage.setItem('ortizzle_local', JSON.stringify(state));
+  if (token && gistId) {
+    try {
+      await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { 'ortizzle-reading.json': { content: JSON.stringify(state) } } })
+      });
+    } catch(e) {}
+  }
+  updateSyncPill('ok');
+  showToast('🧹 Everything reset. Fresh start!');
+  renderHome();
+  renderSettings();
 }
 
 // ═══════════════════════════════════════
