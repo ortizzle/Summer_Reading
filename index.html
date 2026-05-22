@@ -1410,8 +1410,16 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 <!-- HEADER -->
 <div class="app-header">
-  <div class="app-title">📚 Ortizzle Summer Reading</div>
-  <div class="app-subtitle">Summer Challenge · May 23 – August 3</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+    <div>
+      <div class="app-title">📚 Ortizzle Summer Reading</div>
+      <div class="app-subtitle">Summer Challenge · May 23 – August 3</div>
+    </div>
+    <div id="sync-status-pill" onclick="openTab('settings')" title="Sync status — tap to open settings"
+      style="margin-top:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);">
+      ↻ …
+    </div>
+  </div>
   <div class="countdown-banner" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
     <div style="text-align:left;">
       <div style="font-size:10px;opacity:0.8;" id="countdown-label">Days Left</div>
@@ -2139,19 +2147,49 @@ let timerCountdownTarget = 0; // 0 = open-ended up-count, >0 = countdown from th
 // ═══════════════════════════════════════
 //  GIST SYNC
 // ═══════════════════════════════════════
+function updateSyncPill(status) {
+  const pill = document.getElementById('sync-status-pill');
+  if (!pill) return;
+  const token = localStorage.getItem(GIST_TOKEN_KEY);
+  const gistId = localStorage.getItem(GIST_ID_KEY);
+  if (!token || !gistId) {
+    pill.textContent = '⚠️ Local only';
+    pill.style.background = 'rgba(255,255,255,0.15)';
+    pill.style.color = 'rgba(255,255,255,0.6)';
+    return;
+  }
+  if (status === 'syncing') {
+    pill.textContent = '↻ Syncing…';
+    pill.style.background = 'rgba(255,255,255,0.2)';
+    pill.style.color = 'rgba(255,255,255,0.8)';
+  } else if (status === 'ok') {
+    const t = new Date();
+    const time = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    pill.textContent = `🟢 Synced ${time}`;
+    pill.style.background = 'rgba(100,220,120,0.25)';
+    pill.style.color = 'white';
+  } else if (status === 'error') {
+    pill.textContent = '🔴 Sync failed';
+    pill.style.background = 'rgba(255,80,80,0.25)';
+    pill.style.color = 'white';
+  }
+}
+
 async function loadFromGist() {
   const token = localStorage.getItem(GIST_TOKEN_KEY);
   const gistId = localStorage.getItem(GIST_ID_KEY);
-  if (!token || !gistId) return loadFromLocal();
+  if (!token || !gistId) { loadFromLocal(); updateSyncPill('local'); return; }
+  updateSyncPill('syncing');
   try {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: { Authorization: `token ${token}` }
     });
-    if (!r.ok) return loadFromLocal();
+    if (!r.ok) { loadFromLocal(); updateSyncPill('error'); return; }
     const data = await r.json();
     const raw = data.files['ortizzle-reading.json'];
     if (raw) state = { ...state, ...JSON.parse(raw.content) };
-  } catch(e) { loadFromLocal(); }
+    updateSyncPill('ok');
+  } catch(e) { loadFromLocal(); updateSyncPill('error'); }
 }
 
 async function saveToGist() {
@@ -2189,13 +2227,15 @@ async function saveToGist() {
         }
       }
     }
+    updateSyncPill('syncing');
     await fetch(`https://api.github.com/gists/${gistId}`, {
       method: 'PATCH',
       headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ files: { 'ortizzle-reading.json': { content: JSON.stringify(state) } } })
     });
     localStorage.setItem('ortizzle_local', JSON.stringify(state));
-  } catch(e) {}
+    updateSyncPill('ok');
+  } catch(e) { updateSyncPill('error'); }
 }
 
 function loadFromLocal() {
@@ -4732,6 +4772,7 @@ async function init() {
     showToast('🔗 Connected to family Gist!');
   }
   checkGistConfig();
+  updateSyncPill('syncing');
   await loadFromGist();
   MEMBERS.forEach(m => ensureMember(m.id));
   if (!state.pins) state.pins = {};
