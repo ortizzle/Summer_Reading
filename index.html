@@ -2294,7 +2294,7 @@ async function loadFromGist() {
               const rescued = localArr.filter(x =>
                 x.id &&
                 !gistIds.has(x.id) &&
-                (x.addedTs || x.ts || Infinity) > clearedTs
+                (x.addedTs || x.ts || 0) > clearedTs  // 0 = no timestamp = treat as old, never rescue after a clear
               );
               if (rescued.length) {
                 state[key][m.id] = [...gistArr, ...rescued];
@@ -2578,9 +2578,15 @@ function renderHome() {
   if (cdEl) cdEl.textContent = days;
   if (cdLb) cdLb.textContent = label;
 
-  // Group progress
-  document.getElementById('group-progress-current').textContent = famPts + ' pts';
-  const earned = state.groupMilestones || [];
+  // Group progress — silently sync groupMilestones with actual points (no celebration here; checkGroupMilestones fires that)
+  if (!state.groupMilestones) state.groupMilestones = [];
+  GROUP_MILESTONES.forEach(gm => {
+    if (famPts >= gm.threshold && !state.groupMilestones.includes(gm.id)) {
+      state.groupMilestones.push(gm.id);
+    }
+  });
+  document.getElementById('group-progress-current').textContent = famPts.toLocaleString() + ' pts';
+  const earned = state.groupMilestones;
   const nextGM = GROUP_MILESTONES.find(gm => !earned.includes(gm.id));
   if (nextGM) {
     const pct = Math.min(100, (famPts / nextGM.threshold) * 100);
@@ -5126,12 +5132,18 @@ async function clearAllMyData() {
   // Mark this member as cleared so the Gist merge never restores their data
   if (!state.clearedMembers) state.clearedMembers = {};
   state.clearedMembers[id] = Date.now();
-  // Track deleted activity IDs
+  // Remove this member's claimed rewards
+  if (state.claimedRewards) {
+    Object.keys(state.claimedRewards).forEach(k => { if (k.startsWith(id + ':')) delete state.claimedRewards[k]; });
+  }
+  // Track deleted activity IDs (including system activities for this member)
   const toDelete = (state.activity||[]).filter(a => a.member === id).map(a => a.id);
   if (!state.deletedActivityIds) state.deletedActivityIds = [];
   state.deletedActivityIds.push(...toDelete);
   state.activity = (state.activity||[]).filter(a => a.member !== id);
   if (state.reactions) toDelete.forEach(aid => delete state.reactions[aid]);
+  // Flush cleared state to localStorage immediately so rescue merge sees empty arrays
+  localStorage.setItem('ortizzle_local', JSON.stringify(state));
   await saveToGist();
   showToast('All your data cleared.');
   renderHome();
@@ -5156,22 +5168,29 @@ async function resetEverything() {
   state.bingo = { kids: {}, adults: {}, hani: {} };
   state.groupMilestones = [];
   state.deletedActivityIds = [];
-  if (!state.clearedMembers) state.clearedMembers = {};
-  MEMBERS.forEach(m => { state.clearedMembers[m.id] = Date.now(); });
+  state.claimedRewards = {};
+  const nowTs = Date.now();
+  state.clearedMembers = {};
+  MEMBERS.forEach(m => { state.clearedMembers[m.id] = nowTs; });
+  // Nuke the local cache first so rescue merge never re-adds stale data
+  localStorage.removeItem('ortizzle_local');
   // Write directly to Gist without the read-before-write merge
   const token = localStorage.getItem(GIST_TOKEN_KEY);
   const gistId = localStorage.getItem(GIST_ID_KEY);
-  localStorage.setItem('ortizzle_local', JSON.stringify(state));
+  let gistOk = false;
   if (token && gistId) {
     try {
-      await fetch(`https://api.github.com/gists/${gistId}`, {
+      const r = await fetch(`https://api.github.com/gists/${gistId}`, {
         method: 'PATCH',
         headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ files: { 'ortizzle-reading.json': { content: JSON.stringify(state) } } })
       });
+      gistOk = r.ok;
     } catch(e) {}
   }
-  updateSyncPill('ok');
+  // Only write to localStorage after Gist is confirmed written (or if offline)
+  localStorage.setItem('ortizzle_local', JSON.stringify(state));
+  updateSyncPill(gistOk ? 'ok' : 'error');
   showToast('🧹 Everything reset. Fresh start!');
   renderHome();
   renderSettings();
