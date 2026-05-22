@@ -1431,26 +1431,43 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
 
-  <!-- My Stats player card -->
-  <div id="my-stats-card" style="background:linear-gradient(135deg,var(--member-accent,#4ECDC4),color-mix(in srgb,var(--member-accent,#4ECDC4) 60%,#1A1A2E));border-radius:20px;padding:20px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
-    <div style="position:absolute;right:-20px;top:-20px;font-size:100px;opacity:0.12;line-height:1;" id="my-stat-bg-emoji">📚</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="font-size:36px;line-height:1;" id="my-stat-avatar">👤</div>
-      <div>
-        <div style="color:white;font-weight:700;font-size:16px;font-family:'Fraunces',serif;" id="my-stat-name">—</div>
-        <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;letter-spacing:0.5px;">MY READING STATS</div>
+  <!-- My Stats player card (flip) -->
+  <div style="perspective:1000px;margin-bottom:10px;height:240px;" onclick="toggleStatsCard()">
+    <div id="my-stats-card-inner" style="position:relative;width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;">
+
+      <!-- FRONT -->
+      <div id="my-stats-card" style="position:absolute;inset:0;backface-visibility:hidden;background:linear-gradient(135deg,var(--member-accent,#4ECDC4),color-mix(in srgb,var(--member-accent,#4ECDC4) 60%,#1A1A2E));border-radius:20px;padding:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);cursor:pointer;">
+        <div style="position:absolute;right:-20px;top:-20px;font-size:100px;opacity:0.12;line-height:1;" id="my-stat-bg-emoji">📚</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="font-size:36px;line-height:1;" id="my-stat-avatar">👤</div>
+          <div>
+            <div style="color:white;font-weight:700;font-size:16px;font-family:'Fraunces',serif;" id="my-stat-name">—</div>
+            <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;letter-spacing:0.5px;">MY READING STATS</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
+          <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">📖 <span id="my-stat-reading">0</span> Reading</div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">✅ <span id="my-stat-finished">0</span> Finished</div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span></div>
+        </div>
+        <div style="text-align:center;color:rgba(255,255,255,0.45);font-size:11px;font-weight:600;letter-spacing:0.5px;">TAP FOR POINTS BREAKDOWN ↩</div>
+        <span id="my-stats-label" style="display:none;"></span>
       </div>
+
+      <!-- BACK (points audit) -->
+      <div id="my-stats-back" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:linear-gradient(135deg,#1A1A2E,#16213E);border-radius:20px;padding:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);cursor:pointer;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">
+          <div style="color:white;font-weight:700;font-size:14px;font-family:'Fraunces',serif;">📊 Points Breakdown</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:11px;">TAP TO CLOSE ↩</div>
+        </div>
+        <div id="my-stats-audit" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
     </div>
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
-      <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
-    </div>
-    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
-      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">📖 <span id="my-stat-reading">0</span> Reading</div>
-      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">✅ <span id="my-stat-finished">0</span> Finished</div>
-      <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span></div>
-    </div>
-    <span id="my-stats-label" style="display:none;"></span>
   </div>
 
   <!-- Group milestone / Family Goal -->
@@ -2353,6 +2370,7 @@ function doSelectMember(id) {
   const prevMember = currentMember;
   currentMember = id;
   _journalViewMember = id; // reset journal view to the newly selected member
+  _statsFlipped = false;  // reset stats card to front
   ensureMember(id);
   document.querySelectorAll('.member-select-bar').forEach(bar => {
     bar.querySelectorAll('.member-chip').forEach((chip, i) => {
@@ -2374,6 +2392,49 @@ function doSelectMember(id) {
     renderTab(activeTab);
   }
   if (!state.onboarded?.[id] && prevMember !== ADMIN_ID) startOnboarding(id);
+}
+
+// ═══════════════════════════════════════
+//  POINTS AUDIT / STATS FLIP CARD
+// ═══════════════════════════════════════
+let _statsFlipped = false;
+
+function toggleStatsCard() {
+  const inner = document.getElementById('my-stats-card-inner');
+  if (!inner) return;
+  _statsFlipped = !_statsFlipped;
+  inner.style.transform = _statsFlipped ? 'rotateY(180deg)' : '';
+  if (_statsFlipped) buildPointsAudit(currentMember);
+}
+
+function buildPointsAudit(memberId) {
+  const el = document.getElementById('my-stats-audit');
+  if (!el) return;
+  const sessions = (state.sessions[memberId] || []).slice().sort((a,b) => (b.ts||0) - (a.ts||0));
+  if (!sessions.length) {
+    el.innerHTML = `<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;padding:20px 0;">No points yet — start reading!</div>`;
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const pts = s.minutes || 0;
+    let icon = '📖', label = s.bookTitle || 'Reading session';
+    if (s.bookId === 'library') { icon = '🏛️'; label = s.bookTitle || 'Library visit'; }
+    else if (s.bookId === 'bingo') { icon = '🎯'; label = 'Bingo square'; }
+    else if (s.bookId === 'bingo_bonus') { icon = '🎲'; label = 'Bingo line bonus'; }
+    else if (s.bookId === 'bingo_corners') { icon = '🔲'; label = 'Four Corners bonus'; }
+    else if (s.bookId === 'bingo_x') { icon = '✖️'; label = 'X Pattern bonus'; }
+    else if (s.bookId === 'bingo_full') { icon = '🃏'; label = 'Blackout bonus'; }
+    else if ((s.bookTitle || '').includes('finish bonus')) { icon = '✅'; label = (s.bookTitle || '').replace('(finish bonus)', '').trim() + ' — finish bonus'; }
+    const dateStr = s.ts ? new Date(s.ts).toLocaleDateString(undefined, {month:'short',day:'numeric'}) : (s.date || '');
+    return `<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.07);border-radius:10px;padding:8px 10px;">
+      <div style="font-size:18px;flex-shrink:0;">${icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="color:white;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        <div style="color:rgba(255,255,255,0.45);font-size:10px;">${dateStr}</div>
+      </div>
+      <div style="color:var(--sun);font-weight:800;font-size:14px;flex-shrink:0;">+${pts}</div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════
@@ -2400,6 +2461,10 @@ function renderHome() {
   document.getElementById('my-stat-avatar').textContent = getMemberEmoji(currentMember);
   document.getElementById('my-stat-name').textContent = myName;
   document.getElementById('my-stat-bg-emoji').textContent = myFinished >= 3 ? '🏆' : myReading > 0 ? '📖' : '📚';
+  // Reset flip to front when member changes
+  const inner = document.getElementById('my-stats-card-inner');
+  if (inner) inner.style.transform = '';
+  buildPointsAudit(currentMember);
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
