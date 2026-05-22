@@ -530,12 +530,27 @@ body {
 .badge-item.earned .badge-label { color: var(--text); }
 
 /* ── JOURNAL ── */
-.journal-entry {
+/* journal flip cards */
+.journal-flip { perspective: 900px; margin-bottom: 10px; }
+.journal-flip-inner { position: relative; width: 100%; transition: transform 0.45s; transform-style: preserve-3d; }
+.journal-flip.flipped .journal-flip-inner { transform: rotateY(180deg); }
+.journal-face { backface-visibility: hidden; border-radius: 0 12px 12px 0; }
+.journal-front {
   border-left: 4px solid var(--sky);
   padding: 10px 14px;
-  margin-bottom: 10px;
   background: #f9f9f9;
-  border-radius: 0 12px 12px 0;
+  cursor: pointer;
+}
+/* back sits invisibly on top when not flipped; becomes visible after rotate */
+.journal-back {
+  position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
+  transform: rotateY(180deg);
+  background: var(--navy);
+  border-left: 4px solid var(--sky);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-sizing: border-box;
+  cursor: pointer;
 }
 .journal-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .journal-text { font-size: 14px; line-height: 1.5; }
@@ -3603,20 +3618,42 @@ function renderJournal() {
     el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">${isOwn ? 'Your thoughts will appear here.' : `${viewName} hasn't written any entries yet.`}</div>`;
     return;
   }
-  el.innerHTML = entries.map(e => `
-    <div class="journal-entry">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <div style="flex:1;min-width:0;">
-          <div class="journal-date">${new Date(e.ts).toLocaleDateString()} · ${e.bookTitle||'General'}${e.editedTs ? ' · edited' : ''}</div>
-          ${e.rating ? `<div style="font-size:14px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+  el.innerHTML = entries.map((e, idx) => {
+    const cardId = `jfc-${idx}`;
+    const stars = e.rating ? `<div style="font-size:13px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : '';
+    const dateStr = new Date(e.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    const hint = isOwn ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.6;">↩ Tap to flip</div>` : '';
+    const backActions = isOwn ? `
+      <div style="display:flex;gap:10px;">
+        <button onclick="event.stopPropagation();editJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(255,255,255,0.15);color:white;border:none;">✏️ Edit</button>
+        <button onclick="event.stopPropagation();deleteJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(255,80,80,0.3);color:white;border:none;">🗑️ Delete</button>
+      </div>` : '';
+    return `
+    <div class="journal-flip" id="${cardId}" onclick="toggleJournalFlip('${cardId}')">
+      <div class="journal-flip-inner">
+        <div class="journal-face journal-front">
+          <div class="journal-date">${dateStr} · ${e.bookTitle||'General'}${e.editedTs?' · edited':''}</div>
+          ${stars}
+          <div class="journal-text">${e.text}</div>
+          ${hint}
         </div>
-        ${isOwn ? `<div style="display:flex;gap:6px;flex-shrink:0;">
-          <button onclick="editJournalEntry('${e.id}')" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:0;" title="Edit">✏️</button>
-          <button onclick="deleteJournalEntry('${e.id}')" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:0;" title="Delete">🗑️</button>
-        </div>` : ''}
+        <div class="journal-face journal-back">
+          <div>
+            <div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">ABOUT THIS ENTRY</div>
+            <div style="color:white;font-size:13px;font-weight:700;">${e.bookTitle||'General'}</div>
+            <div style="color:rgba(255,255,255,0.55);font-size:11px;">${dateStr}${e.editedTs?' · edited '+new Date(e.editedTs).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}</div>
+            ${e.rating ? `<div style="font-size:16px;color:var(--sun);margin-top:4px;">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+          </div>
+          ${backActions}
+          <button onclick="event.stopPropagation();toggleJournalFlip('${cardId}')" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;text-align:left;padding:0;">← Back</button>
+        </div>
       </div>
-      <div class="journal-text">${e.text}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function toggleJournalFlip(cardId) {
+  document.getElementById(cardId)?.classList.toggle('flipped');
 }
 
 function editJournalEntry(entryId) {
