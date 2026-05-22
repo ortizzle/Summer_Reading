@@ -1511,18 +1511,13 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <!-- SHELF SECTION -->
 <div class="section" id="sec-shelf">
   <div class="member-select-bar" id="shelf-member-bar"></div>
-  <button class="btn btn-primary btn-full" onclick="openModal('add-book-modal')" style="margin-bottom:14px;">+ Add a Book</button>
+  <button class="btn btn-primary btn-full" id="shelf-add-btn" onclick="openModal('add-book-modal')" style="margin-bottom:14px;">+ Add a Book</button>
 
   <div class="card" style="padding:18px 0 0;">
-    <div class="card-title" style="padding:0 18px;">📚 My Books</div>
+    <div class="card-title" style="padding:0 18px;" id="shelf-card-title">📚 My Books</div>
     <div id="shelf-book-list">
       <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>
     </div>
-  </div>
-
-  <div class="card" id="shelf-everyone-card" style="display:none;">
-    <div class="card-title">📖 What Everyone's Reading</div>
-    <div id="shelf-everyone-list"></div>
   </div>
 </div>
 
@@ -1953,6 +1948,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <!-- Onboarding Overlay -->
 <div id="onboard-overlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:10000;overflow:auto;padding:30px 20px 100px;">
   <div style="max-width:400px;margin:0 auto;">
+    <button onclick="document.getElementById('onboard-overlay').style.display='none';showWhoOverlay();" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 0 16px;display:flex;align-items:center;gap:4px;">← Back</button>
     <div style="font-size:48px;text-align:center;margin-bottom:8px;" id="onboard-emoji">👋</div>
     <h2 style="font-family:'Fraunces',serif;text-align:center;margin-bottom:4px;" id="onboard-title">Welcome!</h2>
     <p style="text-align:center;color:var(--muted);font-size:14px;margin-bottom:24px;" id="onboard-subtitle"></p>
@@ -2196,7 +2192,7 @@ function openTab(tab) {
 
 function renderTab(tab) {
   if (tab === 'home') renderHome();
-  if (tab === 'shelf') renderShelf();
+  if (tab === 'shelf') { _shelfViewMember = null; renderShelf(); }
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
   if (tab === 'journal') renderJournal();
@@ -2263,7 +2259,7 @@ function doSelectMember(id) {
   } else {
     renderTab(activeTab);
   }
-  if (!state.onboarded?.[id]) startOnboarding(id);
+  if (!state.onboarded?.[id] && prevMember !== ADMIN_ID) startOnboarding(id);
 }
 
 // ═══════════════════════════════════════
@@ -2513,11 +2509,39 @@ function postFeedMessage() {
 //  SHELF
 // ═══════════════════════════════════════
 let _shelfFilter = 'all';
+let _shelfViewMember = null; // null = viewing own shelf
+
+function setShelfView(id) {
+  _shelfViewMember = id;
+  renderShelf();
+}
+
+function buildShelfMemberBar() {
+  const viewId = _shelfViewMember || currentMember;
+  const el = document.getElementById('shelf-member-bar');
+  el.innerHTML = MEMBERS.map(m => {
+    const isViewing = m.id === viewId;
+    const isMe = m.id === currentMember;
+    const col = getMemberColor(m.id);
+    return `<div class="member-chip ${isViewing?'active':''}" onclick="setShelfView('${m.id}')">
+      <div class="member-avatar" style="background:${col}20;border-color:${isViewing?col:'#eee'};position:relative;">${getMemberEmoji(m.id)}</div>
+      <span class="member-chip-name">${isMe?'Me':m.name}</span>
+    </div>`;
+  }).join('');
+}
 
 function renderShelf() {
   ensureMember(currentMember);
-  buildMemberBar('shelf-member-bar');
-  const books = state.books[currentMember] || [];
+  const viewId = _shelfViewMember || currentMember;
+  buildShelfMemberBar();
+
+  // Show/hide add button and update title
+  const isOwnShelf = viewId === currentMember;
+  document.getElementById('shelf-add-btn').style.display = isOwnShelf ? '' : 'none';
+  const viewName = MEMBERS.find(m => m.id === viewId)?.name || viewId;
+  document.getElementById('shelf-card-title').textContent = isOwnShelf ? '📚 My Books' : `📚 ${viewName}'s Books`;
+
+  const books = state.books[viewId] || [];
   const el = document.getElementById('shelf-book-list');
 
   // Filter bar
@@ -2552,7 +2576,7 @@ function renderShelf() {
   });
 
   const cards = filtered.map((b, idx) => {
-    const sessions = (state.sessions[currentMember]||[]).filter(s=>s.bookId===b.id);
+    const sessions = (state.sessions[viewId]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
     const statusTag = { reading:'reading', finished:'finished', dnf:'dnf', want:'want' };
     const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
