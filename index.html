@@ -1345,6 +1345,25 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 }
 .pin-shake { animation: pinShake 0.4s ease; }
 
+/* ── REACTION ANIMATIONS ── */
+@keyframes reactionFlex {
+  0%   { transform: scale(1) rotate(0deg); }
+  15%  { transform: scale(1.07) rotate(-2deg); }
+  30%  { transform: scale(1.12) rotate(2deg); }
+  50%  { transform: scale(1.07) rotate(-1deg); }
+  70%  { transform: scale(1.03) rotate(1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.reaction-flexing { animation: reactionFlex 0.55s cubic-bezier(.36,.07,.19,.97); }
+.reaction-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  line-height: 1;
+  will-change: transform, opacity;
+  transform: translate(-50%, -50%);
+}
+
 /* ── MENTION DROPDOWN ── */
 #mention-dropdown {
   position: absolute;
@@ -2698,7 +2717,7 @@ function renderActivityList(containerId, limit) {
       const count = reactors.length;
       const mine = reactors.includes(currentMember);
       const countBadge = count ? ` <span onclick="event.stopPropagation();flipMsgCard('${cardElId}','${actId}')" style="cursor:pointer;">${count}</span>` : '';
-      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}')">${e}${countBadge}</button>`;
+      return `<button class="reaction-btn${mine?' reacted':''}" onclick="toggleReaction('${actId}','${e}',this)">${e}${countBadge}</button>`;
     }).join('');
     const memberObj = MEMBERS.find(m => m.id === a.member);
     const who = memberObj ? `${getMemberEmoji(memberObj.id)} ${memberObj.name}` : (a.member === 'family' ? '👨‍👩‍👧 Family' : a.member);
@@ -4430,17 +4449,94 @@ function addActivity(emoji, text, member) {
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
 }
 
-function toggleReaction(actId, emoji) {
+function toggleReaction(actId, emoji, btnEl) {
   if (!state.reactions) state.reactions = {};
   if (!state.reactions[actId]) state.reactions[actId] = {};
   const reactors = state.reactions[actId][emoji] || [];
   const idx = reactors.indexOf(currentMember);
+  const adding = idx < 0;
   if (idx >= 0) reactors.splice(idx, 1);
   else reactors.push(currentMember);
   state.reactions[actId][emoji] = reactors;
+  if (adding && btnEl) triggerReactionFx(emoji, btnEl);
   renderHome();
   renderFeed();
   saveToGist();
+}
+
+function triggerReactionFx(emoji, btnEl) {
+  const rect = btnEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+
+  // 💪 Flex: animate the whole post card
+  if (emoji === '💪') {
+    const card = btnEl.closest('.activity-item');
+    if (card) {
+      card.classList.remove('reaction-flexing');
+      void card.offsetWidth; // reflow
+      card.classList.add('reaction-flexing');
+      card.addEventListener('animationend', () => card.classList.remove('reaction-flexing'), { once: true });
+    }
+    spawnParticles(cx, cy, ['💪','✨'], 5, { spread: 80, up: 30 });
+    return;
+  }
+
+  const configs = {
+    '🎉': { particles: ['🎉','🎊','✨','🌟','💫','🎈'], count: 12, spread: 110, up: 60 },
+    '❤️': { particles: ['❤️','💕','💗','💖','💓'],      count: 10, spread: 50,  up: 100, floatUp: true },
+    '🔥': { particles: ['🔥','🔥','💥','✨','🔥'],      count: 10, spread: 70,  up: 80,  fire: true },
+    '⭐': { particles: ['⭐','✨','💫','🌟','⭐'],       count: 10, spread: 100, up: 50 },
+  };
+  const cfg = configs[emoji];
+  if (cfg) spawnParticles(cx, cy, cfg.particles, cfg.count, cfg);
+}
+
+function spawnParticles(cx, cy, emojis, count, opts = {}) {
+  const { spread = 80, up = 60, floatUp = false, fire = false } = opts;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'reaction-particle';
+    el.textContent = emojis[i % emojis.length];
+    const size = 16 + Math.random() * 14;
+    el.style.fontSize = size + 'px';
+    el.style.left = cx + 'px';
+    el.style.top = cy + 'px';
+    el.style.opacity = '1';
+    document.body.appendChild(el);
+
+    let dx, dy;
+    if (floatUp) {
+      // Hearts drift up with gentle horizontal wobble
+      dx = (Math.random() - 0.5) * spread;
+      dy = -(up + Math.random() * 40);
+    } else if (fire) {
+      // Flames fan upward in a cone
+      const angle = (-90 + (Math.random() - 0.5) * 100) * (Math.PI / 180);
+      const dist = 50 + Math.random() * spread;
+      dx = Math.cos(angle) * dist;
+      dy = Math.sin(angle) * dist;
+    } else {
+      // Everything else: full burst in all directions
+      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+      const dist = 40 + Math.random() * spread;
+      dx = Math.cos(angle) * dist;
+      dy = Math.sin(angle) * dist - up * 0.4;
+    }
+
+    const delay = i * 30;
+    const duration = 600 + Math.random() * 300;
+    const rotation = (Math.random() - 0.5) * 360;
+
+    setTimeout(() => {
+      el.style.transition = `transform ${duration}ms cubic-bezier(.2,.8,.3,1), opacity ${duration * 0.7}ms ease ${duration * 0.3}ms, font-size ${duration}ms ease`;
+      el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rotation}deg)`;
+      el.style.opacity = '0';
+      el.style.fontSize = (size * 0.4) + 'px';
+    }, delay);
+
+    setTimeout(() => el.remove(), delay + duration + 50);
+  }
 }
 
 function flipMsgCard(cardElId, actId) {
