@@ -5146,16 +5146,18 @@ function renderSettings() {
     <button class="btn btn-sky btn-sm" onclick="exportJournal()">⬇️ Export My Journal</button>
   </div>`;
 
-  // Danger zone
-  html += `
+  // Danger zone — admin only
+  if (currentMember === ADMIN_ID) {
+    html += `
   <div class="settings-card" style="border:2px solid #FFCDD2;">
     <div class="card-title" style="color:#C62828;">⚠️ Danger Zone</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn btn-danger btn-sm" onclick="clearMyMessages()">🗑️ Clear My Messages</button>
       <button class="btn btn-danger btn-sm" onclick="clearAllMyData()">Clear All My Data</button>
-      ${currentMember === ADMIN_ID ? `<button class="btn btn-danger btn-sm" onclick="resetEverything()" style="background:#7f0000;">🧹 Reset Everything (All Members)</button>` : ''}
+      <button class="btn btn-danger btn-sm" onclick="resetEverything()" style="background:#7f0000;">🧹 Reset Everything (All Members)</button>
     </div>
   </div>`;
+  }
 
   el.innerHTML = html;
 }
