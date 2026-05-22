@@ -1392,10 +1392,31 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 /* ── FEED SYSTEM ITEM ── */
 .activity-item.sys-item {
-  background: var(--sand);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid #ccc;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.sys-item .activity-emoji {
+  font-size: 26px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
-  padding: 8px 10px;
-  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.sys-item .activity-text {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.sys-item .activity-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
 }
 
 /* ── DATE SEPARATOR ── */
@@ -2711,10 +2732,20 @@ function renderActivityList(containerId, limit) {
         <div class="reaction-row">${reactionBtns}${replyBtn}</div>
       </div>`;
     }
+    // Accent color by activity type
+    const sysAccent = (() => {
+      const e = a.emoji || '';
+      if (e === '📖' || e === '📚' || (a.text||'').includes('logged') || (a.text||'').includes('started reading')) return { border:'#4DB6AC', bg:'rgba(77,182,172,0.08)', iconBg:'rgba(77,182,172,0.15)' };
+      if (e === '📝' || e === '✏️' || (a.text||'').includes('journal')) return { border:'#7C4DFF', bg:'rgba(124,77,255,0.08)', iconBg:'rgba(124,77,255,0.15)' };
+      if (e === '🎯' || (a.text||'').includes('Bingo') || (a.text||'').includes('bingo')) return { border:'#FF6F00', bg:'rgba(255,111,0,0.08)', iconBg:'rgba(255,111,0,0.15)' };
+      if (e === '✅' || e === '🏆' || e === '🥇' || (a.text||'').includes('finished') || (a.text||'').includes('badge')) return { border:'#43A047', bg:'rgba(67,160,71,0.08)', iconBg:'rgba(67,160,71,0.15)' };
+      if (e === '⭐' || e === '🌟' || e === '💫' || (a.text||'').includes('milestone') || (a.text||'').includes('Goal')) return { border:'#F9A825', bg:'rgba(249,168,37,0.08)', iconBg:'rgba(249,168,37,0.15)' };
+      return { border:'#90A4AE', bg:'rgba(144,164,174,0.07)', iconBg:'rgba(144,164,174,0.15)' };
+    })();
     return `${dateSep}
-      <div class="activity-item sys-item" id="${cardElId}">
+      <div class="activity-item sys-item" id="${cardElId}" style="border-left-color:${sysAccent.border};background:${sysAccent.bg};">
         <div class="activity-main">
-          <div class="activity-emoji">${a.emoji}</div>
+          <div class="activity-emoji" style="background:${sysAccent.iconBg};">${a.emoji}</div>
           <div class="activity-body">
             <div class="activity-text">${a.text}</div>
             <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
