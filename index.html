@@ -2921,6 +2921,19 @@ function renderShelf() {
     const ownerTag = _shelfViewMember !== currentMember && _shelfViewMember !== 'all'
       ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${getMemberEmoji(_shelfViewMember)} ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||''}'s book</div>` : '';
 
+    // Back face: personal reading stats instead of unreliable API summary
+    const bookJournalEntries = (state.journal[_shelfViewMember]||[]).filter(e => e.bookTitle === b.title);
+    const latestEntry = bookJournalEntries.sort((a,z) => (z.ts||0)-(a.ts||0))[0];
+    const journalSnippet = latestEntry
+      ? latestEntry.text.slice(0, 90) + (latestEntry.text.length > 90 ? '…' : '')
+      : null;
+    const sessionCount = sessions.length;
+    const statusBadge = b.status === 'finished' ? '✅ Finished'
+      : b.status === 'dnf' ? '🚩 DNF'
+      : b.status === 'reading' ? '📖 Reading'
+      : b.status === 'want' ? '🔖 Want to Read' : '';
+    const accentColor = bookColor(b.genre);
+
     return `
     <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
       <div class="shelf-flip-inner">
@@ -2936,20 +2949,42 @@ function renderShelf() {
             ${b.pages > 0 ? `<div class="shelf-card-time">📄 ${b.pages} pages</div>` : ''}
             ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
             ${ownerTag}
-            <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.5;">↩ Tap to see summary</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.5;">↩ Tap for stats</div>
           </div>
         </div>
         <div class="shelf-face shelf-back">
-          <div style="display:flex;flex-direction:column;height:100%;padding:14px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;height:100%;padding:14px;gap:8px;">
+
+            <!-- Header row -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;">
               <div style="font-size:13px;font-weight:800;line-height:1.2;flex:1;min-width:0;margin-right:8px;">${b.title}</div>
-              <button onclick="event.stopPropagation();toggleFlipCard('sfc-${idx}')" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>
+              <button onclick="event.stopPropagation();toggleFlipCard('sfc-${idx}')" style="background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>
             </div>
-            <div class="shelf-back-summary">${summaryText}</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-shrink:0;">
-              <div>${stars}</div>
-              <div style="font-size:11px;color:var(--muted);">${b.status==='finished'?'✅ Finished':b.status==='dnf'?'🚩 DNF':''}</div>
+
+            <!-- Reading stats pills -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
+              ${mins > 0 ? `<div style="background:${accentColor}22;color:${accentColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">⏱ ${formatMins(mins)}</div>` : ''}
+              ${sessionCount > 0 ? `<div style="background:#f0f4ff;color:#5B4FCF;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📖 ${sessionCount} session${sessionCount!==1?'s':''}</div>` : ''}
+              ${mins > 0 ? `<div style="background:#fff8e1;color:#c87000;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">⭐ ${mins} pts</div>` : ''}
+              ${b.pages > 0 ? `<div style="background:#f0f0f0;color:var(--muted);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📄 ${b.pages}p</div>` : ''}
+              ${mins === 0 && sessionCount === 0 ? `<div style="color:var(--muted);font-size:11px;font-style:italic;">No sessions logged yet</div>` : ''}
             </div>
+
+            <!-- Latest journal entry -->
+            <div style="flex:1;min-height:0;overflow:hidden;">
+              ${journalSnippet
+                ? `<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">📝 Latest note</div>
+                   <div style="font-size:12px;color:var(--text);line-height:1.45;font-style:italic;">"${journalSnippet}"</div>`
+                : `<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:4px;">No journal entries yet — write your thoughts!</div>`
+              }
+            </div>
+
+            <!-- Stars + status -->
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-top:1px solid rgba(0,0,0,0.06);padding-top:8px;">
+              <div style="line-height:1;">${stars}</div>
+              <div style="font-size:11px;font-weight:600;color:var(--muted);">${statusBadge}</div>
+            </div>
+
           </div>
         </div>
       </div>
