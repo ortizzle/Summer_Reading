@@ -1944,6 +1944,9 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <!-- Who Are You? Overlay -->
 <div id="who-overlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:11000;overflow:auto;padding:40px 20px 80px;">
   <div style="max-width:400px;margin:0 auto;text-align:center;">
+    <div id="who-back-btn" style="display:none;text-align:left;margin-bottom:16px;">
+      <button onclick="document.getElementById('who-overlay').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px;">← Back</button>
+    </div>
     <div style="font-size:52px;margin-bottom:12px;">👋</div>
     <h2 style="font-family:'Fraunces',serif;font-size:26px;margin-bottom:6px;">Who's using this device?</h2>
     <p style="color:var(--muted);font-size:14px;margin-bottom:32px;">Pick yourself — this gets saved so you'll always load as you.</p>
@@ -2183,7 +2186,34 @@ async function loadFromGist() {
     if (!r.ok) { loadFromLocal(); updateSyncPill('error'); return; }
     const data = await r.json();
     const raw = data.files['ortizzle-reading.json'];
-    if (raw) state = { ...state, ...JSON.parse(raw.content) };
+    if (raw) {
+      const gistState = JSON.parse(raw.content);
+      const clearedAt = gistState.clearedMembers || {};
+      // Apply Gist state as base
+      state = { ...state, ...gistState };
+      // Rescue locally-saved items that didn't make it to the Gist
+      // (e.g. Gist write failed on a previous save — local has them, Gist doesn't)
+      const localRaw = localStorage.getItem('ortizzle_local');
+      if (localRaw) {
+        try {
+          const local = JSON.parse(localRaw);
+          ['books','sessions','journal','library','milestones','badges'].forEach(key => {
+            if (!local[key]) return;
+            MEMBERS.forEach(m => {
+              if (clearedAt[m.id]) return; // member was intentionally cleared
+              const localArr = local[key][m.id] || [];
+              if (!localArr.length) return;
+              const gistArr = state[key][m.id] || [];
+              const gistIds = new Set(gistArr.map(x => x.id).filter(Boolean));
+              const rescued = localArr.filter(x => x.id && !gistIds.has(x.id));
+              if (rescued.length) {
+                state[key][m.id] = [...gistArr, ...rescued];
+              }
+            });
+          });
+        } catch(e) {}
+      }
+    }
     updateSyncPill('ok');
   } catch(e) { loadFromLocal(); updateSyncPill('error'); }
 }
@@ -2315,6 +2345,7 @@ function selectMember(id, barId) {
 function doSelectMember(id) {
   const prevMember = currentMember;
   currentMember = id;
+  _journalViewMember = id; // reset journal view to the newly selected member
   ensureMember(id);
   document.querySelectorAll('.member-select-bar').forEach(bar => {
     bar.querySelectorAll('.member-chip').forEach((chip, i) => {
@@ -2716,14 +2747,14 @@ function renderShelf() {
       ? b.summary
       : b.summary === ''
         ? 'No description available.'
-        : b._fetchingMeta ? 'Loading summary…' : '';
+        : b._fetchingMeta ? 'Loading summary…' : 'No description yet.';
 
     const rating = b.rating || 0;
     const stars = [1,2,3,4,5].map(n =>
-      `<span data-bid="${b.id}" data-n="${n}" onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:20px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
+      `<span onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:22px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
     ).join('');
 
-    const memberOwnerEmoji = _shelfViewMember !== currentMember && _shelfViewMember !== 'all'
+    const ownerTag = _shelfViewMember !== currentMember && _shelfViewMember !== 'all'
       ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${getMemberEmoji(_shelfViewMember)} ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||''}'s book</div>` : '';
 
     return `
@@ -2734,22 +2765,26 @@ function renderShelf() {
           <div class="shelf-front-info">
             <div class="shelf-card-title">${b.title}</div>
             <div class="shelf-card-author">${b.author||'Unknown author'}</div>
-            <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;">
+              <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
+              <span class="tag" style="background:#f0f0f0;color:var(--muted);">${genreLabel[b.genre]||'📚'}</span>
+            </div>
+            ${b.pages > 0 ? `<div class="shelf-card-time">📄 ${b.pages} pages</div>` : ''}
             ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
-            ${memberOwnerEmoji}
-            <div style="font-size:11px;color:var(--muted);margin-top:6px;opacity:0.6;">Tap to flip ↩</div>
+            ${ownerTag}
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.5;">↩ Tap to see summary</div>
           </div>
         </div>
         <div class="shelf-face shelf-back">
-          <div style="display:flex;gap:0;height:100%;">
-            <div style="flex:1;padding:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
-              <div style="font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;">${b.title}</div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${b.author||''} · ${genreLabel[b.genre]||'📚'}${b.pages>0?' · '+b.pages+' pg':''}</div>
-              <div class="shelf-back-summary">${summaryText || '<span style="color:var(--muted);font-style:italic;">No description yet.</span>'}</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;flex-shrink:0;">
-                <div>${stars}</div>
-                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openBookDetail('${b.id}')">Details</button>
-              </div>
+          <div style="display:flex;flex-direction:column;height:100%;padding:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+              <div style="font-size:13px;font-weight:800;line-height:1.2;flex:1;min-width:0;margin-right:8px;">${b.title}</div>
+              <button onclick="event.stopPropagation();toggleFlipCard('sfc-${idx}')" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>
+            </div>
+            <div class="shelf-back-summary">${summaryText}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-shrink:0;">
+              <div>${stars}</div>
+              <div style="font-size:11px;color:var(--muted);">${b.status==='finished'?'✅ Finished':b.status==='dnf'?'🚩 DNF':''}</div>
             </div>
           </div>
         </div>
@@ -3316,12 +3351,20 @@ function renderGroupMilestonesSection() {
 // ═══════════════════════════════════════
 //  BADGES
 // ═══════════════════════════════════════
+function showBadgeDetail(id) {
+  const b = ALL_BADGES.find(x => x.id === id);
+  if (!b) return;
+  const earned = (state.badges[currentMember] || []).includes(b.id);
+  const msg = `${b.emoji} ${b.label}\n\n${b.desc}${earned ? '\n\n✅ You\'ve earned this!' : '\n\n🔒 Not yet earned'}`;
+  alert(msg);
+}
+
 function renderBadges() {
   ensureMember(currentMember);
   const earned = state.badges[currentMember] || [];
   const grid = document.getElementById('badges-grid');
   grid.innerHTML = ALL_BADGES.map(b => `
-    <div class="badge-item ${earned.includes(b.id)?'earned':''}" title="${b.desc}">
+    <div class="badge-item ${earned.includes(b.id)?'earned':''}" onclick="showBadgeDetail('${b.id}')" style="cursor:pointer;" title="${b.desc}">
       <div class="badge-icon">${b.emoji}</div>
       <div class="badge-label">${b.label}</div>
     </div>`).join('');
@@ -4080,21 +4123,25 @@ function pickAvatar(av) {
       el.textContent = av;
     }
   });
-  // Re-render the bars
-  ['home-member-bar','shelf-member-bar','timer-member-bar','badges-member-bar','journal-member-bar','feed-member-bar'].forEach(id => {
+  // Re-render the bars (shelf/journal have their own builders, rebuilt on tab open)
+  ['home-member-bar','timer-member-bar','badges-member-bar','feed-member-bar'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.innerHTML) buildMemberBar(id);
   });
+  buildShelfMemberBar();
+  buildJournalMemberBar();
 }
 
 function pickAvatarInSettings(av) {
   if (!state.avatars) state.avatars = {};
   state.avatars[currentMember] = av;
   saveToGist();
-  ['home-member-bar','shelf-member-bar','timer-member-bar','badges-member-bar','journal-member-bar','feed-member-bar'].forEach(id => {
+  ['home-member-bar','timer-member-bar','badges-member-bar','feed-member-bar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) buildMemberBar(id);
   });
+  buildShelfMemberBar();
+  buildJournalMemberBar();
   renderSettings();
 }
 
@@ -4775,6 +4822,9 @@ function showWhoOverlay() {
       <div style="font-size:44px;line-height:1;">${getMemberEmoji(m.id)}</div>
       <div style="font-weight:700;font-size:16px;font-family:'Fraunces',serif;">${m.name}</div>
     </div>`).join('');
+  // Show back button if someone is already using the app (e.g. admin browsing)
+  const backBtn = document.getElementById('who-back-btn');
+  if (backBtn) backBtn.style.display = currentMember ? 'block' : 'none';
   document.getElementById('who-overlay').style.display = 'block';
 }
 
@@ -4957,7 +5007,7 @@ async function init() {
   buildShelfMemberBar();
   buildMemberBar('timer-member-bar');
   buildMemberBar('badges-member-bar');
-  buildMemberBar('journal-member-bar');
+  buildJournalMemberBar();
   buildMemberBar('feed-member-bar');
   renderHome();
 
