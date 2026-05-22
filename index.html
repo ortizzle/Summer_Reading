@@ -1753,7 +1753,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     </div>
     <div class="form-group">
       <label class="form-label">Pages</label>
-      <input class="form-input" type="number" id="book-pages-input" placeholder="Number of pages">
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" type="number" id="book-pages-input" placeholder="Total pages" style="flex:1;">
+        <input class="form-input" type="number" id="book-start-page-input" placeholder="Started on p.?" style="flex:1;" title="Already partway through? Enter the page you started the challenge on so only pages read during the challenge count.">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Already mid-book? Enter the page you're on so only challenge pages count.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Genre / Type</label>
@@ -3459,11 +3463,14 @@ function saveBook() {
   const title = document.getElementById('book-title-input').value.trim();
   if (!title) { showToast('Enter a title!'); return; }
   ensureMember(currentMember);
+  const totalPages = parseInt(document.getElementById('book-pages-input').value) || 0;
+  const startPage  = parseInt(document.getElementById('book-start-page-input').value) || 0;
   const book = {
     id: uid(),
     title,
     author: document.getElementById('book-author-input').value.trim(),
-    pages: parseInt(document.getElementById('book-pages-input').value) || 0,
+    pages: totalPages,
+    startPage: startPage > 0 ? startPage : undefined,
     genre: selectedGenre,
     status: selectedStatus,
     addedTs: Date.now()
@@ -3482,11 +3489,12 @@ function saveBook() {
 }
 
 function awardFinishPoints(memberId, book) {
-  const pages = book.pages || 0;
+  // Use only pages read during the challenge (total minus starting page)
+  const effectivePages = Math.max(0, (book.pages || 0) - (book.startPage || 0));
   let bonus;
   if (book.genre === 'graphic') bonus = 20;
   else if (book.genre === 'article') bonus = 25;
-  else if (pages >= 200) bonus = 50;
+  else if (effectivePages >= 200) bonus = 50;
   else bonus = 30;
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
   state.sessions[memberId].push({ id:uid(), bookId:book.id, bookTitle:book.title+'(finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
@@ -3510,9 +3518,10 @@ function openBookDetail(bookId) {
       </div>
       <div style="flex:1;background:var(--sand);border-radius:12px;padding:12px;text-align:center;">
         <div style="font-size:22px;font-weight:700;font-family:'Fraunces',serif;color:var(--sun);">${book.pages||'?'}</div>
-        <div style="font-size:11px;color:var(--muted);">Pages</div>
+        <div style="font-size:11px;color:var(--muted);">${book.startPage ? `Pages (started p.${book.startPage})` : 'Pages'}</div>
       </div>
     </div>
+    ${book.startPage ? `<div style="background:#FFF8E7;border:1px solid #FFE066;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);">📌 Started on page ${book.startPage} — <strong>${Math.max(0,(book.pages||0)-book.startPage)} pages</strong> count toward the challenge.</div>` : ''}
     <div style="margin-bottom:12px;">
       <label class="form-label">My Rating</label>
       <div style="display:flex;gap:4px;">
@@ -3848,7 +3857,7 @@ function selectStatus(el, val) {
   selectedStatus = val;
 }
 function clearBookForm() {
-  ['book-title-input','book-author-input','book-pages-input','isbn-input'].forEach(id => {
+  ['book-title-input','book-author-input','book-pages-input','book-start-page-input','isbn-input'].forEach(id => {
     document.getElementById(id).value = '';
   });
   selectedGenre = '';
