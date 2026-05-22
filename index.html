@@ -530,30 +530,55 @@ body {
 .badge-item.earned .badge-label { color: var(--text); }
 
 /* ── JOURNAL ── */
-/* journal flip cards */
-.journal-flip { perspective: 900px; margin-bottom: 10px; }
+/* ── NOTEBOOK JOURNALS ── */
+.notebook-section { margin-bottom: 20px; }
+.notebook-cover {
+  position: relative; border-radius: 14px; padding: 14px 16px 14px 28px;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  display: flex; align-items: center; justify-content: space-between;
+  transition: box-shadow 0.15s;
+}
+.notebook-cover:active { box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.notebook-spine {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 14px;
+  background: rgba(0,0,0,0.22); border-radius: 14px 0 0 14px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 6px;
+}
+.notebook-spine-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+.notebook-pages {
+  margin-top: 2px; border-left: 4px solid transparent;
+  margin-left: 10px; padding-left: 4px;
+  overflow: hidden; transition: max-height 0.35s ease;
+  max-height: 0;
+}
+.notebook-pages.open { max-height: 9999px; }
+
+/* journal flip cards (pages inside a notebook) */
+.journal-flip { perspective: 900px; margin-bottom: 8px; }
 .journal-flip-inner { position: relative; width: 100%; transition: transform 0.45s; transform-style: preserve-3d; }
 .journal-flip.flipped .journal-flip-inner { transform: rotateY(180deg); }
-.journal-face { backface-visibility: hidden; border-radius: 0 12px 12px 0; }
+.journal-face { backface-visibility: hidden; border-radius: 0 10px 10px 0; }
+
+/* lined paper front */
 .journal-front {
-  border-left: 4px solid var(--sky);
-  padding: 10px 14px;
-  background: #f9f9f9;
-  cursor: pointer;
+  padding: 10px 14px 12px;
+  background-color: #FFFEF5;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 23px, #e6e0c8 23px, #e6e0c8 24px
+  );
+  cursor: pointer; border-left: 4px solid transparent;
 }
-/* back sits invisibly on top when not flipped; becomes visible after rotate */
 .journal-back {
   position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
   transform: rotateY(180deg);
-  background: var(--navy);
-  border-left: 4px solid var(--sky);
+  border-left: 4px solid transparent;
   padding: 12px 14px;
   display: flex; flex-direction: column; gap: 10px;
-  box-sizing: border-box;
-  cursor: pointer;
+  box-sizing: border-box; cursor: pointer; border-radius: 0 10px 10px 0;
 }
 .journal-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-.journal-text { font-size: 14px; line-height: 1.5; }
+.journal-text { font-size: 14px; line-height: 1.6; position: relative; z-index: 1; }
 
 /* ── FORMS ── */
 .form-group { margin-bottom: 14px; }
@@ -2385,6 +2410,7 @@ function doSelectMember(id) {
   const prevMember = currentMember;
   currentMember = id;
   _journalViewMember = id; // reset journal view to the newly selected member
+  _openNotebooks = new Set(); // reopen all notebooks for new member
   _statsFlipped = false;  // reset stats card to front
   ensureMember(id);
   document.querySelectorAll('.member-select-bar').forEach(bar => {
@@ -3580,6 +3606,38 @@ function confirmLibraryVisit() {
 // ═══════════════════════════════════════
 //  JOURNAL
 // ═══════════════════════════════════════
+// Rich notebook cover colors (deeper than the shelf pastels)
+const NOTEBOOK_PALETTE = [
+  '#C0392B','#D35400','#B7950B','#1E8449','#1A5276',
+  '#6C3483','#117A65','#7D6608','#1F618D','#922B21',
+  '#4A235A','#0B5345','#784212','#154360','#512E5F'
+];
+const NOTEBOOK_GENRE_COLORS = {
+  novel:'#5B4FCF', graphic:'#B03070', nonfiction:'#1A6B4A',
+  poetry:'#C07820', article:'#2874A6', other:'#6D6875'
+};
+
+function getNotebookColor(bookTitle) {
+  if (!bookTitle || bookTitle === 'General') return '#607D8B';
+  const book = (state.books[_journalViewMember] || []).find(b => b.title === bookTitle);
+  if (book?.genre) return NOTEBOOK_GENRE_COLORS[book.genre] || '#6D6875';
+  let hash = 0;
+  for (const c of bookTitle) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+  return NOTEBOOK_PALETTE[hash % NOTEBOOK_PALETTE.length];
+}
+
+let _openNotebooks = new Set(); // keys of expanded notebooks
+
+function toggleNotebook(key) {
+  if (_openNotebooks.has(key)) _openNotebooks.delete(key);
+  else _openNotebooks.add(key);
+  const safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
+  const pages = document.getElementById('nb-pages-' + safeKey);
+  const chevron = document.getElementById('nb-chev-' + safeKey);
+  if (pages) pages.classList.toggle('open', _openNotebooks.has(key));
+  if (chevron) chevron.textContent = _openNotebooks.has(key) ? '▴' : '▾';
+}
+
 function buildJournalMemberBar() {
   const el = document.getElementById('journal-member-bar');
   if (!el) return;
@@ -3612,41 +3670,83 @@ function renderJournal() {
   const titleEl = document.getElementById('journal-card-title');
   if (titleEl) titleEl.textContent = isOwn ? '📝 My Reading Journal' : `📝 ${viewName}'s Journal`;
 
-  const entries = (state.journal[_journalViewMember] || []).slice().reverse();
+  const allEntries = (state.journal[_journalViewMember] || []).slice().sort((a,b) => (b.ts||0)-(a.ts||0));
   const el = document.getElementById('journal-entries');
-  if (!entries.length) {
+  if (!allEntries.length) {
     el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">${isOwn ? 'Your thoughts will appear here.' : `${viewName} hasn't written any entries yet.`}</div>`;
     return;
   }
-  el.innerHTML = entries.map((e, idx) => {
-    const cardId = `jfc-${idx}`;
-    const stars = e.rating ? `<div style="font-size:13px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : '';
-    const dateStr = new Date(e.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    const hint = isOwn ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.6;">↩ Tap to flip</div>` : '';
-    const backActions = isOwn ? `
-      <div style="display:flex;gap:10px;">
-        <button onclick="event.stopPropagation();editJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(255,255,255,0.15);color:white;border:none;">✏️ Edit</button>
-        <button onclick="event.stopPropagation();deleteJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(255,80,80,0.3);color:white;border:none;">🗑️ Delete</button>
-      </div>` : '';
-    return `
-    <div class="journal-flip" id="${cardId}" onclick="toggleJournalFlip('${cardId}')">
-      <div class="journal-flip-inner">
-        <div class="journal-face journal-front">
-          <div class="journal-date">${dateStr} · ${e.bookTitle||'General'}${e.editedTs?' · edited':''}</div>
-          ${stars}
-          <div class="journal-text">${e.text}</div>
-          ${hint}
-        </div>
-        <div class="journal-face journal-back">
-          <div>
-            <div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">ABOUT THIS ENTRY</div>
-            <div style="color:white;font-size:13px;font-weight:700;">${e.bookTitle||'General'}</div>
-            <div style="color:rgba(255,255,255,0.55);font-size:11px;">${dateStr}${e.editedTs?' · edited '+new Date(e.editedTs).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}</div>
-            ${e.rating ? `<div style="font-size:16px;color:var(--sun);margin-top:4px;">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+
+  // Group entries by book title; General last
+  const groups = new Map();
+  allEntries.forEach(e => {
+    const key = e.bookTitle || 'General';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  });
+  // Move General to end
+  if (groups.has('General') && groups.size > 1) {
+    const gen = groups.get('General'); groups.delete('General'); groups.set('General', gen);
+  }
+
+  // Open all notebooks on first render for this view
+  groups.forEach((_, key) => _openNotebooks.add(key));
+
+  let globalIdx = 0;
+  el.innerHTML = [...groups.entries()].map(([bookTitle, entries]) => {
+    const color = getNotebookColor(bookTitle);
+    const isGeneral = bookTitle === 'General';
+    const nbEmoji = isGeneral ? '📓' : '📔';
+    const safeKey = bookTitle.replace(/[^a-zA-Z0-9]/g, '_');
+    const isOpen = _openNotebooks.has(bookTitle);
+
+    const pages = entries.map((e) => {
+      const cardId = `jfc-${globalIdx++}`;
+      const dateStr = new Date(e.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+      const stars = e.rating ? `<div style="font-size:13px;color:${color};margin:2px 0;">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : '';
+      const backActions = isOwn ? `
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button onclick="event.stopPropagation();editJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:${color};color:white;border:none;opacity:0.9;">✏️ Edit</button>
+          <button onclick="event.stopPropagation();deleteJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(180,30,30,0.8);color:white;border:none;">🗑️ Delete</button>
+        </div>` : '';
+      return `
+      <div class="journal-flip" id="${cardId}" onclick="toggleJournalFlip('${cardId}')">
+        <div class="journal-flip-inner">
+          <div class="journal-face journal-front" style="border-left-color:${color};">
+            <div class="journal-date">${dateStr}${e.editedTs?' · edited':''}</div>
+            ${stars}
+            <div class="journal-text">${e.text}</div>
+            ${isOwn ? `<div style="font-size:10px;color:${color};margin-top:8px;opacity:0.7;font-weight:600;">↩ tap to flip</div>` : ''}
           </div>
-          ${backActions}
-          <button onclick="event.stopPropagation();toggleJournalFlip('${cardId}')" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;text-align:left;padding:0;">← Back</button>
+          <div class="journal-face journal-back" style="background:${color};border-left-color:${color};">
+            <div>
+              <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;letter-spacing:0.5px;">ENTRY — ${dateStr.toUpperCase()}</div>
+              ${e.rating ? `<div style="font-size:18px;color:rgba(255,255,255,0.9);margin-top:4px;">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+              ${e.editedTs ? `<div style="color:rgba(255,255,255,0.5);font-size:10px;margin-top:2px;">edited ${new Date(e.editedTs).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div>` : ''}
+            </div>
+            ${backActions}
+            <button onclick="event.stopPropagation();toggleJournalFlip('${cardId}')" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:11px;cursor:pointer;padding:0;">← Back</button>
+          </div>
         </div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="notebook-section">
+      <div class="notebook-cover" style="background:${color};" onclick="toggleNotebook(${JSON.stringify(bookTitle)})">
+        <div class="notebook-spine">
+          <div class="notebook-spine-dot"></div>
+          <div class="notebook-spine-dot"></div>
+          <div class="notebook-spine-dot"></div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="color:white;font-weight:800;font-size:15px;font-family:'Fraunces',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nbEmoji} ${bookTitle}</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;margin-top:2px;">${entries.length} entr${entries.length===1?'y':'ies'}</div>
+        </div>
+        <div id="nb-chev-${safeKey}" style="color:rgba(255,255,255,0.7);font-size:16px;flex-shrink:0;margin-left:8px;">${isOpen?'▴':'▾'}</div>
+      </div>
+      <div class="notebook-pages ${isOpen?'open':''}" id="nb-pages-${safeKey}" style="border-left-color:${color};">
+        <div style="padding-top:6px;">${pages}</div>
       </div>
     </div>`;
   }).join('');
