@@ -1737,9 +1737,14 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
     <div class="form-group">
       <label class="form-label">ISBN (optional)</label>
-      <div style="display:flex;gap:8px;">
-        <input class="form-input" id="isbn-input" placeholder="e.g. 9780439023481" style="flex:1;">
-        <button class="btn btn-sky btn-sm" onclick="lookupISBN()">Look Up</button>
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="form-input" id="isbn-input" placeholder="e.g. 9780439023481" style="flex:1;">
+            <button class="btn btn-sky btn-sm" onclick="lookupISBN()">Look Up</button>
+          </div>
+        </div>
+        <img id="isbn-cover-preview" src="" alt="cover" style="display:none;width:56px;height:80px;object-fit:cover;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
       </div>
     </div>
 
@@ -2254,7 +2259,7 @@ function openTab(tab) {
 
 function renderTab(tab) {
   if (tab === 'home') renderHome();
-  if (tab === 'shelf') { _shelfViewMember = 'all'; _shelfFilter = 'all'; renderShelf(); syncShelf(); }
+  if (tab === 'shelf') { _shelfViewMember = currentMember; _shelfFilter = 'all'; renderShelf(); syncShelf(); }
   if (tab === 'timer') renderTimer();
   if (tab === 'challenges') renderChallenges();
   if (tab === 'journal') renderJournal();
@@ -2571,7 +2576,7 @@ function postFeedMessage() {
 //  SHELF
 // ═══════════════════════════════════════
 let _shelfFilter = 'all';
-let _shelfViewMember = 'all'; // 'all' = everyone's shelf
+let _shelfViewMember = null; // null gets set to currentMember on tab open
 
 function setShelfView(id) {
   _shelfViewMember = id;
@@ -2592,12 +2597,7 @@ function syncShelf() {
 function buildShelfMemberBar() {
   const el = document.getElementById('shelf-member-bar');
   const allActive = _shelfViewMember === 'all';
-  const chips = [
-    `<div class="member-chip ${allActive?'active':''}" onclick="setShelfView('all')" style="cursor:pointer;">
-      <div class="member-avatar" style="background:#eee;border-color:${allActive?'var(--sun)':'#eee'};font-size:16px;">👨‍👩‍👧</div>
-      <span class="member-chip-name">All</span>
-    </div>`
-  ].concat(MEMBERS.map(m => {
+  const chips = MEMBERS.map(m => {
     const isViewing = m.id === _shelfViewMember;
     const isMe = m.id === currentMember;
     const col = getMemberColor(m.id);
@@ -2605,7 +2605,10 @@ function buildShelfMemberBar() {
       <div class="member-avatar" style="background:${col}20;border-color:${isViewing?col:'#eee'};position:relative;">${getMemberEmoji(m.id)}</div>
       <span class="member-chip-name">${isMe?'Me':m.name}</span>
     </div>`;
-  }));
+  }).concat([`<div class="member-chip ${allActive?'active':''}" onclick="setShelfView('all')" style="cursor:pointer;">
+      <div class="member-avatar" style="background:#eee;border-color:${allActive?'var(--sun)':'#eee'};font-size:16px;">👨‍👩‍👧</div>
+      <span class="member-chip-name">Everyone</span>
+    </div>`]);
   el.innerHTML = chips.join('');
 }
 
@@ -2657,7 +2660,7 @@ function renderShelf() {
   });
 
   const cards = filtered.map((b, idx) => {
-    const sessions = (state.sessions[viewId]||[]).filter(s=>s.bookId===b.id);
+    const sessions = (state.sessions[_shelfViewMember]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
     const statusTag = { reading:'reading', finished:'finished', dnf:'dnf', want:'want' };
     const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
@@ -2735,8 +2738,12 @@ function renderShelfAll() {
     const bookRows = books.map(b => {
       const sessions = (state.sessions[m.id]||[]).filter(s=>s.bookId===b.id);
       const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);">
-        <div style="width:40px;height:56px;border-radius:6px;background:${bookColor(b.genre)};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${bookEmoji(b.genre)}</div>
+      const coverThumb = b.coverUrl
+        ? `<img src="${b.coverUrl}" style="width:40px;height:56px;object-fit:cover;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+      const fallback = `<div style="width:40px;height:56px;border-radius:6px;background:${bookColor(b.genre)};display:${b.coverUrl?'none':'flex'};align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${bookEmoji(b.genre)}</div>`;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);cursor:pointer;" onclick="setShelfView('${m.id}')">
+        ${coverThumb}${fallback}
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:14px;line-height:1.2;margin-bottom:2px;">${b.title}</div>
           <div style="font-size:12px;color:var(--muted);">${b.author||'Unknown author'}</div>
@@ -3466,8 +3473,10 @@ function saveBook() {
     pages: parseInt(document.getElementById('book-pages-input').value) || 0,
     genre: selectedGenre,
     status: selectedStatus,
+    coverUrl: window._pendingCoverUrl || undefined,
     addedTs: Date.now()
   };
+  window._pendingCoverUrl = null;
   if (!state.books[currentMember]) state.books[currentMember] = [];
   state.books[currentMember].push(book);
   addActivity('📖', `${MEMBERS.find(m=>m.id===currentMember).name} added: ${title}`, currentMember);
@@ -3494,7 +3503,8 @@ function awardFinishPoints(memberId, book) {
 }
 
 function openBookDetail(bookId) {
-  const books = state.books[currentMember] || [];
+  const shelfOwner = (_shelfViewMember && _shelfViewMember !== 'all') ? _shelfViewMember : currentMember;
+  const books = state.books[shelfOwner] || [];
   const book = books.find(b=>b.id===bookId);
   if (!book) return;
   pendingBookDetail = bookId;
@@ -3572,6 +3582,11 @@ async function lookupISBN() {
       document.getElementById('book-title-input').value = b.title || '';
       document.getElementById('book-author-input').value = b.authors?.[0]?.name || '';
       document.getElementById('book-pages-input').value = b.number_of_pages || '';
+      // Show cover preview and store URL for when book is saved
+      const coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      window._pendingCoverUrl = coverUrl;
+      const preview = document.getElementById('isbn-cover-preview');
+      if (preview) { preview.src = coverUrl; preview.style.display = 'block'; }
       showToast('Book found! ✅');
     } else { showToast('Book not found — enter manually'); }
   } catch(e) { showToast('Lookup failed — enter manually'); }
@@ -3848,6 +3863,9 @@ function selectStatus(el, val) {
   selectedStatus = val;
 }
 function clearBookForm() {
+  window._pendingCoverUrl = null;
+  const preview = document.getElementById('isbn-cover-preview');
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
   ['book-title-input','book-author-input','book-pages-input','isbn-input'].forEach(id => {
     document.getElementById(id).value = '';
   });
