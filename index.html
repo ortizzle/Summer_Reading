@@ -2559,8 +2559,8 @@ function renderHome() {
     : famMins + 'm';
   if (headerPts) headerPts.textContent = famPts;
 
-  const start = new Date('2026-05-23');
-  const end   = new Date('2026-08-03');
+  const start = new Date(2026, 4, 23); // local midnight — avoids UTC offset shifting the date
+  const end   = new Date(2026, 7, 3);  // local midnight
   const now   = new Date();
   let days, label;
   if (now < start) {
