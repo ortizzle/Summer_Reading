@@ -2711,7 +2711,7 @@ function renderActivityList(containerId, limit) {
     const isMsg = a.type === 'message';
     const memberColor = memberObj ? getMemberColor(memberObj.id) : '#ccc';
     const replyName = memberObj ? memberObj.name : '';
-    const replyText = (a.text || '').replace(/^[^:]+:\s*/, '').replace(/'/g, "\\'").slice(0, 80);
+    const replyText = (a.text || '').split('\n')[0].replace(/'/g, "\\'").slice(0, 80);
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}','${replyText}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     const isMine = a.member === currentMember;
     const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}')">···</button>` : '';
@@ -2843,8 +2843,8 @@ function postFeedMessage() {
   if (!state.activity) state.activity = [];
   const quoteSnippet = _replyQuote ? `"${_replyQuote.text.slice(0,60)}${_replyQuote.text.length>60?'…':''}"` : null;
   const fullText = quoteSnippet
-    ? `${member.name}: ${text}\n↩ re: ${quoteSnippet}`
-    : `${member.name}: ${text}`;
+    ? `${text}\n↩ re: ${quoteSnippet}`
+    : text;
   state.activity.push({ id: uid(), emoji: '💬', text: fullText, member: currentMember, ts: Date.now(), type: 'message' });
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
   input.value = '';
