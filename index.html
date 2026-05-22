@@ -2117,6 +2117,7 @@ let state = {
   milestones: {},    // memberId -> [milestoneId]
   groupMilestones: [],
   activity: [],
+  deletedActivityIds: [],  // ids explicitly deleted — never re-merged from Gist
   avatars: {},       // memberId -> emoji string
   pins: {},          // memberId -> '1234'
   themes: {},        // memberId -> 'standard' | 'sparkle' | 'bubbles'
@@ -2212,11 +2213,12 @@ async function saveToGist() {
             }
           });
         });
-        // Merge activity: union by id
+        // Merge activity: union by id, but never re-add explicitly deleted ones
         if (remote.activity && Array.isArray(remote.activity)) {
           const localIds = new Set((state.activity||[]).map(a => a.id));
+          const deleted = new Set(state.deletedActivityIds || []);
           const merged = [...(state.activity||[])];
-          remote.activity.forEach(a => { if (!localIds.has(a.id)) merged.push(a); });
+          remote.activity.forEach(a => { if (!localIds.has(a.id) && !deleted.has(a.id)) merged.push(a); });
           state.activity = merged.sort((a,b) => (a.ts||0) - (b.ts||0));
         }
       }
@@ -4493,7 +4495,10 @@ function renderSettings() {
   html += `
   <div class="settings-card" style="border:2px solid #FFCDD2;">
     <div class="card-title" style="color:#C62828;">⚠️ Danger Zone</div>
-    <button class="btn btn-danger btn-sm" onclick="clearAllMyData()">Clear All My Data</button>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-danger btn-sm" onclick="clearMyMessages()">🗑️ Clear My Messages</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAllMyData()">Clear All My Data</button>
+    </div>
   </div>`;
 
   el.innerHTML = html;
@@ -4596,6 +4601,21 @@ function setMemberColor(hex) {
   showToast('Color saved!');
 }
 
+async function clearMyMessages() {
+  if (!confirm('Delete all your Exchange messages? This cannot be undone.')) return;
+  const id = currentMember;
+  const toDelete = (state.activity||[]).filter(a => a.member === id && a.type === 'message').map(a => a.id);
+  if (!state.deletedActivityIds) state.deletedActivityIds = [];
+  state.deletedActivityIds.push(...toDelete);
+  state.activity = (state.activity||[]).filter(a => !(a.member === id && a.type === 'message'));
+  // Also remove reactions on deleted messages
+  toDelete.forEach(aid => { if (state.reactions) delete state.reactions[aid]; });
+  await saveToGist();
+  showToast('Messages cleared.');
+  renderFeed?.();
+  renderHome?.();
+}
+
 async function clearAllMyData() {
   if (!confirm('Clear ALL your data (books, sessions, journal, bingo, badges, library visits)? This cannot be undone.')) return;
   const id = currentMember;
@@ -4606,7 +4626,12 @@ async function clearAllMyData() {
   state.library[id] = [];
   state.milestones[id] = [];
   if (state.bingo) { state.bingo.kids = {}; state.bingo.adults = {}; state.bingo.hani = {}; }
+  // Track deleted activity IDs so the Gist merge doesn't re-add them
+  const toDelete = (state.activity||[]).filter(a => a.member === id).map(a => a.id);
+  if (!state.deletedActivityIds) state.deletedActivityIds = [];
+  state.deletedActivityIds.push(...toDelete);
   state.activity = (state.activity||[]).filter(a => a.member !== id);
+  if (state.reactions) toDelete.forEach(aid => delete state.reactions[aid]);
   await saveToGist();
   showToast('All data cleared.');
   renderHome();
