@@ -1347,14 +1347,19 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 /* ── REACTION ANIMATIONS ── */
 @keyframes reactionFlex {
-  0%   { transform: scale(1) rotate(0deg); }
-  15%  { transform: scale(1.07) rotate(-2deg); }
-  30%  { transform: scale(1.12) rotate(2deg); }
-  50%  { transform: scale(1.07) rotate(-1deg); }
-  70%  { transform: scale(1.03) rotate(1deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0%   { transform: scale(1)    rotate(0deg); }
+  10%  { transform: scale(1.14) rotate(-3deg); }
+  25%  { transform: scale(1.18) rotate(3deg); }
+  40%  { transform: scale(1.12) rotate(-2deg); }
+  60%  { transform: scale(1.06) rotate(1deg); }
+  80%  { transform: scale(1.02) rotate(0deg); }
+  100% { transform: scale(1)    rotate(0deg); }
 }
-.reaction-flexing { animation: reactionFlex 0.55s cubic-bezier(.36,.07,.19,.97); }
+.reaction-flexing {
+  animation: reactionFlex 0.6s cubic-bezier(.36,.07,.19,.97) both;
+  transform-origin: center center;
+  display: inline-block;
+}
 .reaction-particle {
   position: fixed;
   pointer-events: none;
@@ -4469,16 +4474,18 @@ function triggerReactionFx(emoji, btnEl) {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
 
-  // 💪 Flex: animate the whole post card
+  // 💪 Flex: animate the visible content — speech bubble for messages, card for system posts
   if (emoji === '💪') {
     const card = btnEl.closest('.activity-item');
-    if (card) {
-      card.classList.remove('reaction-flexing');
-      void card.offsetWidth; // reflow
-      card.classList.add('reaction-flexing');
-      card.addEventListener('animationend', () => card.classList.remove('reaction-flexing'), { once: true });
+    // For message bubbles the background is transparent — target the speech bubble instead
+    const flexTarget = card?.querySelector('.msg-speech') || card;
+    if (flexTarget) {
+      flexTarget.classList.remove('reaction-flexing');
+      void flexTarget.offsetWidth; // reflow to restart animation
+      flexTarget.classList.add('reaction-flexing');
+      flexTarget.addEventListener('animationend', () => flexTarget.classList.remove('reaction-flexing'), { once: true });
     }
-    spawnParticles(cx, cy, ['💪','✨'], 5, { spread: 80, up: 30 });
+    spawnParticles(cx, cy, ['💪','✨','💥'], 8, { spread: 90, up: 40 });
     return;
   }
 
