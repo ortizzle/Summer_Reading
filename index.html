@@ -2626,7 +2626,7 @@ function renderShelf() {
 
   const isAll = _shelfViewMember === 'all';
   const isOwnShelf = _shelfViewMember === currentMember;
-  document.getElementById('shelf-add-btn').style.display = isOwnShelf ? '' : 'none';
+  document.getElementById('shelf-add-btn').style.display = (isOwnShelf || isAll) ? '' : 'none';
   document.getElementById('shelf-card-title').textContent = isAll ? '📚 Everyone\'s Shelf'
     : isOwnShelf ? '📚 My Books'
     : `📚 ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||_shelfViewMember}'s Books`;
