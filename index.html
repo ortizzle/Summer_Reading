@@ -2211,7 +2211,8 @@ let state = {
   defaultTabs: {},   // memberId -> tab name
   reactions: {},     // activityId -> { emoji: [memberIds] }
   memberColors: {},  // memberId -> hex color (chosen from COLOR_PALETTE)
-  onboarded: {}      // memberId -> bool
+  onboarded: {},     // memberId -> bool
+  claimedRewards: {} // 'memberId:milestoneId' or 'family:gmId' -> timestamp
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
@@ -3465,12 +3466,22 @@ function renderIndividualMilestones() {
       saveToGist();
       setTimeout(() => showMagicUnlock(m.icon, m.name, m.reward), 400);
     }
+    const claimKey = `${currentMember}:${m.id}`;
+    const claimedTs = (state.claimedRewards || {})[claimKey];
+    const claimedHtml = claimedTs
+      ? `<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#27ae60;">
+           <span>✅ Claimed</span><span style="font-weight:400;opacity:0.75;">${new Date(claimedTs).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+         </div>`
+      : met
+        ? `<button onclick="claimReward('${claimKey}')" style="margin-top:6px;padding:3px 10px;border-radius:20px;border:1.5px solid #27ae60;background:white;color:#27ae60;font-size:11px;font-weight:700;cursor:pointer;">✓ Mark Claimed</button>`
+        : '';
     return `
     <div class="milestone-item ${met?'unlocked':''}">
       <div class="milestone-icon">${m.icon}</div>
       <div class="milestone-info">
         <div class="milestone-name">${m.name} ${met?'✅':''}</div>
         <div class="milestone-desc">${m.desc}</div>
+        ${claimedHtml}
       </div>
       <div class="milestone-reward">${m.reward}</div>
     </div>`;
@@ -3489,6 +3500,15 @@ function renderGroupMilestonesSection() {
       setTimeout(() => showMagicUnlock(gm.icon, gm.name, gm.reward), 400);
     }
     const pct = Math.min(100, (allPts/gm.threshold)*100);
+    const gmClaimKey = `family:${gm.id}`;
+    const gmClaimedTs = (state.claimedRewards || {})[gmClaimKey];
+    const gmClaimedHtml = gmClaimedTs
+      ? `<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#27ae60;">
+           <span>✅ Claimed</span><span style="font-weight:400;opacity:0.75;">${new Date(gmClaimedTs).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+         </div>`
+      : unlocked
+        ? `<button onclick="claimReward('${gmClaimKey}')" style="margin-top:6px;padding:3px 10px;border-radius:20px;border:1.5px solid #27ae60;background:white;color:#27ae60;font-size:11px;font-weight:700;cursor:pointer;">✓ Mark Claimed</button>`
+        : '';
     return `
     <div class="milestone-item ${unlocked?'unlocked':''}">
       <div class="milestone-icon">${gm.icon}</div>
@@ -3496,10 +3516,20 @@ function renderGroupMilestonesSection() {
         <div class="milestone-name">${gm.name} ${unlocked?'🎉':''}</div>
         <div class="milestone-desc">${gm.desc}</div>
         ${!unlocked ? `<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${pct}%;background:var(--sun);"></div></div>` : ''}
+        ${gmClaimedHtml}
       </div>
       <div class="milestone-reward">${gm.reward}</div>
     </div>`;
   }).join('');
+}
+
+function claimReward(key) {
+  if (!state.claimedRewards) state.claimedRewards = {};
+  state.claimedRewards[key] = Date.now();
+  saveToGist();
+  showToast('🎉 Reward marked as claimed!');
+  renderChallenges();
+  renderHome();
 }
 
 // ═══════════════════════════════════════
@@ -3832,19 +3862,18 @@ function editJournalEntry(entryId) {
   const entries = state.journal[currentMember] || [];
   const e = entries.find(x => x.id === entryId);
   if (!e) return;
-  // Pre-fill the modal
+  // Open modal FIRST — the wrapper calls resetJournalStars(), so we must set values after
   document.getElementById('journal-edit-id').value = entryId;
   document.getElementById('journal-modal-title').textContent = '✏️ Edit Entry';
+  openModal('journal-modal'); // calls resetJournalStars() internally
+  // Now set values AFTER the reset
   document.getElementById('journal-text').value = e.text;
   journalStarRating = e.rating || 0;
-  // Restore stars
   for (let i = 1; i <= 5; i++) {
     const star = document.getElementById('jstar-' + i);
     if (star) { star.textContent = i <= journalStarRating ? '★' : '☆'; star.style.color = i <= journalStarRating ? 'var(--sun)' : '#ccc'; }
   }
-  // Populate book select and try to set matching value
-  openModal('journal-modal');
-  // Re-populate book dropdown then set value
+  // Set book dropdown after populateJournalBooks() has run
   setTimeout(() => {
     const sel = document.getElementById('journal-book-select');
     if (sel && e.bookTitle) {
@@ -3852,7 +3881,7 @@ function editJournalEntry(entryId) {
         if (sel.options[i].text === e.bookTitle) { sel.selectedIndex = i; break; }
       }
     }
-  }, 50);
+  }, 10);
 }
 
 function deleteJournalEntry(entryId) {
