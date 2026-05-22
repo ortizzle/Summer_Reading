@@ -1816,7 +1816,8 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="modal-overlay" id="journal-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">✏️ Journal Entry</div>
+    <div class="modal-title" id="journal-modal-title">✏️ Journal Entry</div>
+    <input type="hidden" id="journal-edit-id" value="">
     <div class="form-group">
       <label class="form-label">Book</label>
       <select class="form-select" id="journal-book-select">
@@ -1838,7 +1839,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
-      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('journal-modal')">Cancel</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('journal-edit-id').value='';document.getElementById('journal-modal-title').textContent='✏️ Journal Entry';closeModal('journal-modal')">Cancel</button>
       <button class="btn btn-primary" style="flex:1;" onclick="saveJournalEntry()">Save Entry</button>
     </div>
   </div>
@@ -3539,10 +3540,51 @@ function renderJournal() {
   }
   el.innerHTML = entries.map(e => `
     <div class="journal-entry">
-      <div class="journal-date">${new Date(e.ts).toLocaleDateString()} · ${e.bookTitle||'General'}</div>
-      ${e.rating ? `<div style="font-size:14px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div class="journal-date">${new Date(e.ts).toLocaleDateString()} · ${e.bookTitle||'General'}${e.editedTs ? ' · edited' : ''}</div>
+          ${e.rating ? `<div style="font-size:14px;color:var(--sun);">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : ''}
+        </div>
+        ${isOwn ? `<div style="display:flex;gap:6px;flex-shrink:0;">
+          <button onclick="editJournalEntry('${e.id}')" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:0;" title="Edit">✏️</button>
+          <button onclick="deleteJournalEntry('${e.id}')" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);padding:0;" title="Delete">🗑️</button>
+        </div>` : ''}
+      </div>
       <div class="journal-text">${e.text}</div>
     </div>`).join('');
+}
+
+function editJournalEntry(entryId) {
+  const entries = state.journal[currentMember] || [];
+  const e = entries.find(x => x.id === entryId);
+  if (!e) return;
+  // Pre-fill the modal
+  document.getElementById('journal-edit-id').value = entryId;
+  document.getElementById('journal-modal-title').textContent = '✏️ Edit Entry';
+  document.getElementById('journal-text').value = e.text;
+  journalStarRating = e.rating || 0;
+  // Restore stars
+  for (let i = 1; i <= 5; i++) {
+    const star = document.getElementById('jstar-' + i);
+    if (star) { star.textContent = i <= journalStarRating ? '★' : '☆'; star.style.color = i <= journalStarRating ? 'var(--sun)' : '#ccc'; }
+  }
+  // Populate book select and try to set matching value
+  openModal('journal-modal');
+  // Re-populate book dropdown then set value
+  setTimeout(() => {
+    const sel = document.getElementById('journal-book-select');
+    if (sel && e.bookTitle) {
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text === e.bookTitle) { sel.selectedIndex = i; break; }
+      }
+    }
+  }, 50);
+}
+
+function deleteJournalEntry(entryId) {
+  if (!confirm('Delete this journal entry?')) return;
+  state.journal[currentMember] = (state.journal[currentMember] || []).filter(e => e.id !== entryId);
+  saveToGist().then(() => { showToast('Entry deleted.'); renderJournal(); });
 }
 
 function saveJournalEntry() {
@@ -3553,22 +3595,38 @@ function saveJournalEntry() {
   const bookId = bookSel.value;
   ensureMember(currentMember);
   if (!state.journal[currentMember]) state.journal[currentMember] = [];
-  const entry = { id:uid(), text, bookTitle, ts:Date.now(), rating: journalStarRating || 0 };
-  state.journal[currentMember].push(entry);
-  if (state.clearedMembers?.[currentMember]) delete state.clearedMembers[currentMember];
+
+  const editId = document.getElementById('journal-edit-id').value;
+  if (editId) {
+    // Edit existing entry
+    const entry = state.journal[currentMember].find(e => e.id === editId);
+    if (entry) {
+      entry.text = text;
+      entry.bookTitle = bookTitle;
+      entry.rating = journalStarRating || 0;
+      entry.editedTs = Date.now();
+    }
+    document.getElementById('journal-edit-id').value = '';
+    document.getElementById('journal-modal-title').textContent = '✏️ Journal Entry';
+  } else {
+    // New entry
+    const entry = { id:uid(), text, bookTitle, ts:Date.now(), rating: journalStarRating || 0 };
+    state.journal[currentMember].push(entry);
+    if (state.clearedMembers?.[currentMember]) delete state.clearedMembers[currentMember];
+    addActivity('📝', `${MEMBERS.find(m=>m.id===currentMember).name} wrote a journal entry about ${bookTitle}`, currentMember);
+  }
+
   // Save rating to linked book if present
   if (bookId && journalStarRating > 0) {
     const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
     if (book) book.rating = journalStarRating;
   }
-  addActivity('📝', `${MEMBERS.find(m=>m.id===currentMember).name} wrote a journal entry about ${bookTitle}`, currentMember);
   document.getElementById('journal-text').value = '';
-  // Reset star picker
   journalStarRating = 0;
   resetJournalStars();
   saveToGist().then(() => {
     checkBadges(currentMember);
-    showToast('Journal entry saved! 📝');
+    showToast(editId ? 'Entry updated! ✏️' : 'Journal entry saved! 📝');
     closeModal('journal-modal');
     renderJournal();
   });
