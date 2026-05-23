@@ -1711,13 +1711,19 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <!-- Start / End Calculator -->
   <div class="card" id="start-end-calc-card">
     <div class="card-title">🕐 Start / End Calculator</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Tap <b>Set Start</b> when you begin reading, come back later and tap <b>Log End Time</b> to calculate the difference.</div>
     <div id="calc-start-display" style="display:none;background:var(--sand);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--text);">
       📍 Started at <span id="calc-start-label" style="font-weight:700;"></span>
       <button onclick="clearCalcStart()" style="float:right;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">✕ Clear</button>
     </div>
-    <div id="calc-no-start" style="margin-bottom:10px;">
-      <button class="btn btn-primary btn-full" onclick="setCalcStart()">📍 Set Start Time (Now)</button>
+    <div id="calc-no-start">
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
+        <div style="flex:1;">
+          <label class="form-label" style="margin-bottom:4px;display:block;">Start Time</label>
+          <input class="form-select" type="time" id="calc-start-input" style="width:100%;">
+        </div>
+        <button class="btn btn-primary" onclick="setCalcStart()" style="white-space:nowrap;padding:10px 14px;">📍 Now</button>
+      </div>
+      <button class="btn btn-secondary btn-full" onclick="setCalcStartFromInput()" style="margin-bottom:2px;">Set Start Time</button>
     </div>
     <div id="calc-end-row" style="display:none;">
       <div class="form-row" style="margin-bottom:10px;">
@@ -1730,7 +1736,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <option value="">— Choose a book —</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-full" onclick="logCalcSession()">✅ Log End Time</button>
+      <button class="btn btn-primary btn-full" onclick="logCalcSession()">✅ Log Session</button>
     </div>
   </div>
 
@@ -3418,6 +3424,19 @@ function setCalcStart() {
   showToast('📍 Start time saved!');
 }
 
+function setCalcStartFromInput() {
+  const val = document.getElementById('calc-start-input').value;
+  if (!val) { showToast('Enter a start time first.'); return; }
+  const [h, m] = val.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  // If the entered time is in the future (e.g. 11pm typed at midnight), assume yesterday
+  if (d > Date.now()) d.setDate(d.getDate() - 1);
+  localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts: d.getTime(), memberId: currentMember }));
+  renderCalcCard();
+  showToast('📍 Start time saved!');
+}
+
 function clearCalcStart() {
   localStorage.removeItem(CALC_START_KEY);
   renderCalcCard();
@@ -3430,6 +3449,13 @@ function renderCalcCard() {
   const endRow = document.getElementById('calc-end-row');
   const startLabel = document.getElementById('calc-start-label');
   if (!noStart) return;
+
+  // Always pre-fill start input with current time for convenience
+  const startInput = document.getElementById('calc-start-input');
+  if (startInput && !startInput.value) {
+    const now = new Date();
+    startInput.value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
 
   if (saved) {
     try {
