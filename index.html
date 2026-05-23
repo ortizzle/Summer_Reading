@@ -2304,7 +2304,7 @@ const KIDS_BINGO = [
   { emoji:'🎨', label:'Draw a Scene',      desc:'Illustrate your favorite scene from a book',                   id:'kids_draw',           pts:30 },
   { emoji:'🌊', label:'Read at Sea',       desc:'Read for 30+ min while the ship is moving on the ocean',       id:'kids_sea',            pts:15 },
   { emoji:'🍦', label:'Ice Cream Read',    desc:'Read for 20+ min while eating ice cream',                      id:'kids_icecream',       pts:25 },
-  { emoji:'🦅', label:'Wildlife Spotter',  desc:'Read outside for 30+ min after spotting Alaska wildlife',      id:'kids_wildlife',       pts:15 },
+  { emoji:'🚗', label:'Car Reader',         desc:'Read for 30+ min while being chauffeured somewhere',           id:'kids_carread',        pts:25 },
   { emoji:'🏕️', label:'Cozy Corner',       desc:'Build a reading nook and read in it for 30+ min',              id:'kids_nook',           pts:25 },
   { emoji:'🌍', label:'Different World',   desc:'Finish a book set in another country',                         id:'kids_world',          pts:50 },
   { emoji:'🕰️', label:'Time Traveler',     desc:'Finish a book set in the past (historical fiction)',           id:'kids_historical',     pts:50 },
@@ -3253,9 +3253,18 @@ function renderShelf() {
             </div>
 
             ${isOwnShelf ? `
-            <!-- Edit / Delete / Start Reading -->
+            <!-- Status actions -->
             <div style="display:flex;gap:6px;flex-shrink:0;">
-              ${b.status === 'want' ? `<button onclick="event.stopPropagation();changeBookStatus('${b.id}','reading')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;">📖 Start Reading</button>` : ''}
+              ${b.status === 'want'
+                ? `<button onclick="event.stopPropagation();changeBookStatus('${b.id}','reading')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;">📖 Start Reading</button>`
+                : ''}
+              ${b.status === 'reading'
+                ? `<button onclick="event.stopPropagation();quickFinishBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;">✅ Finished!</button>
+                   <button onclick="event.stopPropagation();quickDNFBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#fff3e0;color:#e65100;font-size:12px;font-weight:700;cursor:pointer;">🚩 DNF</button>`
+                : ''}
+            </div>
+            <!-- Edit / Delete -->
+            <div style="display:flex;gap:6px;flex-shrink:0;">
               <button onclick="event.stopPropagation();editBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:1.5px solid var(--muted);background:white;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
               <button onclick="event.stopPropagation();deleteBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#fdecea;color:#c62828;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete</button>
             </div>` : ''}
@@ -4605,6 +4614,32 @@ function openBookDetail(bookId) {
 }
 
 // rateBook is defined in the shelf section above
+
+function quickFinishBook(bookId) {
+  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
+  if (!book) return;
+  book.status = 'finished';
+  awardFinishPoints(currentMember, book);
+  saveToGist().then(() => {
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
+    checkGroupMilestones();
+    celebrateThemed();
+    showToast(`🎉 "${book.title}" finished! Points awarded!`);
+    renderShelf();
+  });
+}
+
+function quickDNFBook(bookId) {
+  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
+  if (!book) return;
+  book.status = 'dnf';
+  addActivity('🚩', `${MEMBERS.find(m=>m.id===currentMember).name} DNF'd: ${book.title} (brave choice!)`, currentMember);
+  saveToGist().then(() => {
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
+    showToast('🚩 DNF logged — no shame, brave reader!');
+    renderShelf();
+  });
+}
 
 function markFinished() {
   const book = (state.books[currentMember]||[]).find(b=>b.id===pendingBookDetail);
