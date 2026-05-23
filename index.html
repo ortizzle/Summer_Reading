@@ -4031,9 +4031,12 @@ function showBingoUndoSheet(id, sq) {
     sheet.className = 'msg-action-sheet';
     document.body.appendChild(sheet);
   }
+  const pts = sq.pts ?? 25;
   sheet.innerHTML = `
-    <div style="text-align:center;padding:6px 0 4px;font-size:22px;">${sq.emoji}</div>
-    <div style="text-align:center;padding:0 0 10px;font-size:14px;color:var(--muted);font-family:'DM Sans',sans-serif;">${sq.label}</div>
+    <div style="text-align:center;padding:6px 0 4px;font-size:28px;">${sq.emoji}</div>
+    <div style="text-align:center;font-size:15px;font-weight:700;color:var(--text);font-family:'Fraunces',serif;margin-bottom:4px;">${sq.label}</div>
+    ${sq.desc ? `<div style="text-align:center;font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;padding:0 16px;line-height:1.4;margin-bottom:6px;">${sq.desc}</div>` : ''}
+    <div style="text-align:center;font-size:13px;font-weight:700;color:#F9A825;margin-bottom:12px;">✅ Completed · +${pts} pts</div>
     <button class="msg-action-sheet-btn destructive" onclick="deselectBingo()">↩ Unmark this square</button>
     <button class="msg-action-sheet-btn" onclick="closeBingoUndoSheet()" style="color:var(--muted);">Cancel</button>
   `;
