@@ -1598,11 +1598,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
           <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
         </div>
-        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">📖 <span id="my-stat-reading">0</span> Reading</div>
-          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">✅ <span id="my-stat-finished">0</span> Finished</div>
-          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span> read</div>
-          <div id="my-stat-streak-pill" style="display:none;background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">🔥 <span id="my-stat-streak-val">0</span> streak</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+          <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">📖 <span id="my-stat-reading">0</span> Reading</div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">✅ <span id="my-stat-finished">0</span> Finished</div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">⏱ <span id="my-stat-mins">0m</span> read</div>
+          <div id="my-stat-streak-pill" style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">🔥 <span id="my-stat-streak-val">—</span> streak</div>
         </div>
         <div style="text-align:center;color:rgba(255,255,255,0.45);font-size:11px;font-weight:600;letter-spacing:0.5px;">TAP FOR POINTS BREAKDOWN ↩</div>
         <span id="my-stats-label" style="display:none;"></span>
@@ -1908,11 +1908,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">⭐ Bonus Activities</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:18px;margin-bottom:4px;">✏️</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);">Journal Entry</div>
-          <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts</div>
-        </div>
-        <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
           <div style="font-size:18px;margin-bottom:4px;">🏛️</div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">Library Visit</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+20 pts</div>
@@ -1920,6 +1915,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
           <div style="font-size:18px;margin-bottom:4px;">📚</div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">Book Checked Out</div>
+          <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts each</div>
+        </div>
+        <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:18px;margin-bottom:4px;">✏️</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">Journal Entry</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts</div>
         </div>
         <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
@@ -2441,9 +2441,9 @@ const ALL_BADGES = [
 
 const INDIVIDUAL_MILESTONES = [
   { id:'m_100pts',  pts:100,  name:'Century Club',              desc:'Earn 100 reading points',              icon:'💯', reward:'Special bookmark — your pick! 🔖' },
+  { id:'m_novel',   pts:50,   name:'Novel Finisher',            desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 trip to Target — stock your reading nook 🎯' },
   { id:'m_3books',  pts:90,   name:'Trilogy',                   desc:'Finish 3 books',                       icon:'📚', reward:'Starbucks or Sonic run ☕🧊 — your order, your choice' },
   { id:'m_15hrs',   pts:900,  name:'15 Hour Reader',            desc:'Read 15 hours total',                  icon:'⏰', reward:'Up to $15 toward any book of your choice 📚' },
-  { id:'m_novel',   pts:50,   name:'Novel Finisher (for kids)', desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 trip to Target — stock your reading nook 🎯' },
   { id:'m_50hrs',   pts:3000, name:'Legend',                    desc:'Read 50 hours total',                  icon:'🏆', reward:'$25 toward Amazon or Barnes & Noble 📖' },
   { id:'m_100hrs',  pts:6000, name:'Century Reader',            desc:'Read 100 hours total — all-time great', icon:'🌟', reward:'$50+ book haul or gift card — you earned it 🎉' },
   { id:'m_journal20',pts:50,  name:'Dear Diary',                desc:'Write 20 journal entries',             icon:'📝', reward:'New notebook or journal from Changing Hands bookstore 📒' },
@@ -2932,11 +2932,8 @@ function renderHome() {
   document.getElementById('my-stat-name').textContent = myName;
   document.getElementById('my-stat-bg-emoji').textContent = myFinished >= 3 ? '🏆' : myReading > 0 ? '📖' : '📚';
   const streak = getReadingStreak(currentMember);
-  const streakPill = document.getElementById('my-stat-streak-pill');
-  if (streakPill) {
-    streakPill.style.display = streak > 0 ? '' : 'none';
-    if (streak > 0) document.getElementById('my-stat-streak-val').textContent = streak + (streak === 1 ? ' day' : ' days');
-  }
+  const streakValEl = document.getElementById('my-stat-streak-val');
+  if (streakValEl) streakValEl.textContent = streak > 0 ? streak + (streak === 1 ? ' day' : ' days') : '—';
   // Reset flip to front when member changes
   const inner = document.getElementById('my-stats-card-inner');
   if (inner) inner.style.transform = '';
