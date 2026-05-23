@@ -2025,6 +2025,18 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div class="modal-title" id="add-book-modal-title">📖 Add a Book</div>
     <input type="hidden" id="book-edit-id" value="">
 
+    <!-- Title search -->
+    <div class="form-group" style="margin-bottom:6px;">
+      <label class="form-label">🔍 Search by Title</label>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="title-search-input" placeholder="Start typing a title…" style="flex:1;"
+               oninput="debouncedTitleSearch()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchBookTitle();}">
+        <button class="btn btn-sky btn-sm" onclick="searchBookTitle()">Search</button>
+      </div>
+      <div id="title-search-results" style="display:none;margin-top:6px;border:1.5px solid #e8e8e8;border-radius:12px;overflow:hidden;max-height:240px;overflow-y:auto;"></div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin:4px 0 10px;">— or scan / enter manually —</div>
+
     <!-- Scanner -->
     <div class="scanner-area" id="scanner-area" onclick="startScanner()">
       <video id="scanner-video" autoplay playsinline style="display:none;"></video>
@@ -4854,6 +4866,78 @@ async function lookupISBN() {
   } catch(e) { showToast('Lookup failed — enter manually'); }
 }
 
+let _titleSearchTimer = null;
+function debouncedTitleSearch() {
+  clearTimeout(_titleSearchTimer);
+  const val = document.getElementById('title-search-input')?.value.trim();
+  if (!val || val.length < 3) { hideTitleSearchResults(); return; }
+  _titleSearchTimer = setTimeout(searchBookTitle, 420);
+}
+
+async function searchBookTitle() {
+  const query = document.getElementById('title-search-input')?.value.trim();
+  if (!query) return;
+  const resultsEl = document.getElementById('title-search-results');
+  if (!resultsEl) return;
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px;">Searching…</div>`;
+  try {
+    const url = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=7&fields=title,author_name,number_of_pages_median,cover_i,isbn`;
+    const r = await fetch(url);
+    const data = await r.json();
+    const docs = (data.docs || []).filter(d => d.title);
+    if (!docs.length) {
+      resultsEl.innerHTML = `<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px;">No results — try a different title</div>`;
+      return;
+    }
+    resultsEl.innerHTML = docs.map((d, i) => {
+      const title  = d.title || '';
+      const author = (d.author_name || [])[0] || '';
+      const pages  = d.number_of_pages_median || '';
+      const coverId = d.cover_i;
+      const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-S.jpg` : '';
+      const isbn = (d.isbn || [])[0] || '';
+      return `<div onclick="selectTitleResult(${i})" data-idx="${i}"
+        style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;background:white;transition:background .15s;"
+        onmouseover="this.style.background='#f7f9ff'" onmouseout="this.style.background='white'">
+        ${coverUrl ? `<img src="${coverUrl}" style="width:32px;height:46px;object-fit:cover;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">` : '<div style="width:32px;height:46px;background:#eee;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">📚</div>'}
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#1A1A2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
+          <div style="font-size:11px;color:var(--muted);">${author}${pages ? ` · ${pages} pages` : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    // Store result data for selectTitleResult
+    window._titleSearchDocs = docs;
+  } catch(e) {
+    resultsEl.innerHTML = `<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px;">Search failed — enter manually</div>`;
+  }
+}
+
+function selectTitleResult(idx) {
+  const d = (window._titleSearchDocs || [])[idx];
+  if (!d) return;
+  document.getElementById('book-title-input').value  = d.title || '';
+  document.getElementById('book-author-input').value = (d.author_name || [])[0] || '';
+  document.getElementById('book-pages-input').value  = d.number_of_pages_median || '';
+  // Cover art
+  if (d.cover_i) {
+    const coverUrl = `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg`;
+    window._pendingCoverUrl = coverUrl;
+    const preview = document.getElementById('isbn-cover-preview');
+    if (preview) { preview.src = coverUrl; preview.style.display = 'block'; }
+  }
+  hideTitleSearchResults();
+  document.getElementById('title-search-input').value = '';
+  showToast(`"${d.title}" selected ✅`);
+}
+
+function hideTitleSearchResults() {
+  const el = document.getElementById('title-search-results');
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  window._titleSearchDocs = [];
+}
+
 async function fetchAndStoreSummary(book) {
   // Mark as fetching so we don't fire duplicate requests while awaiting
   book._fetchingMeta = true;
@@ -5380,7 +5464,7 @@ function clearBookForm() {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  if (id === 'add-book-modal') stopScanner();
+  if (id === 'add-book-modal') { stopScanner(); hideTitleSearchResults(); }
 }
 
 // Close modals on backdrop click
