@@ -2932,13 +2932,14 @@ function renderHome() {
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
     const sess = state.sessions[m.id] || [];
     famReading += books.filter(b => b.status === 'reading').length;
     famBooks   += books.filter(b => b.status === 'finished').length;
-    famMins    += sess.reduce((a,s) => a + (s.minutes||0), 0);
+    famMins    += sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
     famPts     += getMemberPoints(m.id);
   });
   document.getElementById('fam-total-reading').textContent = famReading;
