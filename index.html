@@ -1346,6 +1346,22 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 .pin-shake { animation: pinShake 0.4s ease; }
 
 /* ── REACTION ANIMATIONS ── */
+@keyframes streakPulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+@keyframes streakFadeIn {
+  from { opacity:0; transform: scale(0.85) translateY(20px); }
+  to   { opacity:1; transform: scale(1)   translateY(0); }
+}
+#streak-splash-inner {
+  animation: streakFadeIn 0.45s cubic-bezier(.2,.8,.3,1) both;
+}
+#streak-splash-emoji {
+  display: inline-block;
+  animation: streakPulse 1.2s ease-in-out infinite;
+}
+
 @keyframes fieldShake {
   0%,100% { transform: translateX(0); }
   15%      { transform: translateX(-6px); }
@@ -1486,6 +1502,18 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
 <div class="celebration" id="celebration"></div>
 <div class="toast" id="toast"></div>
+
+<!-- Streak Milestone Splash -->
+<div id="streak-splash" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column;" onclick="dismissStreakSplash()">
+  <div id="streak-splash-inner" style="text-align:center;padding:32px 28px;max-width:320px;position:relative;pointer-events:none;">
+    <div id="streak-splash-emoji" style="font-size:90px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 4px 24px rgba(255,160,0,0.5));"></div>
+    <div id="streak-splash-days" style="font-family:'Fraunces',serif;font-size:80px;font-weight:900;color:#FFF176;line-height:1;text-shadow:0 2px 24px rgba(255,160,0,0.7);margin-bottom:4px;"></div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:10px;">DAY STREAK</div>
+    <div id="streak-splash-title" style="font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.2;"></div>
+    <div id="streak-splash-sub" style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.5;margin-bottom:24px;"></div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:1px;">TAP ANYWHERE TO CONTINUE</div>
+  </div>
+</div>
 
 <!-- Magic Milestone Unlock Banner -->
 <div class="magic-unlock-banner" id="magic-unlock-banner">
@@ -2564,6 +2592,8 @@ function ensureMember(id) {
   if (!state.journal[id]) state.journal[id] = [];
   if (!state.library[id]) state.library[id] = [];
   if (!state.milestones[id]) state.milestones[id] = [];
+  if (!state.streakMilestones) state.streakMilestones = {};
+  if (!state.streakMilestones[id]) state.streakMilestones[id] = [];
 }
 
 // ═══════════════════════════════════════
@@ -3489,7 +3519,7 @@ function timerStop() {
   state.sessions[currentMember].push(session);
   addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}`, currentMember);
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     showToast(`+${mins} pts! Great reading! 📚`);
     if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
@@ -3625,7 +3655,7 @@ function logCalcSession() {
   addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}`, currentMember);
   clearCalcStart();
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
     if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
@@ -3644,7 +3674,7 @@ function editSession(sessionId) {
   if (isNaN(mins) || mins < 1) { showToast('Enter a valid number of minutes'); return; }
   s.minutes = mins;
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     renderTimer();
     showToast('Session updated ✏️');
   });
@@ -3674,7 +3704,7 @@ function logManualSession() {
   const who = MEMBERS.find(m=>m.id===currentMember).name;
   addActivity('📖', `${who} logged ${formatMins(mins)} (manual)`, currentMember);
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     showToast(`+${mins} pts logged! 📖`);
     if (mins >= 30) celebrateThemed();
@@ -3798,7 +3828,7 @@ function confirmBingo() {
   state.activity.push({ id: uid(), emoji: '🎯', text: `Bingo square completed: ${sq?.label}`, member: currentMember, ts: Date.now(), squareId: pendingBingoSquare });
   saveToGist().then(() => {
     checkBingo();
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     showToast(`+${pts} pts! Bingo square complete! 🎯`);
     renderBingoCard();
   });
@@ -4202,7 +4232,7 @@ function confirmLibraryVisit() {
   document.getElementById('library-note-input').value = '';
   document.getElementById('library-books-input').value = '';
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     showToast(`+${pts} pts! Library visit logged! 🏛️`);
     renderBadges();
@@ -4434,7 +4464,7 @@ function saveJournalEntry() {
   journalStarRating = 0;
   resetJournalStars();
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     showToast(editId ? 'Entry updated! ✏️' : 'Journal entry saved! 📝');
     closeModal('journal-modal');
     renderJournal();
@@ -4483,7 +4513,7 @@ function saveBook() {
     window._pendingCoverUrl = null;
     if (!wasFinished && book.status === 'finished') awardFinishPoints(currentMember, book);
     saveToGist().then(() => {
-      checkBadges(currentMember);
+      checkBadges(currentMember); checkStreakMilestone(currentMember);
       showToast(`"${title}" updated! ✏️`);
       closeModal('add-book-modal');
       clearBookForm();
@@ -4510,7 +4540,7 @@ function saveBook() {
   addActivity('📖', `${MEMBERS.find(m=>m.id===currentMember).name} added: ${title}`, currentMember);
   if (book.status === 'finished') awardFinishPoints(currentMember, book);
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     showToast(`"${title}" added! 📚`);
     closeModal('add-book-modal');
     clearBookForm();
@@ -4572,7 +4602,7 @@ function markFinished() {
   book.status = 'finished';
   awardFinishPoints(currentMember, book);
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     celebrateThemed();
     showToast(`🎉 "${book.title}" finished! Points awarded!`);
@@ -4587,7 +4617,7 @@ function markDNF() {
   book.status = 'dnf';
   addActivity('🚩', `${MEMBERS.find(m=>m.id===currentMember).name} DNF'd: ${book.title} (brave choice!)`, currentMember);
   saveToGist().then(() => {
-    checkBadges(currentMember);
+    checkBadges(currentMember); checkStreakMilestone(currentMember);
     showToast('🚩 DNF logged — no shame, brave reader!');
     closeModal('book-detail-modal');
     renderShelf();
@@ -4748,6 +4778,56 @@ function getReadingStreak(memberId) {
     d.setDate(d.getDate() - 1);
   }
   return streak;
+}
+
+const STREAK_MILESTONES = [
+  { days:3,   emoji:'🔥',  title:'On Fire!',            sub:'3 days in a row — you\'re just getting started!' },
+  { days:5,   emoji:'⚡',  title:'5-Day Streak!',        sub:'Five straight days of reading. You\'re electric!' },
+  { days:7,   emoji:'📅',  title:'One Whole Week!',      sub:'A full 7-day streak. That\'s a real reading habit!' },
+  { days:10,  emoji:'💪',  title:'10 Days Strong!',      sub:'Double digits! You\'re officially a dedicated reader.' },
+  { days:14,  emoji:'🌟',  title:'Two-Week Warrior!',    sub:'14 days straight. The whole family sees you grinding!' },
+  { days:20,  emoji:'🚀',  title:'20 Days!',             sub:'20 consecutive reading days. You\'re on another level.' },
+  { days:25,  emoji:'🎖️',  title:'25-Day Legend!',       sub:'A quarter-century streak. Absolutely unstoppable!' },
+  { days:30,  emoji:'🏆',  title:'30-Day Champion!',     sub:'One full month of daily reading. LEGENDARY.' },
+  { days:40,  emoji:'👑',  title:'40-Day Royalty!',      sub:'40 days without missing once. You rule this family.' },
+  { days:50,  emoji:'💎',  title:'50 Days!',             sub:'Fifty. Days. Straight. Are you even human?!' },
+  { days:60,  emoji:'🌙',  title:'60-Day Titan!',        sub:'Two months of daily reading. You\'re in elite company.' },
+  { days:75,  emoji:'🌌',  title:'75-Day Galaxy Brain!', sub:'75 days. The books have changed you. We can tell.' },
+  { days:100, emoji:'🦁',  title:'100 DAYS!!!',          sub:'ONE HUNDRED DAYS. The greatest reader this family has ever seen.' },
+];
+
+function checkStreakMilestone(memberId) {
+  const streak = getReadingStreak(memberId);
+  if (streak < 3) return;
+  const milestone = STREAK_MILESTONES.slice().reverse().find(m => streak >= m.days);
+  if (!milestone) return;
+  if (!state.streakMilestones) state.streakMilestones = {};
+  const seen = state.streakMilestones[memberId] || [];
+  if (seen.includes(milestone.days)) return;
+  // New milestone — fire it!
+  state.streakMilestones[memberId] = [...seen, milestone.days];
+  saveToGist();
+  setTimeout(() => showStreakSplash(milestone, streak), 800);
+}
+
+function showStreakSplash(milestone, streak) {
+  const el = document.getElementById('streak-splash');
+  if (!el) return;
+  document.getElementById('streak-splash-emoji').textContent = milestone.emoji;
+  document.getElementById('streak-splash-days').textContent = streak;
+  document.getElementById('streak-splash-title').textContent = milestone.title;
+  document.getElementById('streak-splash-sub').textContent = milestone.sub;
+  el.style.display = 'flex';
+  // Burst particles from center
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  spawnParticles(cx, cy, ['🔥','⭐','✨','🎉','💫','🌟'], 20, { spread: 160, up: 80 });
+  spawnParticles(cx, cy, ['❤️','💛','💚','💙','💜'], 10, { spread: 120, up: 120, floatUp: true });
+}
+
+function dismissStreakSplash() {
+  const el = document.getElementById('streak-splash');
+  if (el) el.style.display = 'none';
 }
 
 const REACTION_EMOJIS = ['🎉','❤️','🔥','⭐','💪'];
