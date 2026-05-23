@@ -2074,6 +2074,22 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Session Audit Modal -->
+<div class="modal-overlay" id="session-audit-modal">
+  <div class="modal" style="max-height:80vh;display:flex;flex-direction:column;">
+    <div class="modal-title">🔍 Session Audit</div>
+    <div style="margin-bottom:10px;">
+      <select class="form-select" id="audit-member-select" onchange="renderAuditTable()" style="margin-bottom:0;">
+        <option value="">— Select a member —</option>
+      </select>
+    </div>
+    <div id="audit-table-wrap" style="flex:1;overflow-y:auto;font-size:13px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('session-audit-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Library Visit Modal -->
 <div class="modal-overlay" id="library-modal">
   <div class="modal">
@@ -3837,9 +3853,12 @@ function confirmBingo() {
   state.bingo[activeBingoCard][pendingBingoSquare] = true;
   const sq = getBingoSquares(activeBingoCard).find(s => s.id === pendingBingoSquare);
   const pts = sq?.pts ?? 25;
-  // Add points
+  // Guard: only award points if no session already exists for this square
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push({ id:uid(), bookId:'bingo', squareId:pendingBingoSquare, bookTitle:'Bingo Square', minutes:pts, date:todayStr(), ts:Date.now() });
+  const alreadyAwarded = state.sessions[currentMember].some(s => s.bookId === 'bingo' && s.squareId === pendingBingoSquare);
+  if (!alreadyAwarded) {
+    state.sessions[currentMember].push({ id:uid(), bookId:'bingo', squareId:pendingBingoSquare, bookTitle:'Bingo Square', minutes:pts, date:todayStr(), ts:Date.now() });
+  }
   if (!state.activity) state.activity = [];
   state.activity.push({ id: uid(), emoji: '🎯', text: `Bingo square completed: ${sq?.label}`, member: currentMember, ts: Date.now(), squareId: pendingBingoSquare });
   saveToGist().then(() => {
@@ -5762,9 +5781,14 @@ function renderSettings() {
     </div>
   </div>`;
 
-  // Danger zone — admin only
+  // Admin tools
   if (currentMember === ADMIN_ID) {
     html += `
+  <div class="settings-card" style="border:2px solid #B0BEC5;">
+    <div class="card-title">🔍 Session Audit</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Review and delete individual sessions for any member. Use this to fix duplicate points.</p>
+    <button class="btn btn-secondary btn-sm" onclick="openSessionAudit()">🔍 Open Session Audit</button>
+  </div>
   <div class="settings-card" style="border:2px solid #FFCDD2;">
     <div class="card-title" style="color:#C62828;">⚠️ Danger Zone</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -5826,6 +5850,86 @@ function exportJournal() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('📝 Journal exported!');
+}
+
+function openSessionAudit() {
+  const sel = document.getElementById('audit-member-select');
+  sel.innerHTML = '<option value="">— Select a member —</option>' +
+    MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('audit-table-wrap').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">Select a member above.</div>';
+  openModal('session-audit-modal');
+}
+
+function renderAuditTable() {
+  const memberId = document.getElementById('audit-member-select').value;
+  const wrap = document.getElementById('audit-table-wrap');
+  if (!memberId) { wrap.innerHTML = ''; return; }
+  const sessions = state.sessions[memberId] || [];
+  if (!sessions.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No sessions.</div>'; return; }
+
+  // Detect duplicates: same bookId + squareId (bingo) or same bookId + date + minutes
+  const seen = {};
+  const dupeIds = new Set();
+  sessions.forEach(s => {
+    const key = s.squareId ? `bingo:${s.squareId}` : `${s.bookId}:${s.date}:${s.minutes}`;
+    if (seen[key]) dupeIds.add(s.id);
+    else seen[key] = true;
+  });
+
+  const typeLabel = id => {
+    if (id === 'library') return '🏛️ Library';
+    if (id === 'bingo') return '🎯 Bingo';
+    if (id === 'bingo_bonus') return '🎲 Bingo Line';
+    if (id === 'bingo_corners') return '🔲 Corners';
+    if (id === 'bingo_x') return '✖️ X Pattern';
+    if (id === 'bingo_full') return '🃏 Blackout';
+    if (id === 'journal') return '📝 Journal';
+    return '⏱ Reading';
+  };
+
+  wrap.innerHTML = `
+    ${dupeIds.size > 0 ? `<div style="background:#fff3e0;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#e65100;font-weight:600;">⚠️ ${dupeIds.size} likely duplicate${dupeIds.size>1?'s':''} highlighted below</div>` : '<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#2e7d32;font-weight:600;">✅ No duplicates detected</div>'}
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:2px solid rgba(0,0,0,0.08);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">
+          <th style="text-align:left;padding:6px 4px;">Type</th>
+          <th style="text-align:left;padding:6px 4px;">Book / Source</th>
+          <th style="text-align:right;padding:6px 4px;">Pts</th>
+          <th style="text-align:right;padding:6px 4px;">Date</th>
+          <th style="padding:6px 4px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sessions.slice().reverse().map(s => `
+          <tr style="border-bottom:1px solid rgba(0,0,0,0.05);${dupeIds.has(s.id)?'background:#fff3e0;':''}">
+            <td style="padding:7px 4px;font-size:12px;">${typeLabel(s.bookId)}</td>
+            <td style="padding:7px 4px;font-size:12px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.bookTitle||s.squareId||'—'}</td>
+            <td style="padding:7px 4px;text-align:right;font-weight:700;color:var(--sun);">+${s.minutes}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:11px;color:var(--muted);">${s.date||'—'}</td>
+            <td style="padding:7px 4px;text-align:right;">
+              <button onclick="auditDeleteSession('${memberId}','${s.id}')"
+                style="background:none;border:none;color:#c62828;font-size:15px;cursor:pointer;padding:2px 4px;" title="Delete this session">🗑️</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="text-align:right;padding:8px 4px 0;font-size:12px;color:var(--muted);">
+      Total: <strong>${sessions.reduce((a,s)=>a+(s.minutes||0),0)} pts</strong> across ${sessions.length} session${sessions.length!==1?'s':''}
+    </div>`;
+}
+
+function auditDeleteSession(memberId, sessionId) {
+  const sessions = state.sessions[memberId] || [];
+  const s = sessions.find(s => s.id === sessionId);
+  if (!s) return;
+  const label = s.bookTitle || s.squareId || s.bookId;
+  if (!confirm(`Delete "${label}" (${s.minutes} pts) from ${s.date}? This cannot be undone.`)) return;
+  state.sessions[memberId] = sessions.filter(s => s.id !== sessionId);
+  saveToGist().then(() => {
+    renderAuditTable();
+    renderHome();
+    showToast('Session deleted.');
+  });
 }
 
 function exportBackup() {
