@@ -1754,9 +1754,9 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div style="font-size:13px;line-height:2;color:var(--text);">
       ⏱ 1 pt per minute read<br>
       📚 +50 pts to finish a novel or chapter book (200+ pages)<br>
-      📘 +30 pts to finish any book<br>
+      📘 +10 pts to finish any book under 200 pages<br>
+      🎨 +10 pts to finish a graphic novel or manga<br>
       🗞️ +25 pts to finish an article (e.g. New Yorker)<br>
-      🎨 +20 pts to finish a graphic novel or manga<br>
       🏛️ +20 pts per library visit + 5 pts per book checked out<br>
       🎯 Bingo square = 40 pts<br>
       🪄 Bingo line = 100 pts bonus
@@ -4400,10 +4400,9 @@ function saveBook() {
 function awardFinishPoints(memberId, book) {
   const pages = book.pages || 0;
   let bonus;
-  if (book.genre === 'graphic') bonus = 20;
-  else if (book.genre === 'article') bonus = 25;
+  if (book.genre === 'article') bonus = 25;
   else if (pages >= 200) bonus = 50;
-  else bonus = 30;
+  else bonus = 10;  // graphic novels, manga, and short books under 200 pages
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
   state.sessions[memberId].push({ id:uid(), bookId:book.id, bookTitle:book.title+'(finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
   addActivity('✅', `${MEMBERS.find(m=>m.id===memberId).name} finished: ${book.title} (+${bonus} pts)`, memberId);
