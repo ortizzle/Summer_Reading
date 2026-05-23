@@ -3103,7 +3103,7 @@ function renderActivityList(containerId, limit) {
         <div class="activity-main">
           <div class="activity-emoji" style="background:${sysAccent.iconBg};">${a.emoji}</div>
           <div class="activity-body">
-            <div class="activity-text">${a.text}</div>
+            <div class="activity-text" id="msg-text-${actId}">${a.text}</div>
             <div class="activity-meta">${who} · ${timeAgo(a.ts)}</div>
           </div>
         </div>
@@ -5263,10 +5263,14 @@ function openMsgMenu(cardElId, actId, isOwnMsg) {
       <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
     `;
   } else {
-    // Admin deleting any activity (system post, someone else's message, duplicate notification)
+    // Admin menu — edit or delete any post (messages and system notifications)
+    const act = (state.activity || []).find(a => (a.id || (a.ts + a.member)) === actId);
+    const isMsg = act?.type === 'message';
     sheet.innerHTML = `
-      <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Admin — Remove from Exchange</div>
-      <button class="msg-action-sheet-btn destructive" onclick="deleteActivity('${actId}')">🗑️ Delete this post</button>
+      <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Admin — Exchange</div>
+      ${isMsg ? `<button class="msg-action-sheet-btn" onclick="closeMsgMenu();flipMsgCard('${cardElId}','${actId}')">👥 See Reactions</button>` : ''}
+      <button class="msg-action-sheet-btn" onclick="editMsg('${actId}')">✏️ Edit</button>
+      <button class="msg-action-sheet-btn destructive" onclick="deleteActivity('${actId}')">🗑️ Delete</button>
       <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
     `;
   }
