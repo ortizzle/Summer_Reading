@@ -3925,7 +3925,9 @@ function renderIndividualMilestones() {
   const pts = getMemberPoints(currentMember);
   const books = state.books[currentMember] || [];
   const sessions = state.sessions[currentMember] || [];
-  const totalMins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
+  // Exclude bingo/library bonus sessions so time milestones reflect actual reading hours
+  const readingSessions = sessions.filter(s => !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library'].includes(s.bookId));
+  const totalMins = readingSessions.reduce((a,s)=>a+(s.minutes||0),0);
   const finished = books.filter(b=>b.status==='finished').length;
   const journals = (state.journal[currentMember]||[]).length;
 
@@ -4089,7 +4091,9 @@ function checkBadges(memberId) {
   ensureMember(memberId);
   const books = state.books[memberId] || [];
   const sessions = state.sessions[memberId] || [];
-  const totalMins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
+  // Only count actual reading time toward time-based badges — exclude bingo/library bonus sessions
+  const readingSessions = sessions.filter(s => !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library'].includes(s.bookId));
+  const totalMins = readingSessions.reduce((a,s)=>a+(s.minutes||0),0);
   const finished = books.filter(b=>b.status==='finished');
   const journals = (state.journal[memberId]||[]).length;
   const libraryVisits = (state.library[memberId]||[]).length;
