@@ -2455,7 +2455,7 @@ const DEVICE_MEMBER_KEY = 'ak26-device-member';
 let state = {
   books: {},         // memberId -> [book]
   sessions: {},      // memberId -> [session]
-  bingo: { kids: {}, adults: {}, hani: {} },  // card -> squareId -> bool
+  bingo: {},             // memberId -> { squareId: bool }  (per-person, not shared)
   badges: {},        // memberId -> [badgeId]
   journal: {},       // memberId -> [entry]
   library: {},       // memberId -> [visit]
@@ -2536,6 +2536,17 @@ async function loadFromGist() {
       const clearedAt = gistState.clearedMembers || {};
       // Apply Gist state as base
       state = { ...state, ...gistState };
+      migrateBingoToPerMember();
+      // Merge per-member bingo: pull in remote completions the local device doesn't have,
+      // but let local state win (so intentional deselections aren't reversed)
+      if (gistState.bingo && typeof gistState.bingo === 'object') {
+        if (!state.bingo) state.bingo = {};
+        MEMBERS.forEach(m => {
+          const remoteMember = gistState.bingo[m.id] || {};
+          const localMember  = state.bingo[m.id]    || {};
+          state.bingo[m.id] = { ...remoteMember, ...localMember };
+        });
+      }
       // Rescue locally-saved items that didn't make it to the Gist
       // (e.g. Gist write failed on a previous save — local has them, Gist doesn't)
       const localRaw = localStorage.getItem('ortizzle_local');
@@ -2632,6 +2643,29 @@ async function saveToGist() {
 function loadFromLocal() {
   const raw = localStorage.getItem('ortizzle_local');
   if (raw) try { state = { ...state, ...JSON.parse(raw) }; } catch(e) {}
+  migrateBingoToPerMember();
+}
+
+// One-time migration: old state.bingo was keyed by card type ('kids','adults').
+// New format keys by memberId so each person has an independent board.
+function migrateBingoToPerMember() {
+  if (!state.bingo) { state.bingo = {}; return; }
+  const oldKids   = state.bingo.kids;
+  const oldAdults = state.bingo.adults;
+  if (oldKids === undefined && oldAdults === undefined) return; // already migrated
+  if (oldKids) {
+    MEMBERS.filter(m => !m.adult).forEach(m => {
+      if (!state.bingo[m.id]) state.bingo[m.id] = { ...oldKids };
+    });
+  }
+  if (oldAdults) {
+    MEMBERS.filter(m => m.adult && m.id !== 'hani').forEach(m => {
+      if (!state.bingo[m.id]) state.bingo[m.id] = { ...oldAdults };
+    });
+  }
+  // 'hani' key was both the old card name and the member id — no migration needed
+  delete state.bingo.kids;
+  delete state.bingo.adults;
 }
 
 function ensureMember(id) {
@@ -3883,7 +3917,7 @@ function switchBingo(card) {
 
 function renderBingoCard() {
   const squares = getBingoSquares(activeBingoCard);
-  const completed = state.bingo[activeBingoCard] || {};
+  const completed = state.bingo[currentMember] || {};
   const grid = document.getElementById('bingo-grid');
   const titles = { kids: '🧒 Kids Bingo Card', adults: '🧑 Adults Bingo Card', hani: '🐾 Hani\'s Dog-Sitting Card' };
   document.getElementById('bingo-card-title').textContent = titles[activeBingoCard] || '🧑 Adults Bingo Card';
@@ -3902,7 +3936,7 @@ function renderBingoCard() {
 }
 
 function renderBingoWins() {
-  const completed = state.bingo[activeBingoCard] || {};
+  const completed = state.bingo[currentMember] || {};
   const squares = getBingoSquares(activeBingoCard);
   const isDone = i => squares[i].free || completed[squares[i].id];
   const diag1 = [0,6,12,18,24];
@@ -3931,7 +3965,7 @@ function openBingoSquare(id) {
   const squares = getBingoSquares(activeBingoCard);
   const sq = squares.find(s=>s.id===id);
   if (!sq) return;
-  const completed = state.bingo[activeBingoCard] || {};
+  const completed = state.bingo[currentMember] || {};
   if (completed[id]) {
     showBingoUndoSheet(id, sq);
     return;
@@ -3947,8 +3981,8 @@ function openBingoSquare(id) {
 
 function confirmBingo() {
   if (!pendingBingoSquare) return;
-  if (!state.bingo[activeBingoCard]) state.bingo[activeBingoCard] = {};
-  state.bingo[activeBingoCard][pendingBingoSquare] = true;
+  if (!state.bingo[currentMember]) state.bingo[currentMember] = {};
+  state.bingo[currentMember][pendingBingoSquare] = true;
   const sq = getBingoSquares(activeBingoCard).find(s => s.id === pendingBingoSquare);
   const pts = sq?.pts ?? 25;
   // Guard: only award points if no session already exists for this square
@@ -4009,7 +4043,7 @@ function deselectBingo() {
   if (!_pendingBingoUndo) return;
   const { id, sq } = _pendingBingoUndo;
   closeBingoUndoSheet();
-  delete state.bingo[activeBingoCard][id];
+  delete state.bingo[currentMember][id];
   // Remove the matching session so points are refunded
   if (state.sessions[currentMember]) {
     const idx = state.sessions[currentMember].findLastIndex(s => s.bookId === 'bingo' && s.squareId === id);
@@ -4031,7 +4065,7 @@ function deselectBingo() {
 }
 
 function checkBingo() {
-  const completed = state.bingo[activeBingoCard] || {};
+  const completed = state.bingo[currentMember] || {};
   const squares = getBingoSquares(activeBingoCard);
   const isDone = i => squares[i].free || completed[squares[i].id];
 
@@ -4109,7 +4143,7 @@ function renderIndividualMilestones() {
   const finished = books.filter(b=>b.status==='finished').length;
   const journals = (state.journal[currentMember]||[]).length;
 
-  const bingoCompleted = Object.keys((state.bingo?.kids||{})).length + Object.keys((state.bingo?.adults||{})).length + Object.keys((state.bingo?.hani||{})).length;
+  const bingoCompleted = Object.keys((state.bingo?.[currentMember]||{})).filter(k => state.bingo[currentMember][k]).length;
 
   el.innerHTML = INDIVIDUAL_MILESTONES.map(m => {
     let met = false;
@@ -6228,10 +6262,7 @@ async function clearAllMyData() {
   state.journal[id] = [];
   state.library[id] = [];
   state.milestones[id] = [];
-  if (state.bingo) {
-    if (id === 'hani') { state.bingo.hani = {}; }
-    else { state.bingo.kids = {}; state.bingo.adults = {}; }
-  }
+  if (state.bingo) state.bingo[id] = {};
   // Mark this member as cleared so the Gist merge never restores their data
   if (!state.clearedMembers) state.clearedMembers = {};
   state.clearedMembers[id] = Date.now();
