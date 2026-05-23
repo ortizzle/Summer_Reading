@@ -1830,6 +1830,15 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       </tbody>
     </table>
   </div>
+
+  <!-- Library Visits -->
+  <div class="card">
+    <div class="card-title">🏛️ Library Visits</div>
+    <button class="btn btn-sky btn-sm btn-full" onclick="logLibraryVisit()" style="margin-bottom:12px;">+ Log a Visit</button>
+    <div id="library-visits-list">
+      <div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet — go explore!</div>
+    </div>
+  </div>
 </div>
 
 <!-- CHALLENGES SECTION -->
@@ -1857,15 +1866,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <div class="card">
     <div class="card-title">🎖 My Badges</div>
     <div class="badges-grid" id="badges-grid"></div>
-  </div>
-
-  <!-- Library visits -->
-  <div class="card">
-    <div class="card-title">🏛️ Library Visits</div>
-    <button class="btn btn-sky btn-sm btn-full" onclick="logLibraryVisit()" style="margin-bottom:12px;">+ Log a Visit</button>
-    <div id="library-visits-list">
-      <div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet — go explore!</div>
-    </div>
   </div>
 
   <!-- Individual milestones -->
@@ -3351,6 +3351,7 @@ function changeBookStatus(bookId, newStatus) {
 function renderTimer() {
   ensureMember(currentMember);
   buildMemberBar('timer-member-bar');
+  renderLibraryVisits();
 
   const books = (state.books[currentMember]||[]).filter(b=>b.status==='reading'||b.status==='finished');
   const bookOpts = `<option value="">— Choose a book —</option>` + books.map(b =>
@@ -4036,11 +4037,15 @@ function renderBadges() {
       <div class="badge-label">${b.label}</div>
     </div>`).join('');
 
-  // Library visits
+  renderLibraryVisits();
+}
+
+function renderLibraryVisits() {
   const visits = state.library[currentMember] || [];
   const lvEl = document.getElementById('library-visits-list');
+  if (!lvEl) return;
   if (!visits.length) {
-    lvEl.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet!</div>`;
+    lvEl.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:13px;">No visits yet — go explore!</div>`;
   } else {
     lvEl.innerHTML = visits.map(v => `
       <div class="library-visit">
@@ -4071,7 +4076,7 @@ function deleteLibraryVisit(visitId) {
   state.activity = (state.activity||[]).filter(
     a => !(a.member === currentMember && a.emoji === '🏛️' && Math.abs((a.ts||0) - (visit.ts||0)) < 2000)
   );
-  saveToGist().then(() => { renderBadges(); renderHome(); showToast('Library visit removed'); });
+  saveToGist().then(() => { renderBadges(); renderLibraryVisits(); renderHome(); showToast('Library visit removed'); });
 }
 
 function awardBadge(memberId, badgeId) {
@@ -4187,6 +4192,8 @@ function confirmLibraryVisit() {
     checkGroupMilestones();
     showToast(`+${pts} pts! Library visit logged! 🏛️`);
     renderBadges();
+    renderLibraryVisits();
+    renderHome();
   });
 }
 
@@ -5592,6 +5599,20 @@ function renderSettings() {
     <button class="btn btn-sky btn-sm" onclick="exportJournal()">⬇️ Export My Journal</button>
   </div>`;
 
+  // Backup & Restore — visible to all
+  html += `
+  <div class="settings-card">
+    <div class="card-title">💾 Backup & Restore</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Export a full snapshot of all family data. Keep it somewhere safe — you can restore from it if anything ever goes wrong.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-sky btn-sm" onclick="exportBackup()">⬇️ Export Full Backup (.json)</button>
+      <label class="btn btn-secondary btn-sm" style="text-align:center;cursor:pointer;">
+        ⬆️ Restore from Backup
+        <input type="file" accept=".json" onchange="importBackup(event)" style="display:none;">
+      </label>
+    </div>
+  </div>`;
+
   // Danger zone — admin only
   if (currentMember === ADMIN_ID) {
     html += `
@@ -5656,6 +5677,48 @@ function exportJournal() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('📝 Journal exported!');
+}
+
+function exportBackup() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    exportedBy: currentMember,
+    appVersion: 'ortizzle-summer-2026',
+    state: state
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ortizzle-backup-${timestamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('💾 Backup exported!');
+}
+
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup.state || !backup.appVersion) {
+        showToast('⚠️ Invalid backup file — not an Ortizzle backup.'); return;
+      }
+      if (!confirm(`Restore backup from ${new Date(backup.exportedAt).toLocaleString()}?\n\nThis will overwrite all current data. Make sure you have a current backup first!`)) return;
+      Object.assign(state, backup.state);
+      await saveToGist();
+      showToast('✅ Backup restored! Reloading…');
+      setTimeout(() => location.reload(), 1200);
+    } catch(err) {
+      showToast('⚠️ Could not read backup file — may be corrupted.');
+    }
+  };
+  reader.readAsText(file);
+  // Reset the input so the same file can be re-selected
+  event.target.value = '';
 }
 
 function copyShareLink() {
