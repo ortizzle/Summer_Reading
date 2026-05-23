@@ -1346,6 +1346,20 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 .pin-shake { animation: pinShake 0.4s ease; }
 
 /* ── REACTION ANIMATIONS ── */
+@keyframes fieldShake {
+  0%,100% { transform: translateX(0); }
+  15%      { transform: translateX(-6px); }
+  30%      { transform: translateX(5px); }
+  45%      { transform: translateX(-4px); }
+  60%      { transform: translateX(3px); }
+  75%      { transform: translateX(-2px); }
+}
+.field-error {
+  animation: fieldShake 0.4s ease;
+  border-color: #E53935 !important;
+  box-shadow: 0 0 0 3px rgba(229,57,53,0.18) !important;
+}
+
 @keyframes reactionFlex {
   0%   { transform: scale(1)    rotate(0deg); }
   10%  { transform: scale(1.14) rotate(-3deg); }
@@ -3392,7 +3406,7 @@ function renderTimer() {
 
 function timerPreset(minutes) {
   const bookId = document.getElementById('timer-book-select').value;
-  if (!bookId) { showToast('Select a book first!'); return; }
+  if (!bookId) { shakeField('timer-book-select'); showToast('📚 Pick a book first!'); return; }
   timerCountdownTarget = minutes * 60;
   timerSeconds = 0;
   timerStart();
@@ -3416,7 +3430,7 @@ function timerTick() {
 
 function timerStart() {
   const bookId = document.getElementById('timer-book-select').value;
-  if (!bookId) { showToast('Select a book first!'); return; }
+  if (!bookId) { shakeField('timer-book-select'); showToast('📚 Pick a book first!'); return; }
   const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
   timerBookId = bookId;
   timerWallStart = Date.now();
@@ -3584,7 +3598,7 @@ function logCalcSession() {
   const saved = localStorage.getItem(CALC_START_KEY);
   if (!saved) { showToast('No start time saved.'); return; }
   const bookId = document.getElementById('calc-book-select').value;
-  if (!bookId) { showToast('Select a book!'); return; }
+  if (!bookId) { shakeField('calc-book-select'); showToast('📚 Pick a book first!'); return; }
   const endVal = document.getElementById('calc-end-input').value;
   if (!endVal) { showToast('Enter an end time.'); return; }
 
@@ -3646,7 +3660,7 @@ function logManualSession() {
   const bookId = document.getElementById('manual-book-select').value;
   const minsRaw = document.getElementById('manual-minutes').value;
   const dateVal = document.getElementById('manual-date').value;
-  if (!bookId) { showToast('Select a book'); return; }
+  if (!bookId) { shakeField('manual-book-select'); showToast('📚 Pick a book first!'); return; }
   const mins = parseInt(minsRaw, 10);
   if (isNaN(mins) || mins < 1) { showToast('Enter the number of minutes you read'); return; }
   const date = dateVal || todayStr();
@@ -5012,6 +5026,17 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 let _toastTimer = null;
+function shakeField(elOrId) {
+  const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+  if (!el) return;
+  el.classList.remove('field-error');
+  void el.offsetWidth; // force reflow so animation restarts
+  el.classList.add('field-error');
+  el.addEventListener('animationend', () => el.classList.remove('field-error'), { once: true });
+  // Also fade the red border back to normal after 2s
+  setTimeout(() => el.classList.remove('field-error'), 2000);
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
