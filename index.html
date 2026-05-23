@@ -2112,7 +2112,25 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       </select>
     </div>
     <div id="audit-table-wrap" style="flex:1;overflow-y:auto;font-size:13px;"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
+
+    <!-- Admin: grant / adjust points -->
+    <div style="border-top:1px solid #eee;margin-top:10px;padding-top:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">➕ Grant / Adjust Points</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <select class="form-select" id="audit-grant-type" style="flex:1;font-size:12px;">
+          <option value="journal">✏️ Journal Entry (+5 pts)</option>
+          <option value="reading">📖 Reading Session</option>
+          <option value="library">🏛️ Library Visit</option>
+          <option value="bingo">🎯 Bingo Square</option>
+          <option value="bonus">⭐ Bonus / Correction</option>
+        </select>
+        <input class="form-input" id="audit-grant-pts" type="number" placeholder="pts" style="width:64px;font-size:12px;" value="5">
+      </div>
+      <input class="form-input" id="audit-grant-note" placeholder="Note / reason (optional)" style="font-size:12px;margin-bottom:6px;">
+      <button class="btn btn-primary btn-full btn-sm" onclick="auditGrantPoints()">➕ Add to Selected Member</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('session-audit-modal')">Close</button>
     </div>
   </div>
@@ -2354,7 +2372,7 @@ const KIDS_BINGO = [
   { emoji:'🕰️', label:'Time Traveler',     desc:'Finish a book set in the past (historical fiction)',           id:'kids_historical',     pts:50 },
   { emoji:'👨‍👩‍👧', label:'Family Reading',  desc:'Everyone reads their own book at the same time — 30+ min',   id:'kids_family_session', pts:25 },
   { emoji:'🔖', label:'5-Star Review',     desc:'Rate a book and write 3+ sentences about it in your journal', id:'kids_review',         pts:30 },
-  { emoji:'🏔️', label:'Glacier Read',      desc:'Read for 30+ min while viewing a glacier or mountain',        id:'kids_glacier',        pts:15 },
+  { emoji:'⚓', label:'Port Day Read',      desc:'Read for 30+ min while the ship is docked at an Alaskan port', id:'kids_glacier',       pts:15 },
 ];
 
 const ADULTS_BINGO = [
@@ -2373,7 +2391,7 @@ const ADULTS_BINGO = [
   { emoji:'FREE', label:'FREE SPACE',      desc:'',                                                              id:'adults_free', free:true, pts:0 },
   { emoji:'🇨🇦', label:'Read in Canada',   desc:'Read for 30+ min while in Vancouver, Canada',                  id:'adults_canada',    pts:15 },
   { emoji:'🌊', label:'Read at Sea',       desc:'Read for 30+ min while the ship is underway on the ocean',    id:'adults_sea',       pts:15 },
-  { emoji:'🏔️', label:'Glacier View',      desc:'Read for 30+ min while looking at a glacier or mountain',     id:'adults_glacier',   pts:15 },
+  { emoji:'⚓', label:'Shore Day Read',     desc:'Read for 30+ min on an Alaskan port day — before or after your excursion', id:'adults_glacier', pts:15 },
   { emoji:'🤝', label:'Buddy Read',        desc:'Read the same book as another family member',                  id:'adults_buddy',     pts:30 },
   { emoji:'🌍', label:'Different World',   desc:'Finish a book set outside the US',                             id:'adults_world',     pts:50 },
   { emoji:'🔖', label:'5-Star Review',     desc:'Rate & write a journal entry about a completed book',          id:'adults_review',    pts:30 },
@@ -2382,7 +2400,7 @@ const ADULTS_BINGO = [
   { emoji:'🕰️', label:'Time Traveler',     desc:'Finish a historical fiction book',                             id:'adults_historical',pts:50 },
   { emoji:'🍷', label:'Weekend Read',      desc:'Read for 3+ hours on a Saturday or Sunday',                   id:'adults_weekend',   pts:50 },
   { emoji:'🌟', label:'Author Deep Dive',  desc:'Read 2+ books by the same author',                             id:'adults_author',    pts:50 },
-  { emoji:'🦅', label:'Alaska Wildlife',   desc:'Read for 30+ min after spotting Alaska wildlife (eagle, whale, bear)', id:'adults_wildlife', pts:15 },
+  { emoji:'🌿', label:'Wild Side',          desc:'Read a book set in nature, the outdoors, or the wilderness',   id:'adults_wildlife',  pts:25 },
 ];
 
 // Hani stays home — her own card with local/home-based activities
@@ -6235,6 +6253,27 @@ function auditDeleteSession(memberId, sessionId) {
     renderAuditTable();
     renderHome();
     showToast('Session deleted.');
+  });
+}
+
+function auditGrantPoints() {
+  const memberId = document.getElementById('audit-member-select').value;
+  if (!memberId) { showToast('Select a member first.'); return; }
+  const type  = document.getElementById('audit-grant-type').value;
+  const pts   = parseInt(document.getElementById('audit-grant-pts').value) || 0;
+  const note  = document.getElementById('audit-grant-note').value.trim();
+  if (!pts) { showToast('Enter a points value.'); return; }
+  const typeLabels = { journal:'Journal Entry', reading:'Reading Session', library:'Library Visit', bingo:'Bingo Square', bonus:'Bonus / Correction' };
+  const label = note || typeLabels[type] || 'Admin Adjustment';
+  if (!state.sessions[memberId]) state.sessions[memberId] = [];
+  state.sessions[memberId].push({
+    id: uid(), bookId: type, bookTitle: label,
+    minutes: pts, date: todayStr(), ts: Date.now(), adminGrant: true
+  });
+  saveToGist().then(() => {
+    renderAuditTable();
+    renderHome();
+    showToast(`+${pts} pts added to ${MEMBERS.find(m=>m.id===memberId)?.name}!`);
   });
 }
 
