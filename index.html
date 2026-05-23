@@ -1658,6 +1658,10 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <!-- Leaderboard -->
   <div class="card">
     <div class="card-title">🏆 Family Leaderboard</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button id="lb-tab-time" onclick="switchLbTab('time')" style="flex:1;padding:7px 0;border-radius:10px;border:1.5px solid var(--sky);background:var(--sky);color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">⏱ Reading Time</button>
+      <button id="lb-tab-pts" onclick="switchLbTab('pts')" style="flex:1;padding:7px 0;border-radius:10px;border:1.5px solid #e0e0e0;background:white;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">⭐ Points</button>
+    </div>
     <div id="lb-list"></div>
   </div>
 
@@ -2803,6 +2807,60 @@ function buildPointsAudit(memberId) {
 // ═══════════════════════════════════════
 //  HOME
 // ═══════════════════════════════════════
+let _lbMode = 'time'; // 'time' | 'pts'
+
+function switchLbTab(mode) {
+  _lbMode = mode;
+  // Update tab button styles
+  const timeBtn = document.getElementById('lb-tab-time');
+  const ptsBtn  = document.getElementById('lb-tab-pts');
+  if (timeBtn && ptsBtn) {
+    const activeStyle  = `flex:1;padding:7px 0;border-radius:10px;border:1.5px solid var(--sky);background:var(--sky);color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;`;
+    const inactiveStyle = `flex:1;padding:7px 0;border-radius:10px;border:1.5px solid #e0e0e0;background:white;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;`;
+    timeBtn.style.cssText = mode === 'time' ? activeStyle : inactiveStyle;
+    ptsBtn.style.cssText  = mode === 'pts'  ? activeStyle : inactiveStyle;
+  }
+  // Re-render list from cached member data
+  const members = [...MEMBERS].map(m => {
+    const sess = state.sessions[m.id] || [];
+    const readSess = sess.filter(s => !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'].includes(s.bookId));
+    const readMins = readSess.reduce((a,s) => a + (s.minutes||0), 0);
+    const pts = getMemberPoints(m.id);
+    const books = state.books[m.id] || [];
+    const activeBook = books.find(b => b.status === 'reading');
+    const finished = books.filter(b => b.status === 'finished').length;
+    return { ...m, readMins, pts, activeBook, finished };
+  });
+  renderLbList(members);
+}
+
+function renderLbList(members) {
+  const byTime = _lbMode === 'time';
+  const ranked = [...members].sort((a,b) => byTime ? b.readMins - a.readMins : b.pts - a.pts);
+  const rankEmoji = ['🥇','🥈','🥉'];
+  const el = document.getElementById('lb-list');
+  if (!el) return;
+  el.innerHTML = ranked.map((m,i) => {
+    const statVal = byTime
+      ? (m.readMins >= 60 ? Math.floor(m.readMins/60)+'h '+(m.readMins%60)+'m' : m.readMins+'m')
+      : m.pts + ' pts';
+    const subVal  = byTime ? `${m.pts} pts` : (m.readMins >= 60 ? Math.floor(m.readMins/60)+'h '+(m.readMins%60)+'m read' : m.readMins+'m read');
+    return `
+    <div class="lb-row">
+      <div class="lb-rank ${i<3?'lb-rank-top':''}">${i<3 ? rankEmoji[i] : i+1}</div>
+      <div class="lb-avatar" style="background:${getMemberColor(m.id)}20">${getMemberEmoji(m.id)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${m.name}${m.finished ? ` <span style="font-size:11px;color:var(--muted);">(${m.finished} book${m.finished>1?'s':''})</span>` : ''}</div>
+        <div class="lb-book">${m.activeBook ? `📖 ${m.activeBook.title}` : '<span style="opacity:.5;">No book yet</span>'}</div>
+      </div>
+      <div class="lb-stats">
+        <div class="lb-hours">${statVal}</div>
+        <div class="lb-pts-small">${subVal}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
@@ -2919,29 +2977,17 @@ function renderHome() {
   }
 
   // Leaderboard
-  const ranked = [...MEMBERS].map(m => {
+  const lbMembers = [...MEMBERS].map(m => {
     const sess = state.sessions[m.id] || [];
-    const totalMins = sess.reduce((a,s) => a + (s.minutes||0), 0);
+    const readSess = sess.filter(s => !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'].includes(s.bookId));
+    const readMins = readSess.reduce((a,s) => a + (s.minutes||0), 0);
     const pts = getMemberPoints(m.id);
     const books = state.books[m.id] || [];
     const activeBook = books.find(b => b.status === 'reading');
     const finished = books.filter(b => b.status === 'finished').length;
-    return { ...m, totalMins, pts, activeBook, finished };
-  }).sort((a,b) => b.totalMins - a.totalMins);
-  const rankEmoji = ['🥇','🥈','🥉'];
-  document.getElementById('lb-list').innerHTML = ranked.map((m,i) => `
-    <div class="lb-row">
-      <div class="lb-rank ${i<3?'lb-rank-top':''}">${i<3 ? rankEmoji[i] : i+1}</div>
-      <div class="lb-avatar" style="background:${getMemberColor(m.id)}20">${getMemberEmoji(m.id)}</div>
-      <div class="lb-info">
-        <div class="lb-name">${m.name}${m.finished ? ` <span style="font-size:11px;color:var(--muted);">(${m.finished} book${m.finished>1?'s':''})</span>` : ''}</div>
-        <div class="lb-book">${m.activeBook ? `📖 ${m.activeBook.title}` : '<span style="opacity:.5;">No book yet</span>'}</div>
-      </div>
-      <div class="lb-stats">
-        <div class="lb-hours">${m.totalMins >= 60 ? Math.floor(m.totalMins/60)+'h '+(m.totalMins%60)+'m' : m.totalMins+'m'}</div>
-        <div class="lb-pts-small">${m.pts} pts</div>
-      </div>
-    </div>`).join('');
+    return { ...m, readMins, pts, activeBook, finished };
+  });
+  renderLbList(lbMembers);
 
   // Recent activity preview (last 5 items)
   renderActivityList('activity-feed', 5);
