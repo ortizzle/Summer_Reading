@@ -1751,16 +1751,56 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <!-- Points key -->
   <div class="card" style="background:var(--sand);box-shadow:none;">
     <div class="card-title">✨ Point System</div>
-    <div style="font-size:13px;line-height:2;color:var(--text);">
-      ⏱ 1 pt per minute read<br>
-      📚 +50 pts to finish a novel or chapter book (200+ pages)<br>
-      📘 +10 pts to finish any book under 200 pages<br>
-      🎨 +10 pts to finish a graphic novel or manga<br>
-      🗞️ +25 pts to finish an article (e.g. New Yorker)<br>
-      🏛️ +20 pts per library visit + 5 pts per book checked out<br>
-      🎯 Bingo square = 40 pts<br>
-      🪄 Bingo line = 100 pts bonus
-    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;color:var(--text);">
+      <thead>
+        <tr style="border-bottom:2px solid rgba(0,0,0,0.08);">
+          <th style="text-align:left;padding:6px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);font-weight:700;">Activity</th>
+          <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);font-weight:700;">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">⏱ Each minute of reading</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">1 pt / min</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">📖 Finish a book <span style="color:var(--muted);font-size:12px;">(completion bonus)</span></td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">15 pts / 100 pages</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;padding-left:20px;color:var(--muted);font-size:12px;">e.g. 100-page manga</td>
+          <td style="padding:9px 4px;text-align:right;color:var(--muted);font-size:12px;">+15 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;padding-left:20px;color:var(--muted);font-size:12px;">e.g. 200-page novel</td>
+          <td style="padding:9px 4px;text-align:right;color:var(--muted);font-size:12px;">+30 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;padding-left:20px;color:var(--muted);font-size:12px;">e.g. 400-page novel</td>
+          <td style="padding:9px 4px;text-align:right;color:var(--muted);font-size:12px;">+60 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">🗞️ Finish an article or magazine</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">+25 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">🏛️ Library visit</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">+20 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">📚 Each book checked out</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">+5 pts</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+          <td style="padding:9px 4px;">🎯 Complete a Bingo square</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">+40 pts</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 4px;">🪄 Complete a Bingo line</td>
+          <td style="padding:9px 4px;text-align:right;font-weight:700;color:var(--sun);">+100 pts bonus</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -2262,7 +2302,8 @@ const INDIVIDUAL_MILESTONES = [
   { id:'m_3books',  pts:90,   name:'Trilogy',                   desc:'Finish 3 books',                       icon:'📚', reward:'Starbucks or Sonic run ☕🧊 — your order, your choice' },
   { id:'m_15hrs',   pts:900,  name:'15 Hour Reader',            desc:'Read 15 hours total',                  icon:'⏰', reward:'Up to $15 toward any book of your choice 📚' },
   { id:'m_novel',   pts:50,   name:'Novel Finisher (for kids)', desc:'Finish a full novel or chapter book',  icon:'📗', reward:'$25 trip to Target — stock your reading nook 🎯' },
-  { id:'m_50hrs',   pts:3000, name:'Legend',                    desc:'Read 50 hours total — ultimate grind', icon:'🏆', reward:'$25 toward Amazon or Barnes & Noble 📖' },
+  { id:'m_50hrs',   pts:3000, name:'Legend',                    desc:'Read 50 hours total',                  icon:'🏆', reward:'$25 toward Amazon or Barnes & Noble 📖' },
+  { id:'m_100hrs',  pts:6000, name:'Century Reader',            desc:'Read 100 hours total — all-time great', icon:'🌟', reward:'$50+ book haul or gift card — you earned it 🎉' },
   { id:'m_journal20',pts:50,  name:'Dear Diary',                desc:'Write 20 journal entries',             icon:'📝', reward:'New notebook or journal from Changing Hands bookstore 📒' },
   { id:'m_bingo',   pts:100,  name:'Bingo Champ',               desc:'Complete a full bingo card',           icon:'🎲', reward:'Pick the family dinner spot 🍽️ — your restaurant, your rules' }
 ];
@@ -3843,6 +3884,7 @@ function renderIndividualMilestones() {
     if (m.id==='m_15hrs')     met = totalMins >= 900;
     if (m.id==='m_novel')     met = books.some(b=>b.status==='finished'&&(b.genre==='novel'||b.genre==='other'));
     if (m.id==='m_50hrs')     met = totalMins >= 3000;
+    if (m.id==='m_100hrs')    met = totalMins >= 6000;
     if (m.id==='m_journal20') met = journals >= 20;
     if (m.id==='m_bingo')     met = bingoCompleted >= 25;
     const freshUnlock = met && !earned.includes(m.id);
@@ -4401,8 +4443,8 @@ function awardFinishPoints(memberId, book) {
   const pages = book.pages || 0;
   let bonus;
   if (book.genre === 'article') bonus = 25;
-  else if (pages >= 200) bonus = 50;
-  else bonus = 10;  // graphic novels, manga, and short books under 200 pages
+  else if (pages > 0) bonus = Math.max(5, Math.round(pages / 100 * 15));  // 15 pts per 100 pages
+  else bonus = 10;  // fallback: no page count entered
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
   state.sessions[memberId].push({ id:uid(), bookId:book.id, bookTitle:book.title+'(finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
   addActivity('✅', `${MEMBERS.find(m=>m.id===memberId).name} finished: ${book.title} (+${bonus} pts)`, memberId);
