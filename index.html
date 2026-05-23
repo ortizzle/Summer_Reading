@@ -1504,6 +1504,18 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="toast" id="toast"></div>
 
 <!-- Streak Milestone Splash -->
+<!-- ── Notification slide-up (reactions & mentions) ── -->
+<div id="notif-overlay" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:17500;padding:12px 12px 24px;pointer-events:none;">
+  <div id="notif-card" style="background:white;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.22);padding:16px;max-width:480px;margin:0 auto;pointer-events:all;transform:translateY(100%);transition:transform 0.38s cubic-bezier(.22,1,.36,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:#1A1A2E;">🔔 While you were away…</div>
+      <button onclick="dismissNotifOverlay()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#90A4AE;line-height:1;padding:0 4px;">✕</button>
+    </div>
+    <div id="notif-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <button onclick="dismissNotifOverlay()" style="margin-top:12px;width:100%;background:var(--sky,#4FC3F7);color:white;border:none;border-radius:12px;padding:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Got it 👍</button>
+  </div>
+</div>
+
 <div id="streak-splash" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column;" onclick="dismissStreakSplash()">
   <div id="streak-splash-inner" style="text-align:center;padding:32px 28px;max-width:320px;position:relative;pointer-events:none;">
     <div id="streak-splash-emoji" style="font-size:90px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 4px 24px rgba(255,160,0,0.5));"></div>
@@ -2454,7 +2466,8 @@ let state = {
   reactions: {},     // activityId -> { emoji: [memberIds] }
   memberColors: {},  // memberId -> hex color (chosen from COLOR_PALETTE)
   onboarded: {},     // memberId -> bool
-  claimedRewards: {} // 'memberId:milestoneId' or 'family:gmId' -> timestamp
+  claimedRewards: {}, // 'memberId:milestoneId' or 'family:gmId' -> timestamp
+  notifications: {}  // memberId -> [{ id, type:'reaction'|'mention', emoji?, fromId, fromName, snippet, ts, seen }]
 };
 let currentMember = 'chris';
 let activeBingoCard = 'kids';
@@ -2739,6 +2752,8 @@ function doSelectMember(id) {
     renderTab(activeTab);
   }
   if (!state.onboarded?.[id] && prevMember !== ADMIN_ID) startOnboarding(id);
+  // Show any pending reaction/mention notifications for this member
+  setTimeout(() => showPendingNotifications(id), 600);
 }
 
 // ═══════════════════════════════════════
@@ -2967,7 +2982,10 @@ function renderActivityList(containerId, limit) {
     const replyText = (a.text || '').split('\n')[0].replace(/'/g, "\\'").slice(0, 80);
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}','${replyText}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     const isMine = a.member === currentMember;
-    const msgMenuBtn = (isMsg && isMine) ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}')">···</button>` : '';
+    const isAdmin = currentMember === ADMIN_ID;
+    // Show ··· on own messages (edit/delete) OR for admin on any item (delete any duplicate/error)
+    const canMenu = (isMsg && isMine) || isAdmin;
+    const msgMenuBtn = canMenu ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}',${!!(isMsg && isMine)})">···</button>` : '';
     if (isMsg) {
       // Split off any inline reply quote (↩ re: "...") for styled rendering
       const rawText = a.text || '';
@@ -3098,8 +3116,27 @@ function postFeedMessage() {
   const fullText = quoteSnippet
     ? `${text}\n↩ re: ${quoteSnippet}`
     : text;
-  state.activity.push({ id: uid(), emoji: '💬', text: fullText, member: currentMember, ts: Date.now(), type: 'message' });
+  const newActId = uid();
+  state.activity.push({ id: newActId, emoji: '💬', text: fullText, member: currentMember, ts: Date.now(), type: 'message' });
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
+  // Notify any @mentioned members
+  const mentionMatches = fullText.match(/@(\w+)/g) || [];
+  mentionMatches.forEach(tag => {
+    const tagName = tag.slice(1).toLowerCase();
+    const mentioned = MEMBERS.find(m => m.name.toLowerCase().startsWith(tagName) && m.id !== currentMember);
+    if (mentioned) {
+      if (!state.notifications) state.notifications = {};
+      if (!state.notifications[mentioned.id]) state.notifications[mentioned.id] = [];
+      const sender = MEMBERS.find(m => m.id === currentMember);
+      state.notifications[mentioned.id].push({
+        id: uid(), type: 'mention',
+        fromId: currentMember,
+        fromName: sender ? sender.name : currentMember,
+        snippet: text.slice(0, 60),
+        ts: Date.now(), seen: false
+      });
+    }
+  });
   input.value = '';
   clearReplyQuote();
   hideMentionDropdown();
@@ -4933,9 +4970,72 @@ function toggleReaction(actId, emoji, btnEl) {
   else reactors.push(currentMember);
   state.reactions[actId][emoji] = reactors;
   if (adding && btnEl) triggerReactionFx(emoji, btnEl);
+  // Notify the original post's author if it's not the current user
+  if (adding) {
+    const origAct = (state.activity || []).find(a => (a.id || (a.ts + a.member)) === actId);
+    if (origAct && origAct.member && origAct.member !== currentMember && origAct.member !== 'family') {
+      if (!state.notifications) state.notifications = {};
+      if (!state.notifications[origAct.member]) state.notifications[origAct.member] = [];
+      const reactor = MEMBERS.find(m => m.id === currentMember);
+      state.notifications[origAct.member].push({
+        id: uid(), type: 'reaction', emoji,
+        fromId: currentMember,
+        fromName: reactor ? reactor.name : currentMember,
+        snippet: (origAct.text || '').slice(0, 60),
+        ts: Date.now(), seen: false
+      });
+    }
+  }
   renderHome();
   renderFeed();
   saveToGist();
+}
+
+let _notifDismissTimer = null;
+function showPendingNotifications(memberId) {
+  const notifs = (state.notifications || {})[memberId] || [];
+  const unseen = notifs.filter(n => !n.seen);
+  if (!unseen.length) return;
+  // Mark all as seen
+  unseen.forEach(n => n.seen = true);
+  saveToGist();
+  // Build the list HTML
+  const listEl = document.getElementById('notif-list');
+  const overlay = document.getElementById('notif-overlay');
+  const card = document.getElementById('notif-card');
+  if (!listEl || !overlay || !card) return;
+  listEl.innerHTML = unseen.map(n => {
+    if (n.type === 'reaction') {
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f9f9f9;border-radius:12px;">
+        <span style="font-size:22px;">${n.emoji}</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1A1A2E;">${n.fromName} reacted to your post</div>
+          ${n.snippet ? `<div style="font-size:11px;color:#90A4AE;margin-top:2px;">"${n.snippet}${n.snippet.length>=60?'…':''}"</div>` : ''}
+        </div>
+      </div>`;
+    } else {
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f9f9f9;border-radius:12px;">
+        <span style="font-size:22px;">💬</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1A1A2E;">${n.fromName} mentioned you</div>
+          ${n.snippet ? `<div style="font-size:11px;color:#90A4AE;margin-top:2px;">"${n.snippet}${n.snippet.length>=60?'…':''}"</div>` : ''}
+        </div>
+      </div>`;
+    }
+  }).join('');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => { card.style.transform = 'translateY(0)'; });
+  // Auto-dismiss after 8 seconds
+  clearTimeout(_notifDismissTimer);
+  _notifDismissTimer = setTimeout(dismissNotifOverlay, 8000);
+}
+function dismissNotifOverlay() {
+  clearTimeout(_notifDismissTimer);
+  const card = document.getElementById('notif-card');
+  const overlay = document.getElementById('notif-overlay');
+  if (!card || !overlay) return;
+  card.style.transform = 'translateY(100%)';
+  setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
 function triggerReactionFx(emoji, btnEl) {
@@ -5054,7 +5154,7 @@ function buildReactionBackFace(cardElId, actId) {
 
 let _msgMenuActId = null;
 let _msgMenuCardElId = null;
-function openMsgMenu(cardElId, actId) {
+function openMsgMenu(cardElId, actId, isOwnMsg) {
   _msgMenuActId = actId;
   _msgMenuCardElId = cardElId;
   let overlay = document.getElementById('msg-action-overlay');
@@ -5072,13 +5172,23 @@ function openMsgMenu(cardElId, actId) {
     sheet.className = 'msg-action-sheet';
     document.body.appendChild(sheet);
   }
-  sheet.innerHTML = `
-    <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Message</div>
-    <button class="msg-action-sheet-btn" onclick="closeMsgMenu();flipMsgCard('${cardElId}','${actId}')">👥 See Reactions</button>
-    <button class="msg-action-sheet-btn" onclick="editMsg('${actId}')">✏️ Edit</button>
-    <button class="msg-action-sheet-btn destructive" onclick="deleteMsg('${actId}')">🗑️ Delete</button>
-    <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
-  `;
+  if (isOwnMsg) {
+    // Full menu for your own messages
+    sheet.innerHTML = `
+      <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Message</div>
+      <button class="msg-action-sheet-btn" onclick="closeMsgMenu();flipMsgCard('${cardElId}','${actId}')">👥 See Reactions</button>
+      <button class="msg-action-sheet-btn" onclick="editMsg('${actId}')">✏️ Edit</button>
+      <button class="msg-action-sheet-btn destructive" onclick="deleteActivity('${actId}')">🗑️ Delete</button>
+      <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
+    `;
+  } else {
+    // Admin deleting any activity (system post, someone else's message, duplicate notification)
+    sheet.innerHTML = `
+      <div style="text-align:center;padding:6px 0 10px;font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;">Admin — Remove from Exchange</div>
+      <button class="msg-action-sheet-btn destructive" onclick="deleteActivity('${actId}')">🗑️ Delete this post</button>
+      <button class="msg-action-sheet-btn" onclick="closeMsgMenu()" style="color:var(--muted);">Cancel</button>
+    `;
+  }
   overlay.style.display = 'block';
   sheet.style.display = 'block';
 }
@@ -5115,15 +5225,20 @@ function cancelEditMsg(actId, orig) {
   const el = document.getElementById('msg-text-' + actId);
   if (el) el.innerHTML = orig;
 }
-function deleteMsg(actId) {
+function deleteActivity(actId) {
   closeMsgMenu();
-  if (!confirm('Delete this message?')) return;
+  if (!confirm('Remove this from the Exchange?')) return;
   state.activity = (state.activity || []).filter(a => (a.id || (a.ts + a.member)) !== actId);
   if (state.reactions) delete state.reactions[actId];
+  // Track deleted IDs so they're never re-merged back from Gist
+  if (!state.deletedActivityIds) state.deletedActivityIds = [];
+  if (!state.deletedActivityIds.includes(actId)) state.deletedActivityIds.push(actId);
   renderHome();
   renderFeed();
   saveToGist();
 }
+// Keep alias for any legacy calls
+function deleteMsg(actId) { deleteActivity(actId); }
 
 function bookColor(genre) {
   const map = { novel:'#E8F5E9', graphic:'#F3E5F5', nonfiction:'#E3F2FD', poetry:'#FFF3E0', article:'#F5F5F5', other:'#FFFDE7' };
