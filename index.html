@@ -1708,6 +1708,32 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     </div>
   </div>
 
+  <!-- Start / End Calculator -->
+  <div class="card" id="start-end-calc-card">
+    <div class="card-title">🕐 Start / End Calculator</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Tap <b>Set Start</b> when you begin reading, come back later and tap <b>Log End Time</b> to calculate the difference.</div>
+    <div id="calc-start-display" style="display:none;background:var(--sand);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--text);">
+      📍 Started at <span id="calc-start-label" style="font-weight:700;"></span>
+      <button onclick="clearCalcStart()" style="float:right;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">✕ Clear</button>
+    </div>
+    <div id="calc-no-start" style="margin-bottom:10px;">
+      <button class="btn btn-primary btn-full" onclick="setCalcStart()">📍 Set Start Time (Now)</button>
+    </div>
+    <div id="calc-end-row" style="display:none;">
+      <div class="form-row" style="margin-bottom:10px;">
+        <label class="form-label">End Time</label>
+        <input class="form-select" type="time" id="calc-end-input">
+      </div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <label class="form-label">Book</label>
+        <select class="form-select" id="calc-book-select">
+          <option value="">— Choose a book —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="logCalcSession()">✅ Log End Time</button>
+    </div>
+  </div>
+
   <!-- Today's Sessions -->
   <div class="card">
     <div class="card-title">⏱ Today's Sessions</div>
@@ -2281,6 +2307,8 @@ let timerSeconds = 0;
 let timerRunning = false;
 let timerBookId = null;
 let timerCountdownTarget = 0; // 0 = open-ended up-count, >0 = countdown from this many seconds
+let timerWallStart = 0;   // Date.now() when timer last started/resumed
+let timerAccruedMs = 0;   // ms accumulated across pauses
 
 // ═══════════════════════════════════════
 //  GIST SYNC
@@ -3237,6 +3265,9 @@ function renderTimer() {
   const manualDate = document.getElementById('manual-date');
   if (!manualDate.value) manualDate.value = todayStr();
 
+  // Refresh start/end calculator state
+  renderCalcCard();
+
   const today = todayStr();
   const todaySessions = (state.sessions[currentMember]||[]).filter(s=>s.date===today);
   const el = document.getElementById('today-sessions');
@@ -3269,61 +3300,68 @@ function timerPreset(minutes) {
   timerStart();
 }
 
+function timerTick() {
+  // Always compute from wall clock — immune to phone sleep
+  timerSeconds = Math.floor((timerAccruedMs + (Date.now() - timerWallStart)) / 1000);
+  if (timerCountdownTarget > 0) {
+    const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
+    const h = Math.floor(remaining/3600), m = Math.floor((remaining%3600)/60), s = remaining%60;
+    const el = document.getElementById('timer-display');
+    if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (remaining === 0) { timerStop(); return; }
+  } else {
+    const h = Math.floor(timerSeconds/3600), m = Math.floor((timerSeconds%3600)/60), s = timerSeconds%60;
+    const el = document.getElementById('timer-display');
+    if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+}
+
 function timerStart() {
   const bookId = document.getElementById('timer-book-select').value;
   if (!bookId) { showToast('Select a book first!'); return; }
   const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
   timerBookId = bookId;
+  timerWallStart = Date.now();
+  timerAccruedMs = 0;
   timerRunning = true;
+  // Persist so app-close + reopen can recover
+  localStorage.setItem('ortizzle_timer', JSON.stringify({
+    bookId, memberId: currentMember, wallStart: timerWallStart, accruedMs: 0, countdown: timerCountdownTarget
+  }));
   document.getElementById('timer-book-name').textContent = book ? book.title : '';
   document.getElementById('timer-start-btn').style.display = 'none';
   document.getElementById('timer-pause-btn').style.display = '';
   document.getElementById('timer-stop-btn').style.display = '';
   document.getElementById('timer-presets').style.display = 'none';
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    if (timerCountdownTarget > 0) {
-      const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
-      const h = Math.floor(remaining/3600);
-      const m = Math.floor((remaining%3600)/60);
-      const s = remaining%60;
-      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-      if (remaining === 0) { timerStop(); return; }
-    } else {
-      const h = Math.floor(timerSeconds/3600);
-      const m = Math.floor((timerSeconds%3600)/60);
-      const s = timerSeconds%60;
-      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-    }
-  }, 1000);
+  timerInterval = setInterval(timerTick, 1000);
 }
 
 function timerPause() {
   clearInterval(timerInterval);
+  timerAccruedMs += Date.now() - timerWallStart;
   timerRunning = false;
-  document.getElementById('timer-pause-btn').textContent = timerRunning ? '⏸ Pause' : '▶ Resume';
-  document.getElementById('timer-pause-btn').onclick = timerRunning ? timerPause : timerResume;
+  localStorage.setItem('ortizzle_timer', JSON.stringify({
+    bookId: timerBookId, memberId: currentMember, wallStart: null, accruedMs: timerAccruedMs, countdown: timerCountdownTarget
+  }));
+  document.getElementById('timer-pause-btn').textContent = '▶ Resume';
+  document.getElementById('timer-pause-btn').onclick = timerResume;
 }
 
 function timerResume() {
+  timerWallStart = Date.now();
   timerRunning = true;
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    if (timerCountdownTarget > 0) {
-      const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
-      const h = Math.floor(remaining/3600);
-      const m = Math.floor((remaining%3600)/60);
-      const s = remaining%60;
-      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-      if (remaining === 0) { timerStop(); return; }
-    } else {
-      const h = Math.floor(timerSeconds/3600);
-      const m = Math.floor((timerSeconds%3600)/60);
-      const s = timerSeconds%60;
-      document.getElementById('timer-display').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-    }
-  }, 1000);
+  localStorage.setItem('ortizzle_timer', JSON.stringify({
+    bookId: timerBookId, memberId: currentMember, wallStart: timerWallStart, accruedMs: timerAccruedMs, countdown: timerCountdownTarget
+  }));
+  document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-pause-btn').onclick = timerPause;
+  timerInterval = setInterval(timerTick, 1000);
 }
+
+// Recover timer if phone woke up mid-session
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && timerRunning) timerTick();
+});
 
 function timerStop() {
   clearInterval(timerInterval);
@@ -3353,9 +3391,12 @@ function timerStop() {
 function resetTimer() {
   clearInterval(timerInterval);
   timerSeconds = 0;
+  timerWallStart = 0;
+  timerAccruedMs = 0;
   timerCountdownTarget = 0;
   timerBookId = null;
   timerRunning = false;
+  localStorage.removeItem('ortizzle_timer');
   document.getElementById('timer-display').textContent = '00:00:00';
   document.getElementById('timer-book-name').textContent = 'Select a book to start';
   document.getElementById('timer-start-btn').style.display = '';
@@ -3366,6 +3407,100 @@ function resetTimer() {
   const presets = document.getElementById('timer-presets');
   if (presets) presets.style.display = '';
 }
+
+// ── Start/End Calculator ──────────────────────────────────────────────────
+const CALC_START_KEY = 'ortizzle_calc_start';
+
+function setCalcStart() {
+  const now = Date.now();
+  localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts: now, memberId: currentMember }));
+  renderCalcCard();
+  showToast('📍 Start time saved!');
+}
+
+function clearCalcStart() {
+  localStorage.removeItem(CALC_START_KEY);
+  renderCalcCard();
+}
+
+function renderCalcCard() {
+  const saved = localStorage.getItem(CALC_START_KEY);
+  const noStart = document.getElementById('calc-no-start');
+  const startDisplay = document.getElementById('calc-start-display');
+  const endRow = document.getElementById('calc-end-row');
+  const startLabel = document.getElementById('calc-start-label');
+  if (!noStart) return;
+
+  if (saved) {
+    try {
+      const { ts } = JSON.parse(saved);
+      const d = new Date(ts);
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      startLabel.textContent = `${hh}:${mm}`;
+      startDisplay.style.display = 'block';
+      noStart.style.display = 'none';
+      endRow.style.display = 'block';
+      // Pre-fill end time to now
+      const endInput = document.getElementById('calc-end-input');
+      if (endInput && !endInput.value) {
+        const now = new Date();
+        endInput.value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      }
+      // Populate book select
+      const calcBook = document.getElementById('calc-book-select');
+      if (calcBook) {
+        const books = (state.books[currentMember]||[]).filter(b=>b.status!=='finished');
+        calcBook.innerHTML = '<option value="">— Choose a book —</option>' +
+          books.map(b=>`<option value="${b.id}">${b.title}</option>`).join('');
+      }
+    } catch(e) { clearCalcStart(); }
+  } else {
+    startDisplay.style.display = 'none';
+    noStart.style.display = 'block';
+    endRow.style.display = 'none';
+  }
+}
+
+function logCalcSession() {
+  const saved = localStorage.getItem(CALC_START_KEY);
+  if (!saved) { showToast('No start time saved.'); return; }
+  const bookId = document.getElementById('calc-book-select').value;
+  if (!bookId) { showToast('Select a book!'); return; }
+  const endVal = document.getElementById('calc-end-input').value;
+  if (!endVal) { showToast('Enter an end time.'); return; }
+
+  const { ts: startTs } = JSON.parse(saved);
+  const startDate = new Date(startTs);
+  const [endH, endM] = endVal.split(':').map(Number);
+  const endDate = new Date(startDate);
+  endDate.setHours(endH, endM, 0, 0);
+
+  // Handle crossing midnight
+  if (endDate <= startDate) endDate.setDate(endDate.getDate() + 1);
+
+  const diffMs = endDate - startDate;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) { showToast('End time must be after start time.'); return; }
+
+  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
+  const session = {
+    id: uid(), bookId, bookTitle: book ? book.title : '?',
+    minutes: mins, date: todayStr(), ts: Date.now()
+  };
+  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+  state.sessions[currentMember].push(session);
+  addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}`, currentMember);
+  clearCalcStart();
+  saveToGist().then(() => {
+    checkBadges(currentMember);
+    checkGroupMilestones();
+    showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
+    if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
+    renderTimer();
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function editSession(sessionId) {
   const sessions = state.sessions[currentMember] || [];
@@ -5726,6 +5861,31 @@ async function init() {
   updateSyncPill('syncing');
   await loadFromGist();
   MEMBERS.forEach(m => ensureMember(m.id));
+  // Recover in-progress timer session (survives app close / phone sleep)
+  (() => {
+    const saved = localStorage.getItem('ortizzle_timer');
+    if (!saved) return;
+    try {
+      const t = JSON.parse(saved);
+      if (t.memberId && t.bookId) {
+        timerBookId = t.bookId;
+        timerCountdownTarget = t.countdown || 0;
+        timerAccruedMs = t.accruedMs || 0;
+        if (t.wallStart) {
+          // Was running when app closed — calculate elapsed since then
+          timerWallStart = t.wallStart;
+          timerRunning = true;
+          timerTick();
+          timerInterval = setInterval(timerTick, 1000);
+        } else {
+          // Was paused
+          timerSeconds = Math.floor(timerAccruedMs / 1000);
+          timerRunning = false;
+        }
+        showToast('⏱ Timer restored!');
+      }
+    } catch(e) { localStorage.removeItem('ortizzle_timer'); }
+  })();
   if (!state.pins) state.pins = {};
   if (!state.themes) state.themes = {};
   if (!state.defaultTabs) state.defaultTabs = {};
