@@ -1589,7 +1589,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">📖 <span id="my-stat-reading">0</span> Reading</div>
           <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">✅ <span id="my-stat-finished">0</span> Finished</div>
-          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span></div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">⏱ <span id="my-stat-mins">0m</span> read</div>
           <div id="my-stat-streak-pill" style="display:none;background:rgba(255,255,255,0.18);border-radius:20px;padding:6px 14px;color:white;font-size:12px;font-weight:600;">🔥 <span id="my-stat-streak-val">0</span> streak</div>
         </div>
         <div style="text-align:center;color:rgba(255,255,255,0.45);font-size:11px;font-weight:600;letter-spacing:0.5px;">TAP FOR POINTS BREAKDOWN ↩</div>
@@ -2545,6 +2545,16 @@ async function loadFromGist() {
               }
             });
           });
+          // Rescue lastSeenFeed timestamps — take the newer of local vs Gist for each member
+          // This prevents "all messages look unread" after a page reload without a Gist save
+          if (local.lastSeenFeed) {
+            if (!state.lastSeenFeed) state.lastSeenFeed = {};
+            Object.entries(local.lastSeenFeed).forEach(([memberId, ts]) => {
+              if ((ts || 0) > (state.lastSeenFeed[memberId] || 0)) {
+                state.lastSeenFeed[memberId] = ts;
+              }
+            });
+          }
         } catch(e) {}
       }
     }
@@ -2639,6 +2649,9 @@ function renderTab(tab) {
     // Mark feed as seen — clear the badge
     if (!state.lastSeenFeed) state.lastSeenFeed = {};
     state.lastSeenFeed[currentMember] = Date.now();
+    // Persist immediately to localStorage so the timestamp survives a page reload
+    // even before the next full saveToGist() call
+    localStorage.setItem('ortizzle_local', JSON.stringify(state));
     updateFeedBadge();
     renderFeed();
   }
@@ -2785,7 +2798,9 @@ function renderHome() {
   const mySess    = state.sessions[currentMember] || [];
   const myReading  = myBooks.filter(b => b.status === 'reading').length;
   const myFinished = myBooks.filter(b => b.status === 'finished').length;
-  const myMins     = mySess.reduce((a,s) => a + (s.minutes||0), 0);
+  // Reading time = only actual reading sessions (excludes bingo/library/journal bonus sessions)
+  const myReadingSess = mySess.filter(s => !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'].includes(s.bookId));
+  const myMins     = myReadingSess.reduce((a,s) => a + (s.minutes||0), 0);
   const myPts      = getMemberPoints(currentMember);
   const myName     = MEMBERS.find(m => m.id === currentMember)?.name || 'My';
   document.getElementById('my-stats-label').textContent = myName + '’s Stats';
@@ -4164,8 +4179,15 @@ function awardBadge(memberId, badgeId) {
     state.badges[memberId].push(badgeId);
     const badge = ALL_BADGES.find(b=>b.id===badgeId);
     if (badge) {
-      addActivity('🎖', `${MEMBERS.find(m=>m.id===memberId).name} earned: ${badge.label}`, memberId);
-      celebrateThemed();
+      const name = MEMBERS.find(m=>m.id===memberId).name;
+      const actText = `${name} earned: ${badge.label}`;
+      // Dedup: if this badge was already announced in the Exchange (e.g. after a state reset
+      // cleared the badges array), don't post a second notification
+      const alreadyPosted = (state.activity||[]).some(a => a.member === memberId && a.text === actText);
+      if (!alreadyPosted) {
+        addActivity('🎖', actText, memberId);
+        celebrateThemed();
+      }
     }
     saveToGist();
   }
