@@ -1932,10 +1932,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="font-size:12px;font-weight:600;color:var(--text);">Book Checked Out</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts each</div>
         </div>
-        <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
+        <div id="pts-tile-journal" onclick="togglePtsDetail('journal')" style="background:var(--sand);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background .2s;">
           <div style="font-size:18px;margin-bottom:4px;">✏️</div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">Journal Entry</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:0.3px;">TAP FOR PROMPTS ▾</div>
         </div>
         <div id="pts-tile-bingo" onclick="togglePtsDetail('bingo')" style="background:var(--sand);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background .2s;">
           <div style="font-size:18px;margin-bottom:4px;">🎯</div>
@@ -1976,6 +1977,32 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
             </div>
           </div>
           <div style="margin-top:10px;font-size:10px;color:#64748B;text-align:center;">📞 480-782-2800 · chandlerlibrary.org</div>
+        </div>
+      </div>
+
+      <!-- Journal prompts slide-down -->
+      <div id="pts-detail-journal" style="max-height:0;overflow:hidden;transition:max-height 0.38s cubic-bezier(.4,0,.2,1);">
+        <div style="margin-top:10px;background:#F0FDF4;border-radius:12px;padding:14px 14px 12px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#16A34A;margin-bottom:10px;">💡 Journal Prompt Ideas</div>
+          <div style="font-size:10px;font-weight:700;color:#15803D;letter-spacing:0.5px;margin-bottom:6px;">🧒 FOR YOUNG READERS</div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;">
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">What was the most exciting part you read today?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">If you could jump into the story, what would you do first?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">Which character would you want as your best friend? Why?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">Did anything surprise you? What did you think would happen instead?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">What's one question you still have about the story?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">What would you change if you were the author?</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#15803D;letter-spacing:0.5px;margin-bottom:6px;">📖 FOR ALL READERS</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">What emotion did today's reading give you, and why?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">Write one sentence that describes the whole story so far.</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">Find a quote or passage you loved — write it down and say why it stood out.</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">How does this book connect to something in your own life?</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">Rate this book so far (1–5 ⭐) and explain your rating.</div>
+            <div style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;">What's one thing you'll remember from what you read today?</div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:#4ADE80;text-align:center;font-weight:600;">✏️ Open your journal and pick one to get started!</div>
         </div>
       </div>
 
@@ -2246,9 +2273,19 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <option value="">— General / No specific book —</option>
       </select>
     </div>
+    <!-- Prompt picker -->
+    <div style="margin-bottom:12px;">
+      <div onclick="toggleJournalPrompts()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#F0FDF4;border-radius:10px;padding:8px 12px;">
+        <span style="font-size:12px;font-weight:700;color:#16A34A;">💡 Need a writing prompt?</span>
+        <span id="journal-prompt-arrow" style="font-size:10px;color:#16A34A;font-weight:700;">▾</span>
+      </div>
+      <div id="journal-prompt-panel" style="max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(.4,0,.2,1);">
+        <div style="padding:8px 4px 2px;display:flex;flex-direction:column;gap:5px;" id="journal-prompt-list"></div>
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label">Your Thoughts</label>
-      <textarea class="form-input" id="journal-text" rows="6" placeholder="What are you thinking about this book? Favorite part? Questions? Feelings?"></textarea>
+      <textarea class="form-input" id="journal-text" rows="5" placeholder="What are you thinking about this book? Favorite part? Questions? Feelings?"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Book Rating (optional)</label>
@@ -3014,6 +3051,71 @@ function renderGoalBreakdown() {
   // Allow panel to resize now that content is rendered
   const panel = document.getElementById('goal-breakdown');
   if (panel && _goalBreakdownOpen) panel.style.maxHeight = panel.scrollHeight + 'px';
+}
+
+// ── Journal prompts ───────────────────────────────────────────────────────────
+const JOURNAL_PROMPTS = [
+  // Young readers first
+  { label:'🧒 Young Readers', prompt:'What was the most exciting part you read today?' },
+  { label:'🧒 Young Readers', prompt:'If you could jump into the story, what would you do first?' },
+  { label:'🧒 Young Readers', prompt:'Which character would you want as your best friend? Why?' },
+  { label:'🧒 Young Readers', prompt:'Did anything surprise you? What did you think would happen instead?' },
+  { label:'🧒 Young Readers', prompt:'What\'s one question you still have about the story?' },
+  { label:'🧒 Young Readers', prompt:'What would you change about the story if you were the author?' },
+  { label:'🧒 Young Readers', prompt:'Does the main character remind you of anyone you know?' },
+  { label:'🧒 Young Readers', prompt:'Describe your favorite scene like you\'re telling a friend about it.' },
+  // All readers
+  { label:'📖 All Readers', prompt:'What emotion did today\'s reading give you, and why?' },
+  { label:'📖 All Readers', prompt:'Write one sentence that describes the whole story so far.' },
+  { label:'📖 All Readers', prompt:'Find a quote or passage you loved — write it down and say why it stood out.' },
+  { label:'📖 All Readers', prompt:'How does this book connect to something in your own life?' },
+  { label:'📖 All Readers', prompt:'Rate this book so far (1–5 ⭐) and explain your rating.' },
+  { label:'📖 All Readers', prompt:'What\'s the main character\'s biggest challenge right now? How are they handling it?' },
+  { label:'📖 All Readers', prompt:'What surprised you? What did you predict correctly?' },
+  { label:'📖 All Readers', prompt:'What\'s one thing you\'ll remember from what you read today?' },
+];
+
+let _journalPromptsOpen = false;
+
+function toggleJournalPrompts() {
+  _journalPromptsOpen = !_journalPromptsOpen;
+  const panel = document.getElementById('journal-prompt-panel');
+  const arrow = document.getElementById('journal-prompt-arrow');
+  if (!panel) return;
+  if (_journalPromptsOpen) {
+    // Build prompt list
+    const list = document.getElementById('journal-prompt-list');
+    if (list && !list.children.length) {
+      let lastLabel = '';
+      list.innerHTML = JOURNAL_PROMPTS.map(p => {
+        const header = p.label !== lastLabel
+          ? `<div style="font-size:9px;font-weight:800;color:#15803D;letter-spacing:0.8px;text-transform:uppercase;margin-top:${lastLabel ? '6' : '0'}px;margin-bottom:2px;">${(lastLabel = p.label)}</div>`
+          : (lastLabel = p.label, '');
+        return header + `<div onclick="useJournalPrompt(${JSON.stringify(p.prompt)})"
+          style="font-size:12px;color:#166534;background:rgba(22,163,74,0.08);border-radius:8px;padding:7px 10px;cursor:pointer;transition:background .15s;"
+          onmouseenter="this.style.background='rgba(22,163,74,0.18)'" onmouseleave="this.style.background='rgba(22,163,74,0.08)'">${p.prompt}</div>`;
+      }).join('');
+    }
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+    if (arrow) arrow.textContent = '▴';
+  } else {
+    panel.style.maxHeight = '0';
+    if (arrow) arrow.textContent = '▾';
+  }
+}
+
+function useJournalPrompt(prompt) {
+  const ta = document.getElementById('journal-text');
+  if (!ta) return;
+  // Prepend prompt as a starting line if textarea is empty, otherwise append on new line
+  const current = ta.value.trim();
+  ta.value = current ? current + '\n\n' + prompt + '\n' : prompt + '\n';
+  ta.focus();
+  // Place cursor at end
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  // Collapse the prompt panel
+  _journalPromptsOpen = true;
+  toggleJournalPrompts();
 }
 
 // ── Point System detail panels (library hours / bingo ranges) ────────────────
@@ -5889,6 +5991,10 @@ window.openModal = function(id) {
   if (id==='journal-modal') {
     populateJournalBooks();
     resetJournalStars();
+    // Reset prompt panel to collapsed state
+    _journalPromptsOpen = true; toggleJournalPrompts(); // forces close if open
+    const list = document.getElementById('journal-prompt-list');
+    if (list) list.innerHTML = ''; // clear so it rebuilds fresh
   }
   origOpenModal(id);
 };
