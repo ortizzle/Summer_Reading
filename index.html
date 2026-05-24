@@ -2493,6 +2493,7 @@ let state = {
   groupMilestones: [],
   activity: [],
   deletedActivityIds: [],  // ids explicitly deleted — never re-merged from Gist
+  deletedSessionIds: [],   // session ids explicitly deleted — survives Gist sync failures
   avatars: {},       // memberId -> emoji string
   pins: {},          // memberId -> '1234'
   themes: {},        // memberId -> 'standard' | 'sparkle' | 'bubbles'
@@ -2577,9 +2578,24 @@ async function loadFromGist() {
           state.bingo[m.id] = { ...remoteMember, ...localMember };
         });
       }
+      // Build the union of deleted session IDs from both local storage and Gist.
+      // This ensures intentional deletes survive even when the Gist PATCH failed.
+      const localRaw = localStorage.getItem('ortizzle_local');
+      const localDeletedSessions = new Set();
+      if (localRaw) { try { (JSON.parse(localRaw).deletedSessionIds||[]).forEach(id => localDeletedSessions.add(id)); } catch(e){} }
+      const allDeletedSessionIds = new Set([...localDeletedSessions, ...(gistState.deletedSessionIds||[])]);
+      state.deletedSessionIds = [...allDeletedSessionIds];
+      // Strip any resurrected deleted sessions from all members (covers Gist-PATCH-failure case)
+      if (allDeletedSessionIds.size) {
+        MEMBERS.forEach(m => {
+          if (state.sessions[m.id]) {
+            state.sessions[m.id] = state.sessions[m.id].filter(s => !allDeletedSessionIds.has(s.id));
+          }
+        });
+      }
+
       // Rescue locally-saved items that didn't make it to the Gist
       // (e.g. Gist write failed on a previous save — local has them, Gist doesn't)
-      const localRaw = localStorage.getItem('ortizzle_local');
       if (localRaw) {
         try {
           const local = JSON.parse(localRaw);
@@ -2596,7 +2612,8 @@ async function loadFromGist() {
               const rescued = localArr.filter(x =>
                 x.id &&
                 !gistIds.has(x.id) &&
-                (x.addedTs || x.ts || 0) > clearedTs  // 0 = no timestamp = treat as old, never rescue after a clear
+                !allDeletedSessionIds.has(x.id) &&   // never rescue explicitly deleted sessions
+                (x.addedTs || x.ts || 0) > clearedTs // 0 = no timestamp = treat as old, never rescue after a clear
               );
               if (rescued.length) {
                 state[key][m.id] = [...gistArr, ...rescued];
@@ -6249,6 +6266,9 @@ function auditDeleteSession(memberId, sessionId) {
   const label = s.bookTitle || s.squareId || s.bookId;
   if (!confirm(`Delete "${label}" (${s.minutes} pts) from ${s.date}? This cannot be undone.`)) return;
   state.sessions[memberId] = sessions.filter(s => s.id !== sessionId);
+  // Track the deleted ID so it never resurfaces from a stale Gist
+  if (!state.deletedSessionIds) state.deletedSessionIds = [];
+  if (!state.deletedSessionIds.includes(sessionId)) state.deletedSessionIds.push(sessionId);
   saveToGist().then(() => {
     renderAuditTable();
     renderHome();
