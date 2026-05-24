@@ -1921,10 +1921,11 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div style="padding:14px 18px 10px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">⭐ Bonus Activities</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
+        <div id="pts-tile-library" onclick="togglePtsDetail('library')" style="background:var(--sand);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background .2s;">
           <div style="font-size:18px;margin-bottom:4px;">🏛️</div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">Library Visit</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+20 pts</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:0.3px;">TAP FOR HOURS ▾</div>
         </div>
         <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
           <div style="font-size:18px;margin-bottom:4px;">📚</div>
@@ -1936,10 +1937,70 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="font-size:12px;font-weight:600;color:var(--text);">Journal Entry</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">+5 pts</div>
         </div>
-        <div style="background:var(--sand);border-radius:10px;padding:10px 12px;">
+        <div id="pts-tile-bingo" onclick="togglePtsDetail('bingo')" style="background:var(--sand);border-radius:10px;padding:10px 12px;cursor:pointer;transition:background .2s;">
           <div style="font-size:18px;margin-bottom:4px;">🎯</div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">Bingo Square</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">15–50 pts</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:0.3px;">TAP FOR RANGES ▾</div>
+        </div>
+      </div>
+
+      <!-- Library hours slide-down -->
+      <div id="pts-detail-library" style="max-height:0;overflow:hidden;transition:max-height 0.38s cubic-bezier(.4,0,.2,1);">
+        <div style="margin-top:10px;background:#EFF6FF;border-radius:12px;padding:14px 14px 10px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#1D4ED8;margin-bottom:10px;">📍 Chandler Public Library</div>
+          <!-- Downtown -->
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:13px;font-weight:700;color:#1E3A5F;">🏛️ Downtown</span>
+              <span style="font-size:10px;color:#64748B;">22 S Delaware St</span>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px;">
+              <span style="color:#475569;font-weight:600;">Mon–Wed</span><span style="color:#1E3A5F;font-weight:700;">9:00 AM – 8:00 PM</span>
+              <span style="color:#475569;font-weight:600;">Thu–Sat</span><span style="color:#1E3A5F;font-weight:700;">9:00 AM – 5:00 PM</span>
+              <span style="color:#475569;font-weight:600;">Sun</span><span style="color:#1E3A5F;font-weight:700;">1:00 PM – 5:00 PM</span>
+            </div>
+          </div>
+          <div style="height:1px;background:rgba(29,78,216,0.12);margin-bottom:10px;"></div>
+          <!-- Hamilton -->
+          <div style="margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:13px;font-weight:700;color:#1E3A5F;">🏛️ Hamilton</span>
+              <span style="font-size:10px;color:#64748B;">3700 S Arizona Ave</span>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px;">
+              <span style="color:#475569;font-weight:600;">Mon–Wed</span><span style="color:#1E3A5F;font-weight:700;">7:30 AM – 7:00 PM</span>
+              <span style="color:#475569;font-weight:600;">Thu–Fri</span><span style="color:#1E3A5F;font-weight:700;">7:30 AM – 5:00 PM</span>
+              <span style="color:#475569;font-weight:600;">Sat</span><span style="color:#1E3A5F;font-weight:700;">1:00 PM – 5:00 PM</span>
+              <span style="color:#475569;font-weight:600;">Sun</span><span style="color:#94A3B8;font-weight:600;">Closed</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:#64748B;text-align:center;">📞 480-782-2800 · chandlerlibrary.org</div>
+        </div>
+      </div>
+
+      <!-- Bingo ranges slide-down -->
+      <div id="pts-detail-bingo" style="max-height:0;overflow:hidden;transition:max-height 0.38s cubic-bezier(.4,0,.2,1);">
+        <div style="margin-top:10px;background:#FFF8E1;border-radius:12px;padding:14px 14px 10px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#F9A825;margin-bottom:10px;">🎯 Square Point Tiers</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;">
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:#F9A825;min-width:36px;">15</span>
+              <div><div style="font-weight:700;color:var(--text);">Travel reads</div><div style="color:var(--muted);font-size:11px;">Ship · Plane · At Sea · Port Day · Canada</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:#F9A825;min-width:36px;">25</span>
+              <div><div style="font-weight:700;color:var(--text);">Reading habits</div><div style="color:var(--muted);font-size:11px;">Outside · Library · Family read · Ice cream · Cozy corner · Car reader</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:#F9A825;min-width:36px;">30</span>
+              <div><div style="font-weight:700;color:var(--text);">Challenges</div><div style="color:var(--muted);font-size:11px;">New genre · Brave DNF · Recommended · 5-Star review · Buddy read · Audiobook</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:#F9A825;min-width:36px;">50</span>
+              <div><div style="font-weight:700;color:var(--text);">Milestones</div><div style="color:var(--muted);font-size:11px;">Full novel · Lost in a book · Author explorer · Different world · Time traveler · Weekend read</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2953,6 +3014,25 @@ function renderGoalBreakdown() {
   // Allow panel to resize now that content is rendered
   const panel = document.getElementById('goal-breakdown');
   if (panel && _goalBreakdownOpen) panel.style.maxHeight = panel.scrollHeight + 'px';
+}
+
+// ── Point System detail panels (library hours / bingo ranges) ────────────────
+let _ptsDetailOpen = null;
+function togglePtsDetail(type) {
+  const prev = _ptsDetailOpen;
+  // Close previous panel
+  if (prev) {
+    const prevEl = document.getElementById('pts-detail-' + prev);
+    if (prevEl) prevEl.style.maxHeight = '0';
+    const prevTile = document.getElementById('pts-tile-' + prev);
+    if (prevTile) prevTile.style.background = 'var(--sand)';
+  }
+  if (prev === type) { _ptsDetailOpen = null; return; }
+  _ptsDetailOpen = type;
+  const el = document.getElementById('pts-detail-' + type);
+  const tile = document.getElementById('pts-tile-' + type);
+  if (el) { el.style.maxHeight = el.scrollHeight + 'px'; }
+  if (tile) tile.style.background = '#FEF9C3';
 }
 
 // ── Family Total slide-down breakdown ────────────────────────────────────────
