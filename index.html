@@ -1621,7 +1621,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 
   <!-- Group milestone / Family Goal -->
-  <div class="group-progress-card">
+  <div class="group-progress-card" onclick="toggleGoalBreakdown()" style="cursor:pointer;">
     <div class="group-title">🌟 Family Goal</div>
     <div class="group-subtitle" id="group-milestone-label">Reading together all summer</div>
     <div class="group-progress-bar">
@@ -1636,6 +1636,14 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:8px;">UNLOCKED</div>
       <div id="earned-milestones-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
     </div>
+    <!-- Contribution breakdown (slide-down) -->
+    <div id="goal-breakdown" style="max-height:0;overflow:hidden;transition:max-height 0.38s cubic-bezier(.4,0,.2,1);">
+      <div style="border-top:1px solid rgba(255,255,255,0.15);margin-top:14px;padding-top:14px;">
+        <div style="color:rgba(255,255,255,0.55);font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:12px;">👤 INDIVIDUAL CONTRIBUTIONS</div>
+        <div id="goal-breakdown-bars"></div>
+      </div>
+    </div>
+    <div id="goal-breakdown-hint" style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;">TAP TO SEE CONTRIBUTIONS ▾</div>
   </div>
 
   <!-- Family Goal Celebration Overlay -->
@@ -2889,6 +2897,57 @@ function buildPointsAudit(memberId) {
 //  HOME
 // ═══════════════════════════════════════
 let _lbMode = 'time'; // 'time' | 'pts'
+let _goalBreakdownOpen = false;
+
+function toggleGoalBreakdown() {
+  _goalBreakdownOpen = !_goalBreakdownOpen;
+  const panel = document.getElementById('goal-breakdown');
+  const hint  = document.getElementById('goal-breakdown-hint');
+  if (!panel) return;
+  if (_goalBreakdownOpen) {
+    renderGoalBreakdown();
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+    if (hint) hint.textContent = 'TAP TO COLLAPSE ▴';
+  } else {
+    panel.style.maxHeight = '0';
+    if (hint) hint.textContent = 'TAP TO SEE CONTRIBUTIONS ▾';
+  }
+}
+
+function renderGoalBreakdown() {
+  const barsEl = document.getElementById('goal-breakdown-bars');
+  if (!barsEl) return;
+  const earned = state.groupMilestones || [];
+  const nextGM = GROUP_MILESTONES.find(gm => !earned.includes(gm.id));
+  const threshold = nextGM ? nextGM.threshold : GROUP_MILESTONES[GROUP_MILESTONES.length - 1].threshold;
+  const memberData = MEMBERS.map(m => ({
+    ...m,
+    pts: getMemberPoints(m.id),
+    color: getMemberColor(m.id),
+    emoji: getMemberEmoji(m.id)
+  })).sort((a, b) => b.pts - a.pts);
+  const topPts = memberData[0]?.pts || 1; // for relative bar scaling within the panel
+  barsEl.innerHTML = memberData.map(m => {
+    const pctOfGoal = Math.min(100, (m.pts / threshold) * 100);
+    const pctOfTop  = Math.min(100, (m.pts / Math.max(topPts, 1)) * 100);
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">${m.emoji}</span>
+            <span style="color:white;font-size:13px;font-weight:700;">${m.name}</span>
+          </div>
+          <span style="color:rgba(255,255,255,0.8);font-size:12px;font-weight:700;">${m.pts.toLocaleString()} pts <span style="font-weight:400;opacity:.65;">(${pctOfGoal.toFixed(0)}% of goal)</span></span>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:20px;height:10px;overflow:hidden;">
+          <div style="height:100%;border-radius:20px;background:${m.color};width:${pctOfTop}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);"></div>
+        </div>
+      </div>`;
+  }).join('');
+  // Allow panel to resize now that content is rendered
+  const panel = document.getElementById('goal-breakdown');
+  if (panel && _goalBreakdownOpen) panel.style.maxHeight = panel.scrollHeight + 'px';
+}
 
 function switchLbTab(mode) {
   _lbMode = mode;
@@ -3070,6 +3129,7 @@ function renderHome() {
 
   // Recent activity preview (last 5 items)
   renderActivityList('activity-feed', 5);
+  if (_goalBreakdownOpen) renderGoalBreakdown();
 
 }
 
