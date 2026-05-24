@@ -1677,21 +1677,27 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <div style="background:var(--navy);border-radius:20px;padding:20px;margin-bottom:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
     <div style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:14px;">👨‍👩‍👧 FAMILY TOTAL</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+      <div id="fam-tile-reading" onclick="toggleFamTotal('reading')" style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:background .2s;">
         <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#4ECDC4;line-height:1;" id="fam-total-reading">0</div>
         <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">📖 READING</div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+      <div id="fam-tile-finished" onclick="toggleFamTotal('finished')" style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:background .2s;">
         <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#FFE66D;line-height:1;" id="fam-total-books">0</div>
         <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">✅ FINISHED</div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+      <div id="fam-tile-mins" onclick="toggleFamTotal('mins')" style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:background .2s;">
         <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#FF8FA3;line-height:1;" id="fam-total-mins">0m</div>
         <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">⏱ READ</div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;">
+      <div id="fam-tile-pts" onclick="toggleFamTotal('pts')" style="background:rgba(255,255,255,0.06);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:background .2s;">
         <div style="font-family:'Fraunces',serif;font-size:36px;font-weight:900;color:#C3B1E1;line-height:1;" id="fam-total-pts">0</div>
         <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-top:4px;letter-spacing:0.5px;">⭐ POINTS</div>
+      </div>
+    </div>
+    <!-- Slide-down breakdown -->
+    <div id="fam-total-breakdown" style="max-height:0;overflow:hidden;transition:max-height 0.38s cubic-bezier(.4,0,.2,1);">
+      <div style="border-top:1px solid rgba(255,255,255,0.12);margin-top:16px;padding-top:14px;">
+        <div id="fam-total-breakdown-content"></div>
       </div>
     </div>
   </div>
@@ -2949,6 +2955,187 @@ function renderGoalBreakdown() {
   if (panel && _goalBreakdownOpen) panel.style.maxHeight = panel.scrollHeight + 'px';
 }
 
+// ── Family Total slide-down breakdown ────────────────────────────────────────
+let _famTotalView = null; // 'reading' | 'finished' | 'mins' | 'pts'
+
+function toggleFamTotal(view) {
+  const panel = document.getElementById('fam-total-breakdown');
+  if (!panel) return;
+  const tileIds = ['reading','finished','mins','pts'];
+  if (_famTotalView === view) {
+    // collapse
+    _famTotalView = null;
+    panel.style.maxHeight = '0';
+    tileIds.forEach(v => {
+      const el = document.getElementById('fam-tile-' + v);
+      if (el) el.style.background = 'rgba(255,255,255,0.06)';
+    });
+  } else {
+    _famTotalView = view;
+    renderFamTotalBreakdown();
+    // highlight active tile, dim others
+    tileIds.forEach(v => {
+      const el = document.getElementById('fam-tile-' + v);
+      if (!el) return;
+      el.style.background = v === view ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.04)';
+    });
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+  }
+}
+
+function renderFamTotalBreakdown() {
+  const el = document.getElementById('fam-total-breakdown-content');
+  if (!el) return;
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  const view = _famTotalView;
+
+  if (view === 'reading') {
+    // Books currently in progress (status === 'reading') per member, with time logged
+    const rows = [];
+    MEMBERS.forEach(m => {
+      const memberBooks = (state.books[m.id] || []).filter(b => b.status === 'reading');
+      if (!memberBooks.length) return;
+      // Build bookId → minutes map from reading sessions
+      const sess = state.sessions[m.id] || [];
+      const bookMins = {};
+      sess.filter(s => !NON_READING.includes(s.bookId)).forEach(s => {
+        bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
+      });
+      const color = getMemberColor(m.id);
+      const emoji = getMemberEmoji(m.id);
+      rows.push(`<div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="font-size:15px;">${emoji}</span>
+          <span style="color:white;font-size:13px;font-weight:700;">${m.name}</span>
+        </div>
+        ${memberBooks.map(book => {
+          const mins = bookMins[book.id] || 0;
+          const hrs = Math.floor(mins / 60);
+          const minLeft = mins % 60;
+          const timeStr = mins > 0 ? (hrs > 0 ? `${hrs}h ${minLeft}m` : `${minLeft}m`) : '—';
+          const meta = [book.author, book.pages ? book.pages + ' pages' : ''].filter(Boolean).join(' · ');
+          return `<div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:9px 12px;margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;flex:1;padding-right:8px;">📖 ${book.title || 'Unknown'}</div>
+              <div style="color:${color};font-size:12px;font-weight:700;white-space:nowrap;">⏱ ${timeStr}</div>
+            </div>
+            ${meta ? `<div style="color:rgba(255,255,255,0.4);font-size:10px;margin-top:2px;">${meta}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`);
+    });
+    el.innerHTML = rows.length
+      ? `<div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;margin-bottom:12px;">📖 BOOKS IN PROGRESS</div>` + rows.join('')
+      : `<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;padding:12px 0;">No books in progress yet!</div>`;
+
+  } else if (view === 'finished') {
+    // Finished books per member with time logged
+    const rows = [];
+    MEMBERS.forEach(m => {
+      const memberBooks = (state.books[m.id] || []).filter(b => b.status === 'finished');
+      if (!memberBooks.length) return;
+      const sess = state.sessions[m.id] || [];
+      const bookMins = {};
+      sess.filter(s => !NON_READING.includes(s.bookId)).forEach(s => {
+        bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
+      });
+      const color = getMemberColor(m.id);
+      const emoji = getMemberEmoji(m.id);
+      rows.push(`<div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="font-size:15px;">${emoji}</span>
+          <span style="color:white;font-size:13px;font-weight:700;">${m.name}</span>
+        </div>
+        ${memberBooks.map(book => {
+          const mins = bookMins[book.id] || 0;
+          const hrs = Math.floor(mins / 60);
+          const minLeft = mins % 60;
+          const timeStr = mins > 0 ? (hrs > 0 ? `${hrs}h ${minLeft}m` : `${minLeft}m`) : '—';
+          const meta = [book.author, book.pages ? book.pages + ' pages' : ''].filter(Boolean).join(' · ');
+          return `<div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:9px 12px;margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="color:rgba(255,255,255,0.9);font-size:12px;font-weight:600;flex:1;padding-right:8px;">✅ ${book.title || 'Unknown'}</div>
+              <div style="color:${color};font-size:12px;font-weight:700;white-space:nowrap;">${timeStr}</div>
+            </div>
+            ${meta ? `<div style="color:rgba(255,255,255,0.4);font-size:10px;margin-top:2px;">${meta}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`);
+    });
+    el.innerHTML = rows.length
+      ? `<div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;margin-bottom:12px;">✅ FINISHED BOOKS</div>` + rows.join('')
+      : `<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;padding:12px 0;">No finished books yet — keep reading!</div>`;
+
+  } else if (view === 'mins') {
+    // Reading time bars per member
+    const memberData = MEMBERS.map(m => {
+      const sess = state.sessions[m.id] || [];
+      const readMins = sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+      return { ...m, readMins, color: getMemberColor(m.id), emoji: getMemberEmoji(m.id) };
+    }).sort((a,b) => b.readMins - a.readMins);
+    const topMins = memberData[0]?.readMins || 1;
+    el.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;margin-bottom:12px;">⏱ READING TIME</div>` +
+      memberData.map(m => {
+        const hrs = Math.floor(m.readMins / 60);
+        const mins = m.readMins % 60;
+        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+        const pct = Math.min(100, (m.readMins / Math.max(topMins, 1)) * 100);
+        return `<div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:15px;">${m.emoji}</span>
+              <span style="color:white;font-size:13px;font-weight:700;">${m.name}</span>
+            </div>
+            <span style="color:rgba(255,255,255,0.8);font-size:12px;font-weight:700;">${timeStr}</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.12);border-radius:20px;height:10px;overflow:hidden;">
+            <div style="height:100%;border-radius:20px;background:${m.color};width:${pct}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+  } else if (view === 'pts') {
+    // Points breakdown per member by category
+    const memberData = MEMBERS.map(m => {
+      const sess = state.sessions[m.id] || [];
+      const readPts  = sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+      const bingoPts = sess.filter(s => ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+      const libPts   = sess.filter(s => s.bookId === 'library').reduce((a,s) => a + (s.minutes||0), 0);
+      const jrnlPts  = sess.filter(s => s.bookId === 'journal').reduce((a,s) => a + (s.minutes||0), 0);
+      const total    = getMemberPoints(m.id);
+      return { ...m, readPts, bingoPts, libPts, jrnlPts, total, color: getMemberColor(m.id), emoji: getMemberEmoji(m.id) };
+    }).sort((a,b) => b.total - a.total);
+    const topPts = memberData[0]?.total || 1;
+    el.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;margin-bottom:12px;">⭐ POINTS BREAKDOWN</div>` +
+      memberData.map(m => {
+        const pct = Math.min(100, (m.total / Math.max(topPts, 1)) * 100);
+        const cats = [
+          m.readPts  > 0 ? `📖 ${m.readPts} reading` : null,
+          m.bingoPts > 0 ? `🎯 ${m.bingoPts} bingo` : null,
+          m.libPts   > 0 ? `🏛 ${m.libPts} library` : null,
+          m.jrnlPts  > 0 ? `📔 ${m.jrnlPts} journal` : null,
+        ].filter(Boolean).join(' · ');
+        return `<div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:15px;">${m.emoji}</span>
+              <span style="color:white;font-size:13px;font-weight:700;">${m.name}</span>
+            </div>
+            <span style="color:rgba(255,255,255,0.8);font-size:12px;font-weight:700;">${m.total.toLocaleString()} pts</span>
+          </div>
+          ${cats ? `<div style="color:rgba(255,255,255,0.45);font-size:10px;margin-bottom:4px;padding-left:22px;">${cats}</div>` : ''}
+          <div style="background:rgba(255,255,255,0.12);border-radius:20px;height:10px;overflow:hidden;">
+            <div style="height:100%;border-radius:20px;background:${m.color};width:${pct}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);"></div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // Allow panel to resize now that content is rendered
+  const panel = document.getElementById('fam-total-breakdown');
+  if (panel && _famTotalView) panel.style.maxHeight = panel.scrollHeight + 'px';
+}
+
 function switchLbTab(mode) {
   _lbMode = mode;
   // Update tab button styles
@@ -3130,6 +3317,7 @@ function renderHome() {
   // Recent activity preview (last 5 items)
   renderActivityList('activity-feed', 5);
   if (_goalBreakdownOpen) renderGoalBreakdown();
+  if (_famTotalView) renderFamTotalBreakdown();
 
 }
 
