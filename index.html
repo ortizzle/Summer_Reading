@@ -1472,6 +1472,41 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   margin-top: 3px;
 }
 
+/* ── NOW READING STRIP ── */
+.now-reading-strip { display:flex; gap:10px; overflow-x:auto; padding:0 0 12px; scrollbar-width:none; margin-bottom:4px; }
+.now-reading-strip::-webkit-scrollbar { display:none; }
+.now-reading-card {
+  flex-shrink:0; width:86px; background:white; border-radius:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.09); padding:10px 8px; text-align:center;
+  cursor:pointer; transition:transform 0.13s, box-shadow 0.13s;
+}
+.now-reading-card:active { transform:scale(0.96); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+.now-reading-cover { font-size:28px; line-height:1; margin-bottom:4px; }
+.now-reading-cover img { width:44px; height:60px; border-radius:6px; object-fit:cover; }
+.now-reading-name { font-size:11px; font-weight:800; color:var(--text); margin-bottom:2px; }
+.now-reading-title { font-size:10px; color:var(--muted); line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+/* ── RECOMMENDATION CARD ── */
+.activity-item.rec-card {
+  border-radius:14px; padding:12px 14px; margin-bottom:10px;
+  background:linear-gradient(135deg,rgba(91,79,207,0.06),rgba(91,79,207,0.02));
+  border:1.5px solid rgba(91,79,207,0.2);
+}
+.rec-card-book { font-size:16px; font-weight:800; color:var(--text); font-family:'Fraunces',serif; margin:6px 0 2px; line-height:1.3; }
+.rec-card-author { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.rec-card-note { font-size:13px; color:var(--text); font-style:italic; background:var(--cream); border-radius:8px; padding:6px 10px; margin-bottom:8px; line-height:1.4; }
+.rec-wishlist-btn { font-size:12px; font-weight:700; color:#5B4FCF; background:rgba(91,79,207,0.1); border:1.5px solid rgba(91,79,207,0.3); border-radius:20px; padding:5px 14px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.rec-wishlist-btn:active { opacity:0.7; }
+.rec-wishlist-btn.done { color:#2e7d32; background:rgba(46,125,50,0.1); border-color:rgba(46,125,50,0.3); }
+
+/* ── PHOTO POST ── */
+.activity-item.photo-card { }
+.feed-photo { width:100%; border-radius:12px; margin-top:8px; max-height:320px; object-fit:cover; display:block; }
+
+/* ── FEED TYPE TABS ── */
+.feed-type-btn { flex:1; padding:7px 4px; border-radius:10px; border:1.5px solid #e8e8e8; background:white; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:background 0.12s; }
+.feed-type-btn.active { background:#5B4FCF; color:white; border-color:#5B4FCF; }
+
 /* ── DATE SEPARATOR ── */
 .feed-date-sep {
   text-align: center;
@@ -2081,9 +2116,16 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="section" id="sec-feed">
   <div class="member-select-bar" id="feed-member-bar"></div>
 
+  <!-- Now Reading strip -->
+  <div id="exchange-now-reading"></div>
+
   <!-- Message composer -->
   <div class="card" style="padding:12px 16px;">
     <div id="reply-quote-bar" style="display:none;align-items:center;background:var(--sand);border-radius:8px;padding:6px 10px;margin-bottom:8px;gap:6px;"></div>
+    <!-- Photo URL input (hidden until toggled) -->
+    <div id="photo-input-row" style="display:none;margin-bottom:8px;">
+      <input id="feed-photo-url" type="url" placeholder="Paste an image URL (iCloud, Google Photos share link, etc.)" class="form-select" style="font-size:13px;padding:8px 12px;border-radius:10px;" />
+    </div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
       <div style="flex:1;position:relative;">
         <textarea id="feed-input" class="form-select" placeholder="Say something to the family… use @name to mention someone" rows="2"
@@ -2093,7 +2135,13 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           onblur="setTimeout(()=>hideMentionDropdown(),150)"></textarea>
         <div id="mention-dropdown"></div>
       </div>
-      <button class="btn btn-primary" onclick="postFeedMessage()" style="padding:10px 16px;flex-shrink:0;">Send</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button class="btn btn-primary" onclick="postFeedMessage()" style="padding:10px 16px;">Send</button>
+        <div style="display:flex;gap:6px;">
+          <button title="Recommend a book" onclick="openRecommendModal()" style="flex:1;padding:7px 0;border-radius:10px;border:1.5px solid #5B4FCF;background:white;color:#5B4FCF;font-size:15px;cursor:pointer;">📚</button>
+          <button id="photo-toggle-btn" title="Add a photo" onclick="togglePhotoInput()" style="flex:1;padding:7px 0;border-radius:10px;border:1.5px solid #00897B;background:white;color:#00897B;font-size:15px;cursor:pointer;">📷</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2103,6 +2151,8 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <div class="card-title" style="margin:0;">💬 The Exchange</div>
       <div id="feed-filter-label" style="font-size:10px;color:var(--muted);font-weight:600;display:none;"></div>
     </div>
+    <!-- Type filter tabs -->
+    <div id="feed-type-bar" style="display:flex;gap:6px;margin-bottom:10px;"></div>
     <!-- Member filter pills -->
     <div id="feed-filter-bar" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;scrollbar-width:none;">
       <button id="feed-filter-all" onclick="setFeedFilter(null)"
@@ -2142,6 +2192,30 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 </div>
 
 <!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- Recommend a Book Modal -->
+<div class="modal-overlay" id="recommend-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📚 Recommend a Book</div>
+    <div class="form-group">
+      <label class="form-label">Which book?</label>
+      <select id="rec-book-select" class="form-select">
+        <option value="">— pick a book from your shelf —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recommend to…</label>
+      <div id="rec-member-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Add a note <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+      <textarea id="rec-note" class="form-select" rows="2" placeholder="Why should they read it?" style="resize:none;font-size:13px;"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="submitRecommend()" style="margin-top:4px;">📚 Send Recommendation</button>
+    <button class="btn btn-secondary btn-full" onclick="closeModal('recommend-modal')" style="margin-top:8px;">Cancel</button>
+  </div>
+</div>
 
 <!-- Add Book Modal -->
 <div class="modal-overlay" id="add-book-modal">
@@ -3888,18 +3962,27 @@ function renderActivityList(containerId, limit) {
   const el = document.getElementById(containerId);
   if (!el) return;
   let acts = (state.activity || []).slice(limit ? -limit : 0).reverse();
+  // Apply type filter on the full feed
+  if (containerId === 'full-feed-list' && _feedType && _feedType !== 'all') {
+    if (_feedType === 'messages') acts = acts.filter(a => a.type === 'message');
+    else if (_feedType === 'activity') acts = acts.filter(a => !a.type || (a.type !== 'message' && a.type !== 'photo' && a.type !== 'recommendation'));
+    else if (_feedType === 'photos') acts = acts.filter(a => a.type === 'photo');
+    else if (_feedType === 'recs') acts = acts.filter(a => a.type === 'recommendation');
+  }
   // Apply member filter on the full feed
   if (containerId === 'full-feed-list' && _feedFilter) {
     const filterMember = MEMBERS.find(m => m.id === _feedFilter);
     const filterName = filterMember ? filterMember.name : '';
     acts = acts.filter(a =>
       a.member === _feedFilter ||
+      a.toMemberId === _feedFilter ||
       (filterName && (a.text || '').toLowerCase().includes('@' + filterName.toLowerCase()))
     );
   }
   if (!acts.length) {
-    const emptyMsg = (containerId === 'full-feed-list' && _feedFilter)
-      ? `<div style="text-align:center;padding:24px 16px;color:var(--muted);font-size:13px;">No posts by or mentioning ${MEMBERS.find(m=>m.id===_feedFilter)?.name || 'this member'} yet.</div>`
+    const typeLabels = { messages:'messages', activity:'activity posts', photos:'photos', recs:'recommendations' };
+    const emptyMsg = (containerId === 'full-feed-list' && (_feedFilter || _feedType !== 'all'))
+      ? `<div style="text-align:center;padding:24px 16px;color:var(--muted);font-size:13px;">No ${_feedType !== 'all' ? typeLabels[_feedType] || 'posts' : 'posts'} yet${_feedFilter ? ` for ${MEMBERS.find(m=>m.id===_feedFilter)?.name || 'this member'}` : ''}.</div>`
       : `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No activity yet — start reading!</div>`;
     el.innerHTML = emptyMsg;
     return;
@@ -3924,16 +4007,59 @@ function renderActivityList(containerId, limit) {
       dateSep = `<div class="feed-date-sep">${itemDate}</div>`;
       lastDateStr = itemDate;
     }
-    const isMsg = a.type === 'message';
+    const isMsg   = a.type === 'message';
+    const isPhoto = a.type === 'photo';
+    const isRec   = a.type === 'recommendation';
     const memberColor = memberObj ? getMemberColor(memberObj.id) : '#ccc';
     const replyName = memberObj ? memberObj.name : '';
     const replyText = (a.text || '').split('\n')[0].replace(/'/g, "\\'").slice(0, 80);
     const replyBtn = replyName ? `<button onclick="feedReply('${replyName}','${replyText}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0 6px;font-family:'DM Sans',sans-serif;font-weight:600;">↩ Reply</button>` : '';
     const isMine = a.member === currentMember;
     const isAdmin = currentMember === ADMIN_ID;
-    // Show ··· on own messages (edit/delete) OR for admin on any item (delete any duplicate/error)
-    const canMenu = (isMsg && isMine) || isAdmin;
-    const msgMenuBtn = canMenu ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}',${!!(isMsg && isMine)})">···</button>` : '';
+    // Show ··· on own messages/photos/recs (edit/delete) OR for admin on any item
+    const canMenu = ((isMsg || isPhoto || isRec) && isMine) || isAdmin;
+    const msgMenuBtn = canMenu ? `<button class="msg-menu-btn" onclick="openMsgMenu('${cardElId}','${actId}',${!!(isMine)})">···</button>` : '';
+
+    // ── RECOMMENDATION CARD ──
+    if (isRec) {
+      const toMember = MEMBERS.find(m => m.id === a.toMemberId);
+      const toName = toMember ? toMember.name : (a.toMemberName || '?');
+      const isForMe = a.toMemberId === currentMember;
+      const alreadyHave = isForMe && (state.books[currentMember]||[]).some(b => b.title === a.bookTitle);
+      const wishlistBtn = isForMe && !alreadyHave
+        ? `<button class="rec-wishlist-btn" id="rec-wb-${actId}" onclick="addRecToWishlist('${actId}','${(a.bookTitle||'').replace(/'/g,"\\'")}','${(a.bookAuthor||'').replace(/'/g,"\\'")}')">+ Add to Wish List</button>`
+        : isForMe && alreadyHave ? `<span class="rec-wishlist-btn done">✓ On your shelf</span>` : '';
+      return `${dateSep}
+      <div class="activity-item rec-card" id="${cardElId}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:11px;color:var(--muted);font-weight:700;">${getMemberEmoji(memberObj?.id||'')} ${who} → ${getMemberEmoji(toMember?.id||'')} ${toName} · ${timeAgo(a.ts)}</div>
+          ${msgMenuBtn}
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#5B4FCF;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">📚 Book Recommendation</div>
+        <div class="rec-card-book">${a.bookTitle || ''}</div>
+        ${a.bookAuthor ? `<div class="rec-card-author">by ${a.bookAuthor}</div>` : ''}
+        ${a.note ? `<div class="rec-card-note">"${a.note}"</div>` : ''}
+        ${wishlistBtn ? `<div style="margin-bottom:8px;">${wishlistBtn}</div>` : ''}
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
+      </div>`;
+    }
+
+    // ── PHOTO CARD ──
+    if (isPhoto) {
+      return `${dateSep}
+      <div class="activity-item msg-bubble photo-card" id="${cardElId}" style="border-left-color:${memberColor};">
+        <div class="activity-main">
+          <div class="activity-emoji">${getMemberEmoji(memberObj?.id||'')}</div>
+          <div class="activity-body">
+            <div class="activity-meta" style="margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">${who} · ${timeAgo(a.ts)}${msgMenuBtn}</div>
+            ${a.text ? `<div class="msg-speech" style="margin-bottom:4px;">${a.text}</div>` : ''}
+            <img src="${a.imageUrl||''}" class="feed-photo" alt="photo" onerror="this.parentElement.insertAdjacentHTML('beforeend','<div style=\\'font-size:12px;color:var(--muted);padding:6px;\\'>⚠️ Image failed to load</div>');this.remove();">
+          </div>
+        </div>
+        <div class="reaction-row">${reactionBtns}${replyBtn}</div>
+      </div>`;
+    }
+
     if (isMsg) {
       // Split off any inline reply quote (↩ re: "...") for styled rendering
       const rawText = a.text || '';
@@ -3983,10 +4109,31 @@ function renderActivityList(containerId, limit) {
 //  FEED (messaging + activity)
 // ═══════════════════════════════════════
 let _feedFilter = null; // null = all, or a memberId
+let _feedType   = 'all'; // 'all' | 'messages' | 'activity'
 
 function setFeedFilter(memberId) {
   _feedFilter = memberId;
   renderFeed();
+}
+
+function setFeedType(type) {
+  _feedType = type;
+  renderFeed();
+}
+
+function buildFeedTypeBar() {
+  const bar = document.getElementById('feed-type-bar');
+  if (!bar) return;
+  const types = [
+    { key:'all',      label:'All' },
+    { key:'messages', label:'💬 Chat' },
+    { key:'activity', label:'📣 Activity' },
+    { key:'photos',   label:'📷 Photos' },
+    { key:'recs',     label:'📚 Recs' },
+  ];
+  bar.innerHTML = types.map(t =>
+    `<button class="feed-type-btn${_feedType===t.key?' active':''}" onclick="setFeedType('${t.key}')">${t.label}</button>`
+  ).join('');
 }
 
 function buildFeedFilterBar() {
@@ -4025,9 +4172,35 @@ function buildFeedFilterBar() {
 
 function renderFeed() {
   buildMemberBar('feed-member-bar');
+  buildFeedTypeBar();
   buildFeedFilterBar();
+  renderExchangeNowReading();
   renderActivityList('full-feed-list', 0);
   initMentionDropdown();
+}
+
+function renderExchangeNowReading() {
+  const el = document.getElementById('exchange-now-reading');
+  if (!el) return;
+  const readers = MEMBERS.map(m => {
+    const books = state.books[m.id] || [];
+    const active = books.filter(b => b.status === 'reading').sort((a,b) => (b.addedTs||0)-(a.addedTs||0))[0];
+    return active ? { member: m, book: active } : null;
+  }).filter(Boolean);
+  if (!readers.length) { el.innerHTML = ''; return; }
+  const cards = readers.map(({ member: m, book: b }) => {
+    const color = getMemberColor(m.id);
+    const coverHtml = b.coverUrl
+      ? `<img src="${b.coverUrl}" style="width:44px;height:60px;border-radius:6px;object-fit:cover;margin-bottom:4px;" onerror="this.style.display='none'">`
+      : `<div style="font-size:30px;line-height:1;margin-bottom:4px;">📖</div>`;
+    return `<div class="now-reading-card" onclick="openBookSheet('${b.id}','${m.id}')" style="border-top:3px solid ${color};">
+      ${coverHtml}
+      <div class="now-reading-name" style="color:${color};">${getMemberEmoji(m.id)} ${m.name.split(' ')[0]}</div>
+      <div class="now-reading-title">${b.title}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div style="margin-bottom:6px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">📖 Now Reading</div>
+    <div class="now-reading-strip">${cards}</div>`;
 }
 
 function initMentionDropdown() {}
@@ -4127,10 +4300,114 @@ function postFeedMessage() {
       });
     }
   });
+  // If photo panel is open and URL is filled, post as photo instead
+  const photoUrl = _photoInputOpen ? (document.getElementById('feed-photo-url')?.value || '').trim() : '';
+  if (_photoInputOpen && photoUrl) {
+    postPhotoMessage(photoUrl, fullText);
+    return;
+  }
   input.value = '';
   clearReplyQuote();
   hideMentionDropdown();
   saveToGist().then(() => renderFeed());
+}
+
+// ── PHOTO POSTING ──────────────────────────────────────────────────────────────
+let _photoInputOpen = false;
+
+function togglePhotoInput() {
+  _photoInputOpen = !_photoInputOpen;
+  const row = document.getElementById('photo-input-row');
+  const btn = document.getElementById('photo-toggle-btn');
+  if (row) row.style.display = _photoInputOpen ? 'block' : 'none';
+  if (btn) btn.style.background = _photoInputOpen ? '#00897B' : 'white';
+  if (btn) btn.style.color = _photoInputOpen ? 'white' : '#00897B';
+  if (_photoInputOpen) document.getElementById('feed-photo-url')?.focus();
+}
+
+function postPhotoMessage(imageUrl, caption) {
+  if (!imageUrl) { showToast('Paste an image URL first!'); return; }
+  if (!state.activity) state.activity = [];
+  state.activity.push({ id: uid(), type: 'photo', imageUrl, text: caption || '', member: currentMember, ts: Date.now() });
+  if (state.activity.length > 100) state.activity = state.activity.slice(-100);
+  document.getElementById('feed-input').value = '';
+  document.getElementById('feed-photo-url').value = '';
+  togglePhotoInput(); // close the panel
+  clearReplyQuote();
+  saveToGist().then(() => renderFeed());
+}
+
+// ── RECOMMENDATION MODAL ──────────────────────────────────────────────────────
+let _recSelectedMember = null;
+
+function openRecommendModal() {
+  _recSelectedMember = null;
+  // Populate book picker with own books
+  const sel = document.getElementById('rec-book-select');
+  const books = (state.books[currentMember] || []).filter(b => b.status !== 'dnf');
+  sel.innerHTML = '<option value="">— pick a book from your shelf —</option>' +
+    books.map(b => `<option value="${b.id}" data-title="${b.title.replace(/"/g,'&quot;')}" data-author="${(b.author||'').replace(/"/g,'&quot;')}">${b.title}${b.status==='finished'?' ✓':b.status==='reading'?' 📖':''}</option>`).join('');
+  // Build member chips (everyone except me)
+  const chips = document.getElementById('rec-member-chips');
+  chips.innerHTML = MEMBERS.filter(m => m.id !== currentMember).map(m => {
+    const col = getMemberColor(m.id);
+    return `<button id="rec-chip-${m.id}" onclick="selectRecMember('${m.id}')"
+      style="padding:6px 14px;border-radius:20px;border:2px solid ${col};background:white;color:${col};font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+      ${getMemberEmoji(m.id)} ${m.name}
+    </button>`;
+  }).join('');
+  document.getElementById('rec-note').value = '';
+  openModal('recommend-modal');
+}
+
+function selectRecMember(memberId) {
+  _recSelectedMember = memberId;
+  MEMBERS.filter(m => m.id !== currentMember).forEach(m => {
+    const chip = document.getElementById('rec-chip-' + m.id);
+    if (!chip) return;
+    const col = getMemberColor(m.id);
+    chip.style.background = m.id === memberId ? col : 'white';
+    chip.style.color      = m.id === memberId ? 'white' : col;
+  });
+}
+
+function submitRecommend() {
+  const sel = document.getElementById('rec-book-select');
+  const opt = sel.options[sel.selectedIndex];
+  const bookId = sel.value;
+  if (!bookId) { showToast('Choose a book first!'); return; }
+  if (!_recSelectedMember) { showToast('Choose who to recommend it to!'); return; }
+  const bookTitle  = opt.dataset.title  || opt.text;
+  const bookAuthor = opt.dataset.author || '';
+  const note = (document.getElementById('rec-note')?.value || '').trim();
+  if (!state.activity) state.activity = [];
+  const toMember = MEMBERS.find(m => m.id === _recSelectedMember);
+  state.activity.push({
+    id: uid(), type: 'recommendation',
+    bookId, bookTitle, bookAuthor, note: note || null,
+    member: currentMember,
+    toMemberId: _recSelectedMember,
+    toMemberName: toMember?.name || _recSelectedMember,
+    ts: Date.now()
+  });
+  if (state.activity.length > 100) state.activity = state.activity.slice(-100);
+  closeModal('recommend-modal');
+  saveToGist().then(() => { renderFeed(); showToast(`📚 Recommendation sent to ${toMember?.name || ''}!`); });
+}
+
+function addRecToWishlist(actId, bookTitle, bookAuthor) {
+  if (!bookTitle) return;
+  // Check they don't already have it
+  if ((state.books[currentMember]||[]).some(b => b.title === bookTitle)) {
+    showToast('Already on your shelf!'); return;
+  }
+  ensureMember(currentMember);
+  const newBook = { id: uid(), title: bookTitle, author: bookAuthor || '', pages: 0, genre: '', status: 'want', coverUrl: '', addedTs: Date.now() };
+  state.books[currentMember].push(newBook);
+  saveToGist().then(() => {
+    renderFeed();
+    showToast(`🔖 "${bookTitle}" added to your Wish List!`);
+  });
 }
 
 // ═══════════════════════════════════════
@@ -5496,7 +5773,7 @@ function renderJournal() {
 
     return `
     <div class="notebook-section">
-      <div class="notebook-cover" style="background:${color};" onclick="toggleNotebook(${JSON.stringify(bookTitle)})">
+      <div class="notebook-cover" style="background:${color};" onclick="toggleNotebook('${bookTitle.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
         <div class="notebook-spine">
           <div class="notebook-spine-dot"></div>
           <div class="notebook-spine-dot"></div>
