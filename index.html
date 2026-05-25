@@ -536,9 +536,12 @@ body {
   position: relative; border-radius: 14px; padding: 14px 16px 14px 28px;
   cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
   display: flex; align-items: center; justify-content: space-between;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, border-radius 0.2s;
 }
-.notebook-cover:active { box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.notebook-cover:active { box-shadow: 0 2px 6px rgba(0,0,0,0.18); transform: scale(0.99); }
+.notebook-cover.collapsed { border-radius: 14px; }
+.nb-chevron { transition: transform 0.25s ease; display:inline-block; }
+.nb-chevron.open { transform: rotate(180deg); }
 .notebook-spine {
   position: absolute; left: 0; top: 0; bottom: 0; width: 14px;
   background: rgba(0,0,0,0.22); border-radius: 14px 0 0 14px;
@@ -5375,8 +5378,9 @@ function toggleNotebook(key) {
   const safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
   const pages = document.getElementById('nb-pages-' + safeKey);
   const chevron = document.getElementById('nb-chev-' + safeKey);
-  if (pages) pages.classList.toggle('open', _openNotebooks.has(key));
-  if (chevron) chevron.textContent = _openNotebooks.has(key) ? '▴' : '▾';
+  const isNowOpen = _openNotebooks.has(key);
+  if (pages) pages.classList.toggle('open', isNowOpen);
+  if (chevron) chevron.classList.toggle('open', isNowOpen);
 }
 
 function buildJournalMemberBar() {
@@ -5430,8 +5434,10 @@ function renderJournal() {
     const gen = groups.get('General'); groups.delete('General'); groups.set('General', gen);
   }
 
-  // Open all notebooks on first render for this view
-  groups.forEach((_, key) => _openNotebooks.add(key));
+  // Auto-open all notebooks only on first load for this member (set is empty after member switch)
+  if (_openNotebooks.size === 0) {
+    groups.forEach((_, key) => _openNotebooks.add(key));
+  }
 
   const dateSeparatorLabel = (ts) => {
     const d = new Date(ts);
@@ -5500,7 +5506,7 @@ function renderJournal() {
           <div style="color:white;font-weight:800;font-size:15px;font-family:'Fraunces',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nbEmoji} ${bookTitle}</div>
           <div style="color:rgba(255,255,255,0.65);font-size:11px;margin-top:2px;">${entries.length} entr${entries.length===1?'y':'ies'}</div>
         </div>
-        <div id="nb-chev-${safeKey}" style="color:rgba(255,255,255,0.7);font-size:16px;flex-shrink:0;margin-left:8px;">${isOpen?'▴':'▾'}</div>
+        <div id="nb-chev-${safeKey}" class="nb-chevron ${isOpen?'open':''}" style="color:rgba(255,255,255,0.7);font-size:16px;flex-shrink:0;margin-left:8px;">▾</div>
       </div>
       <div class="notebook-pages ${isOpen?'open':''}" id="nb-pages-${safeKey}" style="border-left-color:${color};">
         <div style="padding-top:6px;">${pages}</div>
