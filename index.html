@@ -2086,7 +2086,17 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
   <!-- Full feed -->
   <div class="card">
-    <div class="card-title">💬 The Exchange</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="card-title" style="margin:0;">💬 The Exchange</div>
+      <div id="feed-filter-label" style="font-size:10px;color:var(--muted);font-weight:600;display:none;"></div>
+    </div>
+    <!-- Member filter pills -->
+    <div id="feed-filter-bar" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;scrollbar-width:none;">
+      <button id="feed-filter-all" onclick="setFeedFilter(null)"
+        style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid var(--sky);background:var(--sky);color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+        All
+      </button>
+    </div>
     <div id="full-feed-list"></div>
   </div>
 </div>
@@ -3506,9 +3516,21 @@ function renderHome() {
 function renderActivityList(containerId, limit) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  const acts = (state.activity || []).slice(limit ? -limit : 0).reverse();
+  let acts = (state.activity || []).slice(limit ? -limit : 0).reverse();
+  // Apply member filter on the full feed
+  if (containerId === 'full-feed-list' && _feedFilter) {
+    const filterMember = MEMBERS.find(m => m.id === _feedFilter);
+    const filterName = filterMember ? filterMember.name : '';
+    acts = acts.filter(a =>
+      a.member === _feedFilter ||
+      (filterName && (a.text || '').toLowerCase().includes('@' + filterName.toLowerCase()))
+    );
+  }
   if (!acts.length) {
-    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No activity yet — start reading!</div>`;
+    const emptyMsg = (containerId === 'full-feed-list' && _feedFilter)
+      ? `<div style="text-align:center;padding:24px 16px;color:var(--muted);font-size:13px;">No posts by or mentioning ${MEMBERS.find(m=>m.id===_feedFilter)?.name || 'this member'} yet.</div>`
+      : `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No activity yet — start reading!</div>`;
+    el.innerHTML = emptyMsg;
     return;
   }
   let lastDateStr = null;
@@ -3589,8 +3611,50 @@ function renderActivityList(containerId, limit) {
 // ═══════════════════════════════════════
 //  FEED (messaging + activity)
 // ═══════════════════════════════════════
+let _feedFilter = null; // null = all, or a memberId
+
+function setFeedFilter(memberId) {
+  _feedFilter = memberId;
+  renderFeed();
+}
+
+function buildFeedFilterBar() {
+  const bar = document.getElementById('feed-filter-bar');
+  if (!bar) return;
+  const allBtn = document.getElementById('feed-filter-all');
+  // Remove old member buttons (keep the All button)
+  Array.from(bar.children).forEach(c => { if (c.id !== 'feed-filter-all') c.remove(); });
+  // Style the All button
+  const activeStyle  = 'flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid var(--sky);background:var(--sky);color:white;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;';
+  const inactiveStyle = 'flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid #ddd;background:white;color:var(--muted);font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;';
+  if (allBtn) allBtn.style.cssText = _feedFilter === null ? activeStyle : inactiveStyle;
+  // Build member buttons
+  MEMBERS.forEach(m => {
+    const btn = document.createElement('button');
+    const isActive = _feedFilter === m.id;
+    btn.style.cssText = isActive
+      ? `flex-shrink:0;padding:5px 10px;border-radius:20px;border:1.5px solid ${getMemberColor(m.id)};background:${getMemberColor(m.id)};color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;`
+      : `flex-shrink:0;padding:5px 10px;border-radius:20px;border:1.5px solid #ddd;background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;`;
+    btn.innerHTML = `${getMemberEmoji(m.id)} ${m.name}`;
+    btn.onclick = () => setFeedFilter(isActive ? null : m.id);
+    bar.appendChild(btn);
+  });
+  // Update label
+  const label = document.getElementById('feed-filter-label');
+  if (label) {
+    if (_feedFilter) {
+      const m = MEMBERS.find(x => x.id === _feedFilter);
+      label.textContent = `posts by & mentioning ${m ? m.name : ''}`;
+      label.style.display = 'block';
+    } else {
+      label.style.display = 'none';
+    }
+  }
+}
+
 function renderFeed() {
   buildMemberBar('feed-member-bar');
+  buildFeedFilterBar();
   renderActivityList('full-feed-list', 0);
   initMentionDropdown();
 }
