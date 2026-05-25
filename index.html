@@ -5530,23 +5530,40 @@ function openBookSheet(bookId, memberId) {
   ].filter(Boolean).join('');
 
   const actionButtons = isOwn ? `
-    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+
       ${book.status === 'reading' ? `
-        <button onclick="closeModal('book-sheet-modal');openQuickLog('${bookId}')"
-          style="width:100%;padding:13px;border-radius:14px;border:none;background:#EDE9FE;color:#5B4FCF;font-size:15px;font-weight:800;cursor:pointer;">
-          ⏱ Log Reading Time
-        </button>
-        <div style="display:flex;gap:8px;">
-          <button onclick="closeModal('book-sheet-modal');quickFinishBook('${bookId}')"
-            style="flex:1;padding:11px;border-radius:12px;border:none;background:#e8f5e9;color:#2e7d32;font-size:13px;font-weight:700;cursor:pointer;">✅ Mark Finished</button>
-          <button onclick="closeModal('book-sheet-modal');quickDNFBook('${bookId}')"
-            style="flex:1;padding:11px;border-radius:12px;border:none;background:#fff3e0;color:#e65100;font-size:13px;font-weight:700;cursor:pointer;">🚩 DNF</button>
-        </div>` : ''}
+      <!-- Inline log form -->
+      <div style="background:#F5F3FF;border-radius:16px;padding:14px 16px;">
+        <div style="font-size:11px;font-weight:800;color:#5B4FCF;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">⏱ Log Reading Time</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#5B4FCF;font-weight:600;margin-bottom:4px;">Minutes</div>
+            <input id="sheet-log-mins" type="number" min="1" max="600" placeholder="e.g. 30" inputmode="numeric"
+              style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #DDD6FE;font-size:16px;font-weight:700;color:#3730a3;background:white;box-sizing:border-box;-webkit-appearance:none;">
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#5B4FCF;font-weight:600;margin-bottom:4px;">Date</div>
+            <input id="sheet-log-date" type="date" value="${todayStr()}"
+              style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #DDD6FE;font-size:13px;color:#3730a3;background:white;box-sizing:border-box;">
+          </div>
+          <button onclick="logFromSheet('${bookId}','${mid}')"
+            style="padding:10px 16px;border-radius:10px;border:none;background:#5B4FCF;color:white;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">+ Log</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeModal('book-sheet-modal');quickFinishBook('${bookId}')"
+          style="flex:1;padding:11px;border-radius:12px;border:none;background:#e8f5e9;color:#2e7d32;font-size:13px;font-weight:700;cursor:pointer;">✅ Mark Finished</button>
+        <button onclick="closeModal('book-sheet-modal');quickDNFBook('${bookId}')"
+          style="flex:1;padding:11px;border-radius:12px;border:none;background:#fff3e0;color:#e65100;font-size:13px;font-weight:700;cursor:pointer;">🚩 DNF</button>
+      </div>` : ''}
+
       ${book.status === 'want' ? `
         <button onclick="closeModal('book-sheet-modal');changeBookStatus('${bookId}','reading')"
           style="width:100%;padding:13px;border-radius:14px;border:none;background:#e8f5e9;color:#2e7d32;font-size:15px;font-weight:800;cursor:pointer;">
           📖 Start Reading
         </button>` : ''}
+
       <div style="display:flex;gap:8px;">
         <button onclick="closeModal('book-sheet-modal');editBook('${bookId}')"
           style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ddd;background:white;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;">✏️ Edit</button>
@@ -5591,6 +5608,34 @@ function openBookSheet(bookId, memberId) {
   `;
 
   openModal('book-sheet-modal');
+}
+
+function logFromSheet(bookId, memberId) {
+  const minsRaw = document.getElementById('sheet-log-mins').value;
+  const dateVal = document.getElementById('sheet-log-date').value;
+  const mins = parseInt(minsRaw, 10);
+  if (isNaN(mins) || mins < 1) {
+    const el = document.getElementById('sheet-log-mins');
+    if (el) { el.style.border = '2px solid #ef4444'; el.focus(); setTimeout(() => el.style.border = '1.5px solid #DDD6FE', 1500); }
+    showToast('Enter the minutes you read!');
+    return;
+  }
+  const mid = memberId || currentMember;
+  const book = (state.books[mid]||[]).find(b => b.id === bookId);
+  if (!book) return;
+  const date = dateVal || todayStr();
+  const session = { id: uid(), bookId, bookTitle: book.title, minutes: mins, date, ts: Date.now(), manual: true };
+  if (!state.sessions[mid]) state.sessions[mid] = [];
+  state.sessions[mid].push(session);
+  const who = MEMBERS.find(m => m.id === mid)?.name || mid;
+  addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, mid);
+  saveToGist().then(() => {
+    checkBadges(mid); checkStreakMilestone(mid); checkGroupMilestones();
+    closeModal('book-sheet-modal');
+    showToast(`+${mins} pts logged for "${book.title}"! 📖`);
+    if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
+    renderHome();
+  });
 }
 
 function rateBookSheet(bookId, memberId, stars) {
