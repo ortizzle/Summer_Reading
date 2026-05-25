@@ -4051,7 +4051,24 @@ function renderShelf() {
     if ((!b.coverUrl || b.summary === undefined) && !b._fetchingMeta) fetchAndStoreSummary(b);
   });
 
+  // Section header labels for each status group
+  const statusLabels = { reading:'📖 Currently Reading', want:'🔖 Want to Read', finished:'✅ Finished', dnf:'🚩 Did Not Finish' };
+  const statusColors = { reading:'#5B4FCF', want:'#c87000', finished:'#2e7d32', dnf:'#c62828' };
+
+  // Build cards, injecting section headers when _shelfFilter==='all'
+  let lastStatus = null;
   const cards = filtered.map((b, idx) => {
+    let header = '';
+    if (_shelfFilter === 'all' && b.status !== lastStatus) {
+      lastStatus = b.status;
+      const col = statusColors[b.status] || 'var(--muted)';
+      const count = filtered.filter(x => x.status === b.status).length;
+      header = `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 0 2px;margin-top:${idx===0?'0':'8px'};">
+        <div style="font-size:13px;font-weight:800;color:${col};">${statusLabels[b.status]||b.status}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;">${count} book${count!==1?'s':''}</div>
+        <div style="flex:1;height:1.5px;background:${col}22;border-radius:2px;"></div>
+      </div>`;
+    }
     const sessions = (state.sessions[_shelfViewMember]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
     const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
@@ -4088,7 +4105,7 @@ function renderShelf() {
       : b.status === 'want' ? '🔖 Want to Read' : '';
     const accentColor = bookColor(b.genre);
 
-    return `
+    return header + `
     <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
       <div class="shelf-flip-inner">
         <div class="shelf-face shelf-front">
@@ -4287,7 +4304,10 @@ function changeBookStatus(bookId, newStatus) {
   if (!book) return;
   const wasFinished = book.status === 'finished';
   book.status = newStatus;
-  if (!wasFinished && newStatus === 'finished') awardFinishPoints(currentMember, book);
+  if (!wasFinished && newStatus === 'finished') {
+    book.finishedDate = todayStr();
+    awardFinishPoints(currentMember, book);
+  }
   addActivity('📖', `${MEMBERS.find(m=>m.id===currentMember).name} started reading: ${book.title}`, currentMember);
   saveToGist().then(() => { renderShelf(); renderHome(); });
 }
@@ -4300,7 +4320,11 @@ function renderTimer() {
   buildMemberBar('timer-member-bar');
   renderLibraryVisits();
 
-  const books = (state.books[currentMember]||[]).filter(b=>b.status==='reading'||b.status==='finished');
+  // Include finished books only on the same AZ day they were finished (grace period)
+  const today = todayStr();
+  const books = (state.books[currentMember]||[]).filter(b =>
+    b.status === 'reading' || (b.status === 'finished' && b.finishedDate === today)
+  );
   const bookOpts = `<option value="">— Choose a book —</option>` + books.map(b =>
     `<option value="${b.id}">${b.title}</option>`).join('');
   document.getElementById('timer-book-select').innerHTML = bookOpts;
@@ -4313,7 +4337,6 @@ function renderTimer() {
   // Refresh start/end calculator state
   renderCalcCard();
 
-  const today = todayStr();
   const todaySessions = (state.sessions[currentMember]||[]).filter(s=>s.date===today);
   const el = document.getElementById('today-sessions');
   if (!todaySessions.length) {
@@ -4515,7 +4538,10 @@ function renderCalcCard() {
       // Populate book select
       const calcBook = document.getElementById('calc-book-select');
       if (calcBook) {
-        const books = (state.books[currentMember]||[]).filter(b=>b.status!=='finished');
+        const calcToday = todayStr();
+        const books = (state.books[currentMember]||[]).filter(b =>
+          b.status === 'reading' || (b.status === 'finished' && b.finishedDate === calcToday)
+        );
         calcBook.innerHTML = '<option value="">— Choose a book —</option>' +
           books.map(b=>`<option value="${b.id}">${b.title}</option>`).join('');
       }
@@ -5430,7 +5456,10 @@ function saveBook() {
     book.status = selectedStatus;
     if (window._pendingCoverUrl) book.coverUrl = window._pendingCoverUrl;
     window._pendingCoverUrl = null;
-    if (!wasFinished && book.status === 'finished') awardFinishPoints(currentMember, book);
+    if (!wasFinished && book.status === 'finished') {
+      book.finishedDate = todayStr();
+      awardFinishPoints(currentMember, book);
+    }
     saveToGist().then(() => {
       checkBadges(currentMember); checkStreakMilestone(currentMember);
       showToast(`"${title}" updated! ✏️`);
@@ -5457,7 +5486,10 @@ function saveBook() {
   state.books[currentMember].push(book);
   if (state.clearedMembers?.[currentMember]) delete state.clearedMembers[currentMember];
   addActivity('📖', `${MEMBERS.find(m=>m.id===currentMember).name} added: ${title}`, currentMember);
-  if (book.status === 'finished') awardFinishPoints(currentMember, book);
+  if (book.status === 'finished') {
+    book.finishedDate = todayStr();
+    awardFinishPoints(currentMember, book);
+  }
   saveToGist().then(() => {
     checkBadges(currentMember); checkStreakMilestone(currentMember);
     showToast(`"${title}" added! 📚`);
@@ -5519,6 +5551,7 @@ function quickFinishBook(bookId) {
   const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
   if (!book) return;
   book.status = 'finished';
+  book.finishedDate = todayStr();
   awardFinishPoints(currentMember, book);
   saveToGist().then(() => {
     checkBadges(currentMember); checkStreakMilestone(currentMember);
@@ -6254,7 +6287,13 @@ function celebrate() {
 document.getElementById('journal-modal').addEventListener('click', () => {});
 function populateJournalBooks() {
   const sel = document.getElementById('journal-book-select');
-  const books = state.books[currentMember] || [];
+  const allBooks = state.books[currentMember] || [];
+  const journalToday = todayStr();
+  // Exclude finished books unless they were finished today (grace period for same-day entries)
+  const books = allBooks.filter(b =>
+    b.status !== 'finished' && b.status !== 'dnf' ||
+    (b.status === 'finished' && b.finishedDate === journalToday)
+  );
   sel.innerHTML = `<option value="">— General / No specific book —</option>` +
     books.map(b=>`<option value="${b.id}">${b.title}</option>`).join('');
 }
