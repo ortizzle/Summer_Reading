@@ -4189,11 +4189,11 @@ function renderShelf() {
 
   // Filter bar
   const filters = [
-    { key: 'all', label: 'All' },
-    { key: 'reading', label: '📖 Reading' },
+    { key: 'all',      label: 'All' },
+    { key: 'reading',  label: '📖 Reading' },
+    { key: 'want',     label: '🔖 Want' },
     { key: 'finished', label: '✅ Finished' },
-    { key: 'dnf', label: '🚩 DNF' },
-    { key: 'want', label: '🔖 Want' }
+    { key: 'dnf',      label: '🚩 DNF' },
   ];
   const filterBar = `<div style="display:flex;gap:6px;padding:4px 0 14px;">` +
     filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}"
@@ -4304,11 +4304,11 @@ function renderShelfAll() {
   }).filter(Boolean);
 
   const filters = [
-    { key: 'all', label: 'All' },
-    { key: 'reading', label: '📖 Reading' },
+    { key: 'all',      label: 'All' },
+    { key: 'reading',  label: '📖 Reading' },
+    { key: 'want',     label: '🔖 Want' },
     { key: 'finished', label: '✅ Finished' },
-    { key: 'dnf', label: '🚩 DNF' },
-    { key: 'want', label: '🔖 Want' }
+    { key: 'dnf',      label: '🚩 DNF' },
   ];
   const filterBar = `<div style="display:flex;gap:6px;padding:4px 0 14px;">` +
     filters.map(f => `<button class="btn btn-sm ${_shelfFilter===f.key?'btn-primary':'btn-secondary'}" style="flex:1;text-align:center;padding:8px 4px;font-size:11px;" onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
