@@ -4900,11 +4900,13 @@ function setCalcStartFromInput() {
   const val = document.getElementById('calc-start-input').value;
   if (!val) { showToast('Enter a start time first.'); return; }
   const [h, m] = val.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  // If the entered time is in the future (e.g. 11pm typed at midnight), assume yesterday
-  if (d > Date.now()) d.setDate(d.getDate() - 1);
-  localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts: d.getTime(), memberId: currentMember }));
+  // Build the timestamp treating the entered time as AZ time
+  const nowAZ = new Date(Date.now() - 7 * 3600 * 1000); // current moment expressed in AZ (UTC slot)
+  nowAZ.setUTCHours(h, m, 0, 0);
+  let ts = nowAZ.getTime() + 7 * 3600 * 1000; // convert back to real UTC ms
+  // If the result is in the future, assume it was yesterday
+  if (ts > Date.now()) ts -= 86400000;
+  localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts, memberId: currentMember }));
   renderCalcCard();
   showToast('📍 Start time saved!');
 }
@@ -4925,16 +4927,16 @@ function renderCalcCard() {
   // Always pre-fill start input with current time for convenience
   const startInput = document.getElementById('calc-start-input');
   if (startInput && !startInput.value) {
-    const now = new Date();
-    startInput.value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const nowAZ = new Date(Date.now() - 7 * 3600 * 1000);
+    startInput.value = `${String(nowAZ.getUTCHours()).padStart(2,'0')}:${String(nowAZ.getUTCMinutes()).padStart(2,'0')}`;
   }
 
   if (saved) {
     try {
       const { ts } = JSON.parse(saved);
-      const d = new Date(ts);
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mm = String(d.getMinutes()).padStart(2,'0');
+      const dAZ = new Date(ts - 7 * 3600 * 1000); // display in AZ time
+      const hh = String(dAZ.getUTCHours()).padStart(2,'0');
+      const mm = String(dAZ.getUTCMinutes()).padStart(2,'0');
       startLabel.textContent = `${hh}:${mm}`;
       startDisplay.style.display = 'block';
       noStart.style.display = 'none';
@@ -4942,8 +4944,8 @@ function renderCalcCard() {
       // Pre-fill end time to now
       const endInput = document.getElementById('calc-end-input');
       if (endInput && !endInput.value) {
-        const now = new Date();
-        endInput.value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const nowAZ = new Date(Date.now() - 7 * 3600 * 1000);
+        endInput.value = `${String(nowAZ.getUTCHours()).padStart(2,'0')}:${String(nowAZ.getUTCMinutes()).padStart(2,'0')}`;
       }
       // Populate book select
       const calcBook = document.getElementById('calc-book-select');
@@ -5732,13 +5734,14 @@ function renderJournal() {
   }
 
   const dateSeparatorLabel = (ts) => {
-    const d = new Date(ts);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
-    const entryDay = new Date(d); entryDay.setHours(0,0,0,0);
-    if (+entryDay === +today) return 'Today';
-    if (+entryDay === +yesterday) return 'Yesterday';
-    return d.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+    const entryAZ = azDateStr(ts);
+    const todayAZ = todayStr();
+    const yesterdayAZ = azDateStr(Date.now() - 86400000);
+    if (entryAZ === todayAZ) return 'Today';
+    if (entryAZ === yesterdayAZ) return 'Yesterday';
+    // Display using AZ-adjusted date
+    const d = new Date(ts - 7 * 3600 * 1000);
+    return d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   let globalIdx = 0;
