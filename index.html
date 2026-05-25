@@ -2313,6 +2313,13 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     </div>
     <div id="audit-table-wrap" style="flex:1;overflow-y:auto;font-size:13px;"></div>
 
+    <!-- Admin: timezone diagnostic -->
+    <div style="border-top:1px solid #eee;margin-top:10px;padding-top:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">🕐 Timezone Diagnostic</div>
+      <button class="btn btn-secondary btn-sm btn-full" onclick="showTzDiag()">Run Timezone Check</button>
+      <div id="tz-diag-output" style="margin-top:8px;font-size:11px;font-family:monospace;background:#f5f5f5;border-radius:8px;padding:10px;display:none;line-height:1.7;white-space:pre-wrap;"></div>
+    </div>
+
     <!-- Admin: grant / adjust points -->
     <div style="border-top:1px solid #eee;margin-top:10px;padding-top:10px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">➕ Grant / Adjust Points</div>
@@ -7491,6 +7498,47 @@ function clearMemberPin(memberId) {
 // ═══════════════════════════════════════
 //  SETTINGS
 // ═══════════════════════════════════════
+function showTzDiag() {
+  const out = document.getElementById('tz-diag-output');
+  if (!out) return;
+  out.style.display = 'block';
+
+  const nowUtcMs   = Date.now();
+  const nowAzMs    = nowUtcMs - 7 * 3600 * 1000;
+  const nowAzDate  = new Date(nowAzMs);
+  const azTimeStr  = nowAzDate.toISOString().replace('T',' ').slice(0,19) + ' AZ';
+  const todayAZ    = todayStr();
+  const weekStart  = lbWeekStart();
+  const deviceTz   = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  let lines = [];
+  lines.push(`Device timezone : ${deviceTz}`);
+  lines.push(`Current AZ time : ${azTimeStr}`);
+  lines.push(`Today (AZ)      : ${todayAZ}`);
+  lines.push(`Week start      : ${weekStart}`);
+  lines.push('');
+  lines.push('── Sessions this week per member ──');
+
+  MEMBERS.forEach(m => {
+    const all = state.sessions[m.id] || [];
+    const week = all.filter(s => (s.date || '') >= weekStart);
+    const reading = week.filter(s => !NON_READING.includes(s.bookId));
+    const totalMins = reading.reduce((a,s) => a+(s.minutes||0), 0);
+    lines.push(`\n${m.name} (${totalMins} min reading this week):`);
+    if (!week.length) {
+      lines.push('  (no sessions)');
+    } else {
+      week.forEach(s => {
+        const tag = NON_READING.includes(s.bookId) ? '[bonus]' : '[read] ';
+        lines.push(`  ${tag} ${s.date} ${String(s.minutes).padStart(3)}m  ${s.bookTitle || s.bookId}`);
+      });
+    }
+  });
+
+  out.textContent = lines.join('\n');
+}
+
 function renderSettings() {
   const el = document.getElementById('settings-content');
   const isAdmin = currentMember === ADMIN_ID;
