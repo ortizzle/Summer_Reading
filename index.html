@@ -2376,6 +2376,20 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Confirm Modal (replaces browser confirm()) -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="confirm-modal-icon" style="text-align:center;font-size:44px;margin-bottom:6px;"></div>
+    <div class="modal-title" id="confirm-modal-title" style="margin-bottom:6px;"></div>
+    <div id="confirm-modal-msg" style="font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.55;text-align:center;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;" id="confirm-modal-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bingo Square Modal -->
 <div class="modal-overlay" id="bingo-modal">
   <div class="modal">
@@ -4055,7 +4069,24 @@ function renderShelf() {
       onclick="setShelfFilter('${f.key}')">${f.label}</button>`).join('') + `</div>`;
 
   if (!books.length) {
-    el.innerHTML = filterBar + `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No books yet — add your first one!</div>`;
+    const isOwn = _shelfViewMember === currentMember;
+    el.innerHTML = filterBar + `
+      <div style="text-align:center;padding:32px 20px 24px;">
+        <div style="font-size:56px;margin-bottom:12px;">📚</div>
+        <div style="font-size:17px;font-weight:800;margin-bottom:6px;">${isOwn ? 'Your shelf is empty!' : 'No books yet!'}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5;">
+          ${isOwn ? 'Add books you\'re reading, want to read, or have finished.' : 'Check back once they add their first book!'}
+        </div>
+        ${isOwn ? `
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto;">
+          <button onclick="openModal('add-book-modal')" class="btn btn-primary" style="padding:13px;font-size:15px;font-weight:800;">
+            📖 Add a Book I'm Reading
+          </button>
+          <button onclick="addWishlistBook()" class="btn btn-secondary" style="padding:13px;font-size:15px;font-weight:700;">
+            🔖 Add to Wish List
+          </button>
+        </div>` : ''}
+      </div>`;
     return;
   }
 
@@ -4234,7 +4265,9 @@ function editBook(bookId) {
 function deleteBook(bookId) {
   const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
   if (!book) return;
-  if (!confirm(`Remove "${book.title}" from your shelf? Reading sessions for this book will also be deleted.`)) return;
+  showConfirm(
+    { title: 'Remove Book?', message: `"${book.title}" and all its reading sessions will be removed from your shelf.`, icon: '🗑', confirmLabel: 'Remove', danger: true },
+    () => {
   state.books[currentMember] = (state.books[currentMember]||[]).filter(b => b.id !== bookId);
   // Remove sessions tied to this book
   const toDelete = (state.sessions[currentMember]||[]).filter(s => s.bookId === bookId).map(s => s.id);
@@ -4242,6 +4275,7 @@ function deleteBook(bookId) {
   if (!state.deletedActivityIds) state.deletedActivityIds = [];
   state.deletedActivityIds.push(...toDelete);
   saveToGist().then(() => { showToast(`"${book.title}" removed.`); renderShelf(); renderHome(); });
+  }); // end showConfirm
 }
 
 function changeBookStatus(bookId, newStatus) {
@@ -4380,22 +4414,23 @@ function timerStop() {
   clearInterval(timerInterval);
   const elapsed = Math.ceil(timerSeconds / 60);
   const mins = Math.max(1, elapsed);
-  if (mins < 1) { showToast('Read for at least 1 minute!'); resetTimer(); return; }
-  const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
-  const session = {
-    id: uid(), bookId: timerBookId, bookTitle: book ? book.title : '?',
-    minutes: mins, date: todayStr(), ts: Date.now()
-  };
-  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push(session);
-  addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}`, currentMember);
-  saveToGist().then(() => {
-    checkBadges(currentMember); checkStreakMilestone(currentMember);
-    checkGroupMilestones();
-    showToast(`+${mins} pts! Great reading! 📚`);
-    if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
-    if (mins >= 30) celebrateThemed();
-    else if (mins >= 10) celebrateSmall();
+  validateAndLog(mins, () => {
+    const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+    const session = {
+      id: uid(), bookId: timerBookId, bookTitle: book ? book.title : '?',
+      minutes: mins, date: todayStr(), ts: Date.now()
+    };
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push(session);
+    addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}`, currentMember);
+    saveToGist().then(() => {
+      checkBadges(currentMember); checkStreakMilestone(currentMember);
+      checkGroupMilestones();
+      showToast(`+${mins} pts! Great reading! 📚`);
+      if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
+      if (mins >= 30) celebrateThemed();
+      else if (mins >= 10) celebrateSmall();
+    });
   });
   resetTimer();
   renderTimer();
@@ -4555,9 +4590,28 @@ function editSession(sessionId) {
 }
 
 function deleteSession(sessionId) {
-  if (!confirm('Delete this reading session?')) return;
-  state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(s => s.id !== sessionId);
-  saveToGist().then(() => { renderTimer(); renderHome(); showToast('Session removed'); });
+  showConfirm(
+    { title: 'Delete Session?', message: 'This reading session and its points will be removed.', icon: '🗑', confirmLabel: 'Delete', danger: true },
+    () => {
+      state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(s => s.id !== sessionId);
+      saveToGist().then(() => { renderTimer(); renderHome(); showToast('Session removed'); });
+    }
+  );
+}
+
+// Validate session minutes — shows a confirmation for suspiciously long sessions
+function validateAndLog(mins, onValid) {
+  if (isNaN(mins) || mins < 1) { showToast('Enter the number of minutes you read!'); return; }
+  if (mins > 600) { showToast('Maximum 600 minutes per session. Double-check your entry!'); return; }
+  if (mins > 180) {
+    const hrs = (mins / 60).toFixed(1);
+    showConfirm(
+      { title: 'Long Session!', message: `That's ${hrs} hours of reading — is that right? Tap Confirm to log it, or Cancel to adjust.`, icon: '⏱', confirmLabel: 'Yes, log it' },
+      onValid
+    );
+  } else {
+    onValid();
+  }
 }
 
 function logManualSession() {
@@ -4566,26 +4620,27 @@ function logManualSession() {
   const dateVal = document.getElementById('manual-date').value;
   if (!bookId) { shakeField('manual-book-select'); showToast('📚 Pick a book first!'); return; }
   const mins = parseInt(minsRaw, 10);
-  if (isNaN(mins) || mins < 1) { showToast('Enter the number of minutes you read'); return; }
-  const date = dateVal || todayStr();
-  const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
-  const session = {
-    id: uid(), bookId, bookTitle: book ? book.title : '?',
-    minutes: mins, date, ts: Date.now(), manual: true
-  };
-  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push(session);
-  const who = MEMBERS.find(m=>m.id===currentMember).name;
-  addActivity('📖', `${who} logged ${formatMins(mins)} (manual)`, currentMember);
-  saveToGist().then(() => {
-    checkBadges(currentMember); checkStreakMilestone(currentMember);
-    checkGroupMilestones();
-    showToast(`+${mins} pts logged! 📖`);
-    if (mins >= 30) celebrateThemed();
-    else if (mins >= 10) celebrateSmall();
-    document.getElementById('manual-minutes').value = '';
-    document.getElementById('manual-date').value = todayStr();
-    renderTimer();
+  validateAndLog(mins, () => {
+    const date = dateVal || todayStr();
+    const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
+    const session = {
+      id: uid(), bookId, bookTitle: book ? book.title : '?',
+      minutes: mins, date, ts: Date.now(), manual: true
+    };
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push(session);
+    const who = MEMBERS.find(m=>m.id===currentMember).name;
+    addActivity('📖', `${who} logged ${formatMins(mins)} (manual)`, currentMember);
+    saveToGist().then(() => {
+      checkBadges(currentMember); checkStreakMilestone(currentMember);
+      checkGroupMilestones();
+      showToast(`+${mins} pts logged! 📖`);
+      if (mins >= 30) celebrateThemed();
+      else if (mins >= 10) celebrateSmall();
+      document.getElementById('manual-minutes').value = '';
+      document.getElementById('manual-date').value = todayStr();
+      renderTimer();
+    });
   });
 }
 
@@ -4991,7 +5046,9 @@ function deleteLibraryVisit(visitId) {
   const visits = state.library[currentMember] || [];
   const visit = visits.find(v => v.id === visitId);
   if (!visit) return;
-  if (!confirm(`Remove this library visit and deduct ${visit.pts||25} pts?`)) return;
+  showConfirm(
+    { title: 'Remove Library Visit?', message: `This visit will be removed and ${visit.pts||25} pts deducted.`, icon: '🏛️', confirmLabel: 'Remove', danger: true },
+    () => {
   state.library[currentMember] = visits.filter(v => v.id !== visitId);
   state.sessions[currentMember] = (state.sessions[currentMember]||[]).filter(
     s => !(s.bookId === 'library' && Math.abs((s.ts||0) - (visit.ts||0)) < 2000)
@@ -5001,6 +5058,7 @@ function deleteLibraryVisit(visitId) {
     a => !(a.member === currentMember && a.emoji === '🏛️' && Math.abs((a.ts||0) - (visit.ts||0)) < 2000)
   );
   saveToGist().then(() => { renderBadges(); renderLibraryVisits(); renderHome(); showToast('Library visit removed'); });
+  }); // end showConfirm
 }
 
 function awardBadge(memberId, badgeId) {
@@ -5217,6 +5275,16 @@ function renderJournal() {
   // Open all notebooks on first render for this view
   groups.forEach((_, key) => _openNotebooks.add(key));
 
+  const dateSeparatorLabel = (ts) => {
+    const d = new Date(ts);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
+    const entryDay = new Date(d); entryDay.setHours(0,0,0,0);
+    if (+entryDay === +today) return 'Today';
+    if (+entryDay === +yesterday) return 'Yesterday';
+    return d.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+  };
+
   let globalIdx = 0;
   el.innerHTML = [...groups.entries()].map(([bookTitle, entries]) => {
     const color = getNotebookColor(bookTitle);
@@ -5225,16 +5293,22 @@ function renderJournal() {
     const safeKey = bookTitle.replace(/[^a-zA-Z0-9]/g, '_');
     const isOpen = _openNotebooks.has(bookTitle);
 
+    let lastDateLabel = null;
     const pages = entries.map((e) => {
       const cardId = `jfc-${globalIdx++}`;
       const dateStr = new Date(e.ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+      const dayLabel = dateSeparatorLabel(e.ts);
+      const dateSep = dayLabel !== lastDateLabel
+        ? `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${color};opacity:0.7;padding:8px 0 4px;border-top:1px solid ${color}22;margin-top:4px;">${dayLabel}</div>`
+        : '';
+      lastDateLabel = dayLabel;
       const stars = e.rating ? `<div style="font-size:13px;color:${color};margin:2px 0;">${'★'.repeat(e.rating)}${'☆'.repeat(5-e.rating)}</div>` : '';
       const backActions = isOwn ? `
         <div style="display:flex;gap:8px;margin-top:4px;">
           <button onclick="event.stopPropagation();editJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:${color};color:white;border:none;opacity:0.9;">✏️ Edit</button>
           <button onclick="event.stopPropagation();deleteJournalEntry('${e.id}')" class="btn btn-sm" style="flex:1;background:rgba(180,30,30,0.8);color:white;border:none;">🗑️ Delete</button>
         </div>` : '';
-      return `
+      return dateSep + `
       <div class="journal-flip" id="${cardId}" onclick="toggleJournalFlip('${cardId}')">
         <div class="journal-flip-inner">
           <div class="journal-face journal-front" style="border-left-color:${color};">
@@ -5308,9 +5382,13 @@ function editJournalEntry(entryId) {
 }
 
 function deleteJournalEntry(entryId) {
-  if (!confirm('Delete this journal entry?')) return;
-  state.journal[currentMember] = (state.journal[currentMember] || []).filter(e => e.id !== entryId);
-  saveToGist().then(() => { showToast('Entry deleted.'); renderJournal(); });
+  showConfirm(
+    { title: 'Delete Journal Entry?', message: 'This entry will be permanently deleted.', icon: '📝', confirmLabel: 'Delete', danger: true },
+    () => {
+      state.journal[currentMember] = (state.journal[currentMember] || []).filter(e => e.id !== entryId);
+      saveToGist().then(() => { showToast('Entry deleted.'); renderJournal(); });
+    }
+  );
 }
 
 function saveJournalEntry() {
@@ -5492,6 +5570,17 @@ function openBookDetail(bookId) {
 
 // rateBook is defined in the shelf section above
 
+function addWishlistBook() {
+  // Pre-select "Want to Read" status, then open add-book modal
+  clearBookForm();
+  selectedStatus = 'want';
+  document.querySelectorAll('#status-chips .radio-chip').forEach(c => {
+    c.classList.toggle('selected', c.getAttribute('onclick')?.includes("'want'"));
+  });
+  document.getElementById('add-book-modal-title').textContent = '🔖 Add to Wish List';
+  openModal('add-book-modal');
+}
+
 function openBookSheet(bookId, memberId) {
   const mid = memberId || _shelfViewMember || currentMember;
   const book = (state.books[mid]||[]).find(b => b.id === bookId);
@@ -5623,18 +5712,20 @@ function logFromSheet(bookId, memberId) {
   const mid = memberId || currentMember;
   const book = (state.books[mid]||[]).find(b => b.id === bookId);
   if (!book) return;
-  const date = dateVal || todayStr();
-  const session = { id: uid(), bookId, bookTitle: book.title, minutes: mins, date, ts: Date.now(), manual: true };
-  if (!state.sessions[mid]) state.sessions[mid] = [];
-  state.sessions[mid].push(session);
-  const who = MEMBERS.find(m => m.id === mid)?.name || mid;
-  addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, mid);
-  saveToGist().then(() => {
-    checkBadges(mid); checkStreakMilestone(mid); checkGroupMilestones();
-    closeModal('book-sheet-modal');
-    showToast(`+${mins} pts logged for "${book.title}"! 📖`);
-    if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
-    renderHome();
+  validateAndLog(mins, () => {
+    const date = dateVal || todayStr();
+    const session = { id: uid(), bookId, bookTitle: book.title, minutes: mins, date, ts: Date.now(), manual: true };
+    if (!state.sessions[mid]) state.sessions[mid] = [];
+    state.sessions[mid].push(session);
+    const who = MEMBERS.find(m => m.id === mid)?.name || mid;
+    addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, mid);
+    saveToGist().then(() => {
+      checkBadges(mid); checkStreakMilestone(mid); checkGroupMilestones();
+      closeModal('book-sheet-modal');
+      showToast(`+${mins} pts logged for "${book.title}"! 📖`);
+      if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
+      renderHome();
+    });
   });
 }
 
@@ -5663,23 +5754,25 @@ function saveQuickLog() {
   const dateVal = document.getElementById('quick-log-date').value;
   const mins = parseInt(minsRaw, 10);
   if (isNaN(mins) || mins < 1) { shakeField('quick-log-minutes'); showToast('Enter minutes read!'); return; }
-  const date = dateVal || todayStr();
   const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
   if (!book) { showToast('Book not found.'); return; }
-  const session = {
-    id: uid(), bookId, bookTitle: book.title,
-    minutes: mins, date, ts: Date.now(), manual: true
-  };
-  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
-  state.sessions[currentMember].push(session);
-  const who = MEMBERS.find(m => m.id === currentMember)?.name || currentMember;
-  addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, currentMember);
-  saveToGist().then(() => {
-    checkBadges(currentMember); checkStreakMilestone(currentMember); checkGroupMilestones();
-    closeModal('quick-log-modal');
-    showToast(`+${mins} pts logged for "${book.title}"! 📖`);
-    if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
-    renderHome();
+  validateAndLog(mins, () => {
+    const date = dateVal || todayStr();
+    const session = {
+      id: uid(), bookId, bookTitle: book.title,
+      minutes: mins, date, ts: Date.now(), manual: true
+    };
+    if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+    state.sessions[currentMember].push(session);
+    const who = MEMBERS.find(m => m.id === currentMember)?.name || currentMember;
+    addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, currentMember);
+    saveToGist().then(() => {
+      checkBadges(currentMember); checkStreakMilestone(currentMember); checkGroupMilestones();
+      closeModal('quick-log-modal');
+      showToast(`+${mins} pts logged for "${book.title}"! 📖`);
+      if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
+      renderHome();
+    });
   });
 }
 
@@ -6295,7 +6388,9 @@ function cancelEditMsg(actId, orig) {
 }
 function deleteActivity(actId) {
   closeMsgMenu();
-  if (!confirm('Remove this from the Exchange?')) return;
+  showConfirm(
+    { title: 'Remove Message?', message: 'This post will be removed from the Exchange.', icon: '💬', confirmLabel: 'Remove', danger: true },
+    () => {
   state.activity = (state.activity || []).filter(a => (a.id || (a.ts + a.member)) !== actId);
   if (state.reactions) delete state.reactions[actId];
   // Track deleted IDs so they're never re-merged back from Gist
@@ -6304,6 +6399,7 @@ function deleteActivity(actId) {
   renderHome();
   renderFeed();
   saveToGist();
+  }); // end showConfirm
 }
 // Keep alias for any legacy calls
 function deleteMsg(actId) { deleteActivity(actId); }
@@ -6371,6 +6467,23 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'add-book-modal') { stopScanner(); hideTitleSearchResults(); }
+}
+
+// ── Confirm dialog (replaces native browser confirm()) ────────────────────
+let _confirmCallback = null;
+function showConfirm({ title, message, icon, confirmLabel = 'Confirm', danger = false }, onConfirm) {
+  _confirmCallback = onConfirm;
+  const iconEl = document.getElementById('confirm-modal-icon');
+  iconEl.textContent = icon || '';
+  iconEl.style.display = icon ? 'block' : 'none';
+  document.getElementById('confirm-modal-title').textContent = title || '';
+  document.getElementById('confirm-modal-msg').textContent = message || '';
+  const btn = document.getElementById('confirm-modal-btn');
+  btn.textContent = confirmLabel;
+  btn.style.background = danger ? '#c62828' : '';
+  btn.style.color = danger ? 'white' : '';
+  btn.onclick = () => { closeModal('confirm-modal'); if (_confirmCallback) _confirmCallback(); _confirmCallback = null; };
+  openModal('confirm-modal');
 }
 
 // Close modals on backdrop click
@@ -6833,11 +6946,16 @@ function setPinBack() {
 }
 
 function clearMemberPin(memberId) {
-  if (!confirm('Clear PIN for ' + (MEMBERS.find(m=>m.id===memberId)?.name||memberId) + '?')) return;
-  if (state.pins) delete state.pins[memberId];
-  saveToGist();
-  showToast('PIN cleared');
-  renderSettings();
+  const name = MEMBERS.find(m=>m.id===memberId)?.name || memberId;
+  showConfirm(
+    { title: 'Clear PIN?', message: `${name}'s PIN will be removed and their profile will be unlocked.`, icon: '🔓', confirmLabel: 'Clear PIN' },
+    () => {
+      if (state.pins) delete state.pins[memberId];
+      saveToGist();
+      showToast('PIN cleared');
+      renderSettings();
+    }
+  );
 }
 
 // ═══════════════════════════════════════
@@ -7109,7 +7227,25 @@ function renderAuditTable() {
     return '⏱ Reading';
   };
 
+  const totalPts = sessions.reduce((a,s)=>a+(s.minutes||0),0);
+  const readingPts = sessions.filter(s=>!['library','journal','bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(s.bookId)).reduce((a,s)=>a+(s.minutes||0),0);
+  const libraryPts = sessions.filter(s=>s.bookId==='library').reduce((a,s)=>a+(s.minutes||0),0);
+  const journalPts = sessions.filter(s=>s.bookId==='journal').reduce((a,s)=>a+(s.minutes||0),0);
+  const bingoPts = sessions.filter(s=>['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(s.bookId)).reduce((a,s)=>a+(s.minutes||0),0);
+
   wrap.innerHTML = `
+    <!-- Summary card at top -->
+    <div style="background:linear-gradient(135deg,#5B4FCF,#7C3AED);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:white;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;opacity:0.8;margin-bottom:8px;">TOTAL POINTS</div>
+      <div style="font-size:28px;font-weight:900;margin-bottom:10px;">${totalPts} pts</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${readingPts>0?`<div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📖 ${readingPts} reading</div>`:''}
+        ${libraryPts>0?`<div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">🏛️ ${libraryPts} library</div>`:''}
+        ${journalPts>0?`<div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📝 ${journalPts} journal</div>`:''}
+        ${bingoPts>0?`<div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">🎯 ${bingoPts} bingo</div>`:''}
+      </div>
+      <div style="font-size:11px;opacity:0.7;margin-top:8px;">${sessions.length} session${sessions.length!==1?'s':''} total</div>
+    </div>
     ${dupeIds.size > 0 ? `<div style="background:#fff3e0;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#e65100;font-weight:600;">⚠️ ${dupeIds.size} likely duplicate${dupeIds.size>1?'s':''} highlighted below</div>` : '<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#2e7d32;font-weight:600;">✅ No duplicates detected</div>'}
     <table style="width:100%;border-collapse:collapse;">
       <thead>
@@ -7134,10 +7270,7 @@ function renderAuditTable() {
             </td>
           </tr>`).join('')}
       </tbody>
-    </table>
-    <div style="text-align:right;padding:8px 4px 0;font-size:12px;color:var(--muted);">
-      Total: <strong>${sessions.reduce((a,s)=>a+(s.minutes||0),0)} pts</strong> across ${sessions.length} session${sessions.length!==1?'s':''}
-    </div>`;
+    </table>`;
 }
 
 function auditDeleteSession(memberId, sessionId) {
@@ -7145,7 +7278,9 @@ function auditDeleteSession(memberId, sessionId) {
   const s = sessions.find(s => s.id === sessionId);
   if (!s) return;
   const label = s.bookTitle || s.squareId || s.bookId;
-  if (!confirm(`Delete "${label}" (${s.minutes} pts) from ${s.date}? This cannot be undone.`)) return;
+  showConfirm(
+    { title: 'Delete Session?', message: `Remove "${label}" (${s.minutes} pts) from ${s.date}? This cannot be undone.`, icon: '🗑', confirmLabel: 'Delete', danger: true },
+    () => {
   state.sessions[memberId] = sessions.filter(s => s.id !== sessionId);
   // Track the deleted ID so it never resurfaces from a stale Gist
   if (!state.deletedSessionIds) state.deletedSessionIds = [];
@@ -7155,6 +7290,7 @@ function auditDeleteSession(memberId, sessionId) {
     renderHome();
     showToast('Session deleted.');
   });
+  }); // end showConfirm
 }
 
 function auditGrantPoints() {
@@ -7206,11 +7342,15 @@ function importBackup(event) {
       if (!backup.state || !backup.appVersion) {
         showToast('⚠️ Invalid backup file — not an Ortizzle backup.'); return;
       }
-      if (!confirm(`Restore backup from ${new Date(backup.exportedAt).toLocaleString()}?\n\nThis will overwrite all current data. Make sure you have a current backup first!`)) return;
+      showConfirm(
+        { title: 'Restore Backup?', message: `Backup from ${new Date(backup.exportedAt).toLocaleString()} will overwrite all current data. Export a fresh backup first if you haven't already.`, icon: '💾', confirmLabel: 'Restore', danger: true },
+        async () => {
       Object.assign(state, backup.state);
       await saveToGist();
       showToast('✅ Backup restored! Reloading…');
       setTimeout(() => location.reload(), 1200);
+        }
+      ); // end showConfirm
     } catch(err) {
       showToast('⚠️ Could not read backup file — may be corrupted.');
     }
@@ -7268,7 +7408,9 @@ function setMemberColor(hex) {
 }
 
 async function clearMyMessages() {
-  if (!confirm('Delete all your Exchange messages? This cannot be undone.')) return;
+  showConfirm(
+    { title: 'Clear All Messages?', message: 'All your Exchange posts will be permanently deleted. This cannot be undone.', icon: '💬', confirmLabel: 'Clear Messages', danger: true },
+    async () => {
   const id = currentMember;
   const toDelete = (state.activity||[]).filter(a => a.member === id && a.type === 'message').map(a => a.id);
   if (!state.deletedActivityIds) state.deletedActivityIds = [];
@@ -7280,10 +7422,14 @@ async function clearMyMessages() {
   showToast('Messages cleared.');
   renderFeed?.();
   renderHome?.();
+    }
+  ); // end showConfirm
 }
 
 async function clearAllMyData() {
-  if (!confirm('Clear ALL your data (books, sessions, journal, bingo, badges, library visits)? This cannot be undone.')) return;
+  showConfirm(
+    { title: 'Clear All My Data?', message: 'Your books, sessions, journal, bingo, badges, and library visits will all be permanently deleted.', icon: '⚠️', confirmLabel: 'Clear Everything', danger: true },
+    async () => {
   const id = currentMember;
   state.books[id] = [];
   state.sessions[id] = [];
@@ -7312,11 +7458,17 @@ async function clearAllMyData() {
   renderHome();
   renderSettings();
   renderBingoCard?.();
+    }
+  ); // end showConfirm
 }
 
 async function resetEverything() {
-  if (!confirm('Reset ALL data for ALL members? This wipes the Gist completely and cannot be undone.')) return;
-  if (!confirm('Are you sure? This deletes everyone\'s books, sessions, journals, and messages.')) return;
+  showConfirm(
+    { title: '⚠️ Reset Everything?', message: "This wipes ALL data for ALL family members — books, sessions, journals, and messages. This cannot be undone.", icon: '🚨', confirmLabel: 'Yes, Reset All', danger: true },
+    () => {
+      showConfirm(
+        { title: 'Are you absolutely sure?', message: "Everyone's summer reading progress will be permanently deleted.", icon: '🚨', confirmLabel: 'Permanently Delete All', danger: true },
+        async () => {
   // Wipe state completely for all members
   MEMBERS.forEach(m => {
     state.books[m.id] = [];
@@ -7357,6 +7509,10 @@ async function resetEverything() {
   showToast('🧹 Everything reset. Fresh start!');
   renderHome();
   renderSettings();
+        }
+      ); // end inner showConfirm
+    }
+  ); // end outer showConfirm
 }
 
 // ═══════════════════════════════════════
@@ -7616,6 +7772,39 @@ function dismissSplash(callback) {
 }
 
 init();
+
+// ── Exchange badge background poll ──────────────────────────────────────────
+// Fetch new activity from the Gist every 90 seconds and update the badge
+// without triggering a full re-render. Keeps badge counts fresh across devices.
+async function pollActivityBadge() {
+  const token = localStorage.getItem(GIST_TOKEN_KEY);
+  const gistId = localStorage.getItem(GIST_ID_KEY);
+  if (!token || !gistId) return;
+  try {
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: `token ${token}`, 'Cache-Control': 'no-cache' }
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const raw = data.files?.['ortizzle-reading.json'];
+    if (!raw) return;
+    const remote = JSON.parse(raw.content);
+    if (!Array.isArray(remote.activity)) return;
+    const localIds = new Set((state.activity||[]).map(a => a.id));
+    const deleted = new Set(state.deletedActivityIds || []);
+    let added = 0;
+    remote.activity.forEach(a => {
+      if (!localIds.has(a.id) && !deleted.has(a.id)) {
+        state.activity = state.activity || [];
+        state.activity.push(a);
+        added++;
+      }
+    });
+    if (added > 0) updateFeedBadge();
+  } catch(e) {}
+}
+setInterval(pollActivityBadge, 90 * 1000);
+
 </script>
 </body>
 </html>
