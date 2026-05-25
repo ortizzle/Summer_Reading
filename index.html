@@ -2354,6 +2354,28 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Quick Log Modal (from book shelf card) -->
+<div class="modal-overlay" id="quick-log-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⏱ Log Reading Time</div>
+    <div id="quick-log-book-name" style="font-size:13px;font-weight:700;color:var(--accent);margin:-6px 0 16px;"></div>
+    <input type="hidden" id="quick-log-book-id">
+    <div class="form-group">
+      <label class="form-label">Minutes Read</label>
+      <input class="form-input" type="number" id="quick-log-minutes" min="1" max="600" placeholder="e.g. 30" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" type="date" id="quick-log-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('quick-log-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveQuickLog()">+ Log Session</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bingo Square Modal -->
 <div class="modal-overlay" id="bingo-modal">
   <div class="modal">
@@ -4157,6 +4179,10 @@ function renderShelf() {
             </div>
 
             ${isOwnShelf ? `
+            <!-- Quick log (reading books only) -->
+            ${b.status === 'reading'
+              ? `<button onclick="event.stopPropagation();openQuickLog('${b.id}',${JSON.stringify(b.title)})" style="width:100%;padding:8px 0;border-radius:10px;border:none;background:#EDE9FE;color:#5B4FCF;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.01em;">⏱ Log Reading Time</button>`
+              : ''}
             <!-- Status actions -->
             <div style="display:flex;gap:6px;flex-shrink:0;">
               ${b.status === 'want'
@@ -5546,6 +5572,42 @@ function openBookDetail(bookId) {
 }
 
 // rateBook is defined in the shelf section above
+
+function openQuickLog(bookId, bookTitle) {
+  document.getElementById('quick-log-book-id').value = bookId;
+  document.getElementById('quick-log-book-name').textContent = bookTitle;
+  document.getElementById('quick-log-minutes').value = '';
+  document.getElementById('quick-log-date').value = todayStr();
+  openModal('quick-log-modal');
+  // Focus the minutes input after modal animates in
+  setTimeout(() => { const el = document.getElementById('quick-log-minutes'); if (el) el.focus(); }, 250);
+}
+
+function saveQuickLog() {
+  const bookId = document.getElementById('quick-log-book-id').value;
+  const minsRaw = document.getElementById('quick-log-minutes').value;
+  const dateVal = document.getElementById('quick-log-date').value;
+  const mins = parseInt(minsRaw, 10);
+  if (isNaN(mins) || mins < 1) { shakeField('quick-log-minutes'); showToast('Enter minutes read!'); return; }
+  const date = dateVal || todayStr();
+  const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
+  if (!book) { showToast('Book not found.'); return; }
+  const session = {
+    id: uid(), bookId, bookTitle: book.title,
+    minutes: mins, date, ts: Date.now(), manual: true
+  };
+  if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
+  state.sessions[currentMember].push(session);
+  const who = MEMBERS.find(m => m.id === currentMember)?.name || currentMember;
+  addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, currentMember);
+  saveToGist().then(() => {
+    checkBadges(currentMember); checkStreakMilestone(currentMember); checkGroupMilestones();
+    closeModal('quick-log-modal');
+    showToast(`+${mins} pts logged for "${book.title}"! 📖`);
+    if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
+    renderHome();
+  });
+}
 
 function quickFinishBook(bookId) {
   const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
