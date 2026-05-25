@@ -3561,7 +3561,7 @@ function toggleFamTotal(view) {
 function renderFamTotalBreakdown() {
   const el = document.getElementById('fam-total-breakdown-content');
   if (!el) return;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
   const view = _famTotalView;
 
   if (view === 'reading') {
@@ -3573,7 +3573,7 @@ function renderFamTotalBreakdown() {
       // Build bookId → minutes map from reading sessions
       const sess = state.sessions[m.id] || [];
       const bookMins = {};
-      sess.filter(s => !NON_READING.includes(s.bookId)).forEach(s => {
+      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).forEach(s => {
         bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
       });
       const color = getMemberColor(m.id);
@@ -3611,7 +3611,7 @@ function renderFamTotalBreakdown() {
       if (!memberBooks.length) return;
       const sess = state.sessions[m.id] || [];
       const bookMins = {};
-      sess.filter(s => !NON_READING.includes(s.bookId)).forEach(s => {
+      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).forEach(s => {
         bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
       });
       const color = getMemberColor(m.id);
@@ -3645,7 +3645,7 @@ function renderFamTotalBreakdown() {
     // Reading time bars per member
     const memberData = MEMBERS.map(m => {
       const sess = state.sessions[m.id] || [];
-      const readMins = sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+      const readMins = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
       return { ...m, readMins, color: getMemberColor(m.id), emoji: getMemberEmoji(m.id) };
     }).sort((a,b) => b.readMins - a.readMins);
     const topMins = memberData[0]?.readMins || 1;
@@ -3673,7 +3673,7 @@ function renderFamTotalBreakdown() {
     // Points breakdown per member by category
     const memberData = MEMBERS.map(m => {
       const sess = state.sessions[m.id] || [];
-      const readPts  = sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+      const readPts  = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
       const bingoPts = sess.filter(s => ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
       const libPts   = sess.filter(s => s.bookId === 'library').reduce((a,s) => a + (s.minutes||0), 0);
       const jrnlPts  = sess.filter(s => s.bookId === 'journal').reduce((a,s) => a + (s.minutes||0), 0);
@@ -3738,11 +3738,11 @@ function lbWeekStart() {
 
 function buildLbMembers() {
   const weekStart = _lbPeriod === 'week' ? lbWeekStart() : null;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
   return [...MEMBERS].map(m => {
     let sess = state.sessions[m.id] || [];
     if (weekStart) sess = sess.filter(s => (s.date || '') >= weekStart);
-    const readSess = sess.filter(s => !NON_READING.includes(s.bookId));
+    const readSess = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)'));
     const readMins = readSess.reduce((a,s) => a + (s.minutes||0), 0);
     const pts = weekStart
       ? sess.reduce((a,s) => a + (s.minutes||0), 0)
@@ -3888,14 +3888,14 @@ function renderHome() {
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
     const sess = state.sessions[m.id] || [];
     famReading += books.filter(b => b.status === 'reading').length;
     famBooks   += books.filter(b => b.status === 'finished').length;
-    famMins    += sess.filter(s => !NON_READING.includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
+    famMins    += sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
     famPts     += getMemberPoints(m.id);
   });
   document.getElementById('fam-total-reading').textContent = famReading;
@@ -5998,7 +5998,7 @@ function awardFinishPoints(memberId, book) {
   else if (pages > 0) bonus = Math.max(5, Math.round(pages / 100 * 15));  // 15 pts per 100 pages
   else bonus = 10;  // fallback: no page count entered
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
-  state.sessions[memberId].push({ id:uid(), bookId:book.id, bookTitle:book.title+'(finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
+  state.sessions[memberId].push({ id:uid(), bookId:'finish_bonus', bookTitle:book.title+' (finish bonus)', minutes:bonus, date:todayStr(), ts:Date.now() });
   addActivity('✅', `${MEMBERS.find(m=>m.id===memberId).name} finished: ${book.title} (+${bonus} pts)`, memberId);
 }
 
@@ -7511,7 +7511,7 @@ function showTzDiag() {
   const weekStart  = lbWeekStart();
   const deviceTz   = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
   let lines = [];
   lines.push(`Device timezone : ${deviceTz}`);
   lines.push(`Current AZ time : ${azTimeStr}`);
@@ -7523,14 +7523,14 @@ function showTzDiag() {
   MEMBERS.forEach(m => {
     const all = state.sessions[m.id] || [];
     const week = all.filter(s => (s.date || '') >= weekStart);
-    const reading = week.filter(s => !NON_READING.includes(s.bookId));
+    const reading = week.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)'));
     const totalMins = reading.reduce((a,s) => a+(s.minutes||0), 0);
     lines.push(`\n${m.name} (${totalMins} min reading this week):`);
     if (!week.length) {
       lines.push('  (no sessions)');
     } else {
       week.forEach(s => {
-        const tag = NON_READING.includes(s.bookId) ? '[bonus]' : '[read] ';
+        const tag = (NON_READING.includes(s.bookId) || (s.bookTitle||'').includes('(finish bonus)')) ? '[bonus]' : '[read] ';
         lines.push(`  ${tag} ${s.date} ${String(s.minutes).padStart(3)}m  ${s.bookTitle || s.bookId}`);
       });
     }
