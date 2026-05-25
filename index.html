@@ -1851,6 +1851,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
   <div class="card" id="bingo-card-container">
     <div class="card-title" id="bingo-card-title">🎲 Reading Bingo</div>
+    <div id="bingo-period-label" style="font-size:11px;color:var(--muted);font-weight:600;margin:-4px 0 8px;"></div>
     <div class="bingo-grid" id="bingo-grid"></div>
     <div id="bingo-wins-display" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;"></div>
     <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;">
@@ -2647,6 +2648,92 @@ const HANI_BINGO = [
   { emoji:'🌳', label:'Backyard Read',     desc:'Read for 30+ min outside in the yard or patio',               id:'hani_backyard',    pts:25 },
 ];
 
+// ── July–August Bingo Cards ──────────────────────────────────────────────────
+// Active July 1 – early August. Can repeat some June squares (new IDs suffixed _july_*)
+const KIDS_BINGO_JULY = [
+  { emoji:'🔥', label:'Campfire Read',    desc:'Read for 30+ min by a campfire',                                         id:'kids_july_campfire',   pts:25 },
+  { emoji:'🎆', label:'July 4th',         desc:'Read for any amount of time on Independence Day (July 4th)',              id:'kids_july_july4',      pts:25 },
+  { emoji:'🌊', label:'Beach Read',       desc:'Read for 30+ min at the beach in San Diego',                             id:'kids_july_beach',      pts:15 },
+  { emoji:'⛺', label:'Campsite',         desc:'Read for 30+ min at a campsite',                                         id:'kids_july_campsite',   pts:25 },
+  { emoji:'📗', label:'Full Novel',       desc:'Finish a prose novel (200+ pages)',                                      id:'kids_july_novel',      pts:50 },
+  { emoji:'⏰', label:'Lost in a Book',   desc:'Read for 2+ hours without stopping',                                     id:'kids_july_2hr',        pts:50 },
+  { emoji:'🎁', label:'Recommended',      desc:'Read a book someone else picked for you',                                id:'kids_july_recommend',  pts:30 },
+  { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together as a family for 30+ min',                    id:'kids_july_aloud',      pts:25 },
+  { emoji:'🌟', label:'Author Explorer',  desc:'Read two books by the same author',                                      id:'kids_july_author',     pts:50 },
+  { emoji:'🚩', label:'Brave DNF',        desc:'Try a book and decide it\'s not for you — no guilt!',                   id:'kids_july_dnf',        pts:30 },
+  { emoji:'🌙', label:'Night Owl',        desc:'Read for 30+ min past 10pm',                                             id:'kids_july_nightowl',   pts:25 },
+  { emoji:'🏖️', label:'Ocean View',       desc:'Read with a view of the Pacific Ocean',                                  id:'kids_july_ocean',      pts:15 },
+  { emoji:'FREE', label:'FREE SPACE',     desc:'',                                                                        id:'kids_july_free', free:true, pts:0 },
+  { emoji:'🗺️', label:'New Genre',        desc:'Read a genre you\'ve never tried before',                                id:'kids_july_genre',      pts:30 },
+  { emoji:'📱', label:'Phone Free',       desc:'Read instead of screen time for 1+ hour',                                id:'kids_july_phonefree',  pts:30 },
+  { emoji:'🎨', label:'Draw a Scene',     desc:'Illustrate your favorite scene from a book',                             id:'kids_july_draw',       pts:30 },
+  { emoji:'🍦', label:'Ice Cream Read',   desc:'Read for 20+ min while eating ice cream',                                id:'kids_july_icecream',   pts:25 },
+  { emoji:'🚗', label:'Car Reader',       desc:'Read for 30+ min while being chauffeured somewhere',                     id:'kids_july_carread',    pts:25 },
+  { emoji:'🦁', label:'Wild Animal',      desc:'Read a book about animals, wildlife, or nature',                         id:'kids_july_animal',     pts:30 },
+  { emoji:'🌍', label:'Different World',  desc:'Finish a book set in another country',                                   id:'kids_july_world',      pts:50 },
+  { emoji:'🕰️', label:'Time Traveler',    desc:'Finish a book set in the past (historical fiction)',                     id:'kids_july_historical', pts:50 },
+  { emoji:'👨‍👩‍👧', label:'Family Reading', desc:'Everyone reads their own book at the same time — 30+ min',            id:'kids_july_famsession', pts:25 },
+  { emoji:'🔖', label:'5-Star Review',    desc:'Rate a book and write 3+ sentences about it in your journal',            id:'kids_july_review',     pts:30 },
+  { emoji:'🌅', label:'Early Riser',      desc:'Read for 30+ min before 8am',                                            id:'kids_july_earlybird',  pts:25 },
+  { emoji:'🏕️', label:'Away Reader',      desc:'Read for 30+ min while away from home (camp, hotel, or road trip)',      id:'kids_july_away',       pts:25 },
+];
+
+const ADULTS_BINGO_JULY = [
+  { emoji:'🌅', label:'Morning Read',     desc:'Read for 30+ min before or with your first coffee',                      id:'adults_july_morning',   pts:25 },
+  { emoji:'🔥', label:'Campfire Read',    desc:'Read by a campfire on a summer night',                                    id:'adults_july_campfire',  pts:25 },
+  { emoji:'🌊', label:'Beach Read',       desc:'Read for 30+ min at the beach',                                          id:'adults_july_beach',     pts:15 },
+  { emoji:'🎆', label:'July 4th',         desc:'Read for any amount of time on Independence Day (July 4th)',              id:'adults_july_july4',     pts:25 },
+  { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together as a family for 30+ min',                    id:'adults_july_aloud',     pts:25 },
+  { emoji:'⏰', label:'Lost in a Book',   desc:'Read for 2+ hours without stopping',                                     id:'adults_july_2hr',       pts:50 },
+  { emoji:'📗', label:'Full Novel',       desc:'Finish a novel (200+ pages)',                                            id:'adults_july_novel',     pts:50 },
+  { emoji:'🚩', label:'Brave DNF',        desc:'Commit to DNF and don\'t feel guilty',                                   id:'adults_july_dnf',       pts:30 },
+  { emoji:'🌙', label:'Night Reader',     desc:'Read for 30+ min past midnight',                                         id:'adults_july_midnight',  pts:25 },
+  { emoji:'📰', label:'New Yorker',       desc:'Read a full New Yorker article',                                         id:'adults_july_newyorker', pts:30 },
+  { emoji:'🎁', label:'Someone\'s Pick',  desc:'Read a book recommended by a family member',                             id:'adults_july_recommend', pts:30 },
+  { emoji:'🗺️', label:'New Genre',        desc:'Read a genre you\'ve never tried before',                                id:'adults_july_genre',     pts:30 },
+  { emoji:'FREE', label:'FREE SPACE',     desc:'',                                                                        id:'adults_july_free', free:true, pts:0 },
+  { emoji:'✉️', label:'Book Letter',      desc:'Post in the Exchange telling another member why they HAVE to read your book', id:'adults_july_library', pts:30 },
+  { emoji:'🏖️', label:'Poolside Read',    desc:'Read for 30+ min by the pool or at the beach',                          id:'adults_july_poolside',  pts:25 },
+  { emoji:'⛺', label:'Away Read',        desc:'Read for 30+ min while away from home (trip, camp, or hotel)',            id:'adults_july_away',      pts:25 },
+  { emoji:'🤝', label:'Buddy Read',       desc:'Read the same book as another family member',                             id:'adults_july_buddy',     pts:30 },
+  { emoji:'🌍', label:'Different World',  desc:'Finish a book set outside the US',                                       id:'adults_july_world',     pts:50 },
+  { emoji:'🔖', label:'5-Star Review',    desc:'Rate & write a journal entry about a completed book',                    id:'adults_july_review',    pts:30 },
+  { emoji:'🎧', label:'Audiobook',        desc:'Listen to an audiobook for 30+ minutes',                                 id:'adults_july_audio',     pts:30 },
+  { emoji:'💑', label:'Couple Read',      desc:'Read at the same time as your partner for 30+ min',                      id:'adults_july_couple',    pts:25 },
+  { emoji:'🕰️', label:'Time Traveler',    desc:'Finish a historical fiction book',                                       id:'adults_july_historical',pts:50 },
+  { emoji:'🍷', label:'Weekend Read',     desc:'Read for 3+ hours on a Saturday or Sunday',                              id:'adults_july_weekend',   pts:50 },
+  { emoji:'🌟', label:'Author Deep Dive', desc:'Read 2+ books by the same author',                                       id:'adults_july_author',    pts:50 },
+  { emoji:'🌿', label:'Wild Side',        desc:'Read a book set in nature, the outdoors, or the wilderness',              id:'adults_july_wildlife',  pts:25 },
+];
+
+const HANI_BINGO_JULY = [
+  { emoji:'🌅', label:'Morning Read',     desc:'Read for 30+ min before or with your first coffee',                      id:'hani_july_morning',     pts:25 },
+  { emoji:'☕', label:'Coffee Shop',      desc:'Read for 30+ min at a coffee shop',                                      id:'hani_july_coffee',      pts:25 },
+  { emoji:'✉️', label:'Book Letter',      desc:'Post a message in the Exchange telling another family member why they HAVE to read your book', id:'hani_july_library', pts:30 },
+  { emoji:'🦎', label:'Read with Sunny',  desc:'Read while Sunny the bearded dragon keeps you company',                  id:'hani_july_sunny',       pts:25 },
+  { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together (video call totally counts!) for 30+ min',   id:'hani_july_aloud',       pts:25 },
+  { emoji:'⏰', label:'Lost in a Book',   desc:'Read for 2+ hours without stopping',                                     id:'hani_july_2hr',         pts:50 },
+  { emoji:'📗', label:'Full Novel',       desc:'Finish a novel (200+ pages)',                                            id:'hani_july_novel',       pts:50 },
+  { emoji:'🚩', label:'Brave DNF',        desc:'Commit to DNF and don\'t feel guilty',                                   id:'hani_july_dnf',         pts:30 },
+  { emoji:'🌙', label:'Night Reader',     desc:'Read for 30+ min past midnight',                                         id:'hani_july_midnight',    pts:25 },
+  { emoji:'📰', label:'New Yorker',       desc:'Read a full New Yorker article',                                         id:'hani_july_newyorker',   pts:30 },
+  { emoji:'🎁', label:'Someone\'s Pick',  desc:'Read a book recommended by a family member',                             id:'hani_july_recommend',   pts:30 },
+  { emoji:'🗺️', label:'New Genre',        desc:'Read a genre you\'ve never tried before',                                id:'hani_july_genre',       pts:30 },
+  { emoji:'FREE', label:'FREE SPACE',     desc:'',                                                                        id:'hani_july_free', free:true, pts:0 },
+  { emoji:'🐶', label:'Read with Cookie', desc:'Snuggle up and read with Cookie by your side for 30+ min',               id:'hani_july_cookie',      pts:25 },
+  { emoji:'🐶', label:'Read with Biscuit',desc:'Curl up and read with Biscuit keeping you company for 30+ min',          id:'hani_july_biscuit',     pts:25 },
+  { emoji:'🏊', label:'Pool Read',        desc:'Read for 30+ min by or in the pool',                                     id:'hani_july_pool',        pts:25 },
+  { emoji:'🤝', label:'Buddy Read',       desc:'Read the same book as another family member',                             id:'hani_july_buddy',       pts:30 },
+  { emoji:'🌍', label:'Different World',  desc:'Finish a book set outside the US',                                       id:'hani_july_world',       pts:50 },
+  { emoji:'🔖', label:'5-Star Review',    desc:'Rate & write a journal entry about a completed book',                    id:'hani_july_review',      pts:30 },
+  { emoji:'🎧', label:'Audiobook Walk',   desc:'Listen to an audiobook while on a walk for 30+ min',                     id:'hani_july_audio',       pts:30 },
+  { emoji:'💑', label:'Couple Read',      desc:'Read at the same time as your partner for 30+ min',                      id:'hani_july_couple',      pts:25 },
+  { emoji:'🕰️', label:'Time Traveler',    desc:'Finish a historical fiction book',                                       id:'hani_july_historical',  pts:50 },
+  { emoji:'🍷', label:'Weekend Read',     desc:'Read for 3+ hours on a Saturday or Sunday',                              id:'hani_july_weekend',     pts:50 },
+  { emoji:'🌟', label:'Author Deep Dive', desc:'Read 2+ books by the same author',                                       id:'hani_july_author',      pts:50 },
+  { emoji:'🌳', label:'Backyard Read',    desc:'Read for 30+ min outside in the yard or patio',                          id:'hani_july_backyard',    pts:25 },
+];
+
 const ALL_BADGES = [
   { id:'first_book', emoji:'🌱', label:'First Chapter', desc:'Log your first book' },
   { id:'first_finish', emoji:'🏅', label:'Page Turner', desc:'Finish your first book' },
@@ -2661,10 +2748,14 @@ const ALL_BADGES = [
   { id:'novel_reader', emoji:'📗', label:'Novel Reader', desc:'Finish a full novel' },
   { id:'brave_reader', emoji:'🚩', label:'Brave Reader', desc:'DNF a book (no shame!)' },
   { id:'journaler', emoji:'📝', label:'Journaler', desc:'Write 10 journal entries' },
-  { id:'bingo_line',    emoji:'🎲', label:'Bingo!',       desc:'Complete a bingo line' },
-  { id:'bingo_corners', emoji:'🔲', label:'Four Corners', desc:'Mark all 4 corner squares' },
-  { id:'bingo_x',       emoji:'✖️', label:'X Marks It',  desc:'Complete both diagonals' },
-  { id:'bingo_full',    emoji:'🃏', label:'Blackout!',    desc:'Complete the entire bingo card' },
+  { id:'bingo_line',         emoji:'🎲', label:'Bingo!',            desc:'Complete a bingo line (June card)' },
+  { id:'bingo_corners',      emoji:'🔲', label:'Four Corners',      desc:'Mark all 4 corner squares (June card)' },
+  { id:'bingo_x',            emoji:'✖️', label:'X Marks It',       desc:'Complete both diagonals (June card)' },
+  { id:'bingo_full',         emoji:'🃏', label:'Blackout!',         desc:'Complete the entire bingo card (June card)' },
+  { id:'bingo_line_july',    emoji:'🎲', label:'Bingo! (July)',     desc:'Complete a bingo line (July–Aug card)' },
+  { id:'bingo_corners_july', emoji:'🔲', label:'Corners (July)',    desc:'Mark all 4 corner squares (July–Aug card)' },
+  { id:'bingo_x_july',       emoji:'✖️', label:'X (July)',         desc:'Complete both diagonals (July–Aug card)' },
+  { id:'bingo_full_july',    emoji:'🃏', label:'Blackout! (July)', desc:'Complete the entire bingo card (July–Aug card)' },
   { id:'early_bird', emoji:'🌅', label:'Early Bird', desc:'Read before 8am' },
   { id:'night_owl', emoji:'🌙', label:'Night Owl', desc:'Read past midnight' },
   { id:'genre_explorer', emoji:'🗺️', label:'Genre Explorer', desc:'Read 3 different genres' },
@@ -4691,10 +4782,21 @@ function logManualSession() {
 // ═══════════════════════════════════════
 //  CHALLENGES
 // ═══════════════════════════════════════
+function isJulyCard() {
+  // July–August challenge runs July 1 through early August (challenge ends ~Aug 8)
+  const t = todayStr();
+  return t >= '2026-07-01' && t <= '2026-08-08';
+}
+
 function getBingoSquares(card) {
-  if (card === 'kids') return KIDS_BINGO;
-  if (card === 'hani') return HANI_BINGO;
-  return ADULTS_BINGO;
+  const july = isJulyCard();
+  if (card === 'kids') return july ? KIDS_BINGO_JULY : KIDS_BINGO;
+  if (card === 'hani') return july ? HANI_BINGO_JULY : HANI_BINGO;
+  return july ? ADULTS_BINGO_JULY : ADULTS_BINGO;
+}
+
+function bingoBadgeSuffix() {
+  return isJulyCard() ? '_july' : '';
 }
 
 function renderChallenges() {
@@ -4730,6 +4832,17 @@ function renderBingoCard() {
   const grid = document.getElementById('bingo-grid');
   const titles = { kids: '🧒 Kids Bingo Card', adults: '🧑 Adults Bingo Card', hani: '🐾 Hani\'s Dog-Sitting Card' };
   document.getElementById('bingo-card-title').textContent = titles[activeBingoCard] || '🧑 Adults Bingo Card';
+  // Show which challenge period is active
+  const periodEl = document.getElementById('bingo-period-label');
+  if (periodEl) {
+    if (isJulyCard()) {
+      periodEl.textContent = '📅 July–August Challenge · 🔥 Campfire · 🌊 San Diego';
+      periodEl.style.display = '';
+    } else {
+      periodEl.textContent = '📅 June Challenge · ✈️ Alaska Cruise';
+      periodEl.style.display = '';
+    }
+  }
   grid.innerHTML = squares.map(sq => `
     <div class="bingo-cell ${sq.free?'free-space':''} ${completed[sq.id]?'completed':''}"
          onclick="${sq.free?'':`openBingoSquare('${sq.id}')`}">
@@ -4896,33 +5009,34 @@ function checkBingo() {
   const corners = [0,4,20,24].every(i => isDone(i));
   const xPattern = diag1.every(i => isDone(i)) && diag2.every(i => isDone(i));
   const hasBadge = id => state.badges[currentMember]?.includes(id);
+  const sfx = bingoBadgeSuffix(); // '' for June, '_july' for July–Aug
 
-  if (bingoLines > 0 && !hasBadge('bingo_line')) {
-    awardBadge(currentMember, 'bingo_line');
+  if (bingoLines > 0 && !hasBadge('bingo_line' + sfx)) {
+    awardBadge(currentMember, 'bingo_line' + sfx);
     celebrateThemed();
     showToast('🎲 BINGO! +50 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_bonus', bookTitle:'Bingo Line Bonus', minutes:50, date:todayStr(), ts:Date.now() });
     saveToGist();
   }
-  if (corners && !hasBadge('bingo_corners')) {
-    awardBadge(currentMember, 'bingo_corners');
+  if (corners && !hasBadge('bingo_corners' + sfx)) {
+    awardBadge(currentMember, 'bingo_corners' + sfx);
     celebrateThemed();
     showToast('🔲 Four Corners! +30 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_corners', bookTitle:'Four Corners Bonus', minutes:30, date:todayStr(), ts:Date.now() });
     saveToGist();
   }
-  if (xPattern && !hasBadge('bingo_x')) {
-    awardBadge(currentMember, 'bingo_x');
+  if (xPattern && !hasBadge('bingo_x' + sfx)) {
+    awardBadge(currentMember, 'bingo_x' + sfx);
     celebrateThemed();
     showToast('✖️ X Marks It! +50 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'bingo_x', bookTitle:'X Pattern Bonus', minutes:50, date:todayStr(), ts:Date.now() });
     saveToGist();
   }
-  if (allComplete && !hasBadge('bingo_full')) {
-    awardBadge(currentMember, 'bingo_full');
+  if (allComplete && !hasBadge('bingo_full' + sfx)) {
+    awardBadge(currentMember, 'bingo_full' + sfx);
     celebrateThemed();
     showToast('🃏 BLACKOUT! +100 bonus points!');
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
