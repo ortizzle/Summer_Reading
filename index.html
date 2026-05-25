@@ -1632,7 +1632,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
           <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">📖 <span id="my-stat-reading">0</span> Reading</div>
           <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">✅ <span id="my-stat-finished">0</span> Finished</div>
-          <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">⏱ <span id="my-stat-mins">0m</span> read</div>
+          <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">⏱ <span id="my-stat-mins">0m</span> <span style="opacity:0.65;font-size:10px;">all summer</span></div>
           <div id="my-stat-streak-pill" style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">🔥 <span id="my-stat-streak-val">—</span> streak</div>
         </div>
         <div style="text-align:center;color:rgba(255,255,255,0.45);font-size:11px;font-weight:600;letter-spacing:0.5px;">TAP FOR POINTS BREAKDOWN ↩</div>
@@ -1711,6 +1711,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <button id="lb-period-all" onclick="switchLbPeriod('all')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid var(--sky);background:var(--sky);color:white;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">All Summer</button>
       <button id="lb-period-week" onclick="switchLbPeriod('week')" style="flex:1;padding:5px 0;border-radius:8px;border:1.5px solid #e0e0e0;background:white;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">📅 This Week</button>
     </div>
+    <div id="lb-week-range" style="display:none;font-size:11px;color:var(--muted);font-weight:600;text-align:center;margin:-4px 0 10px;"></div>
     <div id="lb-list"></div>
   </div>
 
@@ -3767,6 +3768,20 @@ function switchLbPeriod(period) {
   const weekBtn = document.getElementById('lb-period-week');
   if (allBtn)  allBtn.style.cssText  = period === 'all'  ? activeStyle : inactiveStyle;
   if (weekBtn) weekBtn.style.cssText = period === 'week' ? activeStyle : inactiveStyle;
+  // Show/hide week date range label
+  const rangeEl = document.getElementById('lb-week-range');
+  if (rangeEl) {
+    if (period === 'week') {
+      const start = lbWeekStart();
+      const startD = new Date(start + 'T12:00:00Z');
+      const endD = new Date(startD); endD.setUTCDate(startD.getUTCDate() + 6);
+      const fmt = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric', timeZone:'UTC' });
+      rangeEl.textContent = `${fmt(startD)} – ${fmt(endD)}`;
+      rangeEl.style.display = 'block';
+    } else {
+      rangeEl.style.display = 'none';
+    }
+  }
   renderLbList(buildLbMembers());
 }
 
