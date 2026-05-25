@@ -5532,7 +5532,7 @@ function openBookSheet(bookId, memberId) {
   const actionButtons = isOwn ? `
     <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
       ${book.status === 'reading' ? `
-        <button onclick="closeModal('book-sheet-modal');openQuickLog('${bookId}',${JSON.stringify(book.title)})"
+        <button onclick="closeModal('book-sheet-modal');openQuickLog('${bookId}')"
           style="width:100%;padding:13px;border-radius:14px;border:none;background:#EDE9FE;color:#5B4FCF;font-size:15px;font-weight:800;cursor:pointer;">
           ⏱ Log Reading Time
         </button>
@@ -5601,8 +5601,10 @@ function rateBookSheet(bookId, memberId, stars) {
 }
 
 function openQuickLog(bookId, bookTitle) {
+  // bookTitle is optional — look it up from state if not provided
+  const resolvedTitle = bookTitle || ((state.books[currentMember]||[]).find(b => b.id === bookId)?.title) || '';
   document.getElementById('quick-log-book-id').value = bookId;
-  document.getElementById('quick-log-book-name').textContent = bookTitle;
+  document.getElementById('quick-log-book-name').textContent = resolvedTitle;
   document.getElementById('quick-log-minutes').value = '';
   document.getElementById('quick-log-date').value = todayStr();
   openModal('quick-log-modal');
