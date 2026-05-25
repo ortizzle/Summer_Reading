@@ -1597,6 +1597,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div style="text-align:center;margin-bottom:12px;">
           <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
           <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
+          <div id="my-stat-next-milestone" style="margin-top:5px;font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;min-height:16px;"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
           <div style="background:rgba(255,255,255,0.18);border-radius:16px;padding:7px 10px;color:white;font-size:12px;font-weight:600;text-align:center;">📖 <span id="my-stat-reading">0</span> Reading</div>
@@ -1618,6 +1619,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       </div>
 
     </div>
+  </div>
+
+  <!-- Personal Goal card -->
+  <div id="personal-goal-card" style="background:white;border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;">
+    <div id="personal-goal-content" style="flex:1;min-width:0;"></div>
+    <button id="personal-goal-btn" onclick="openGoalModal()" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--sky);background:white;color:var(--sky);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;"></button>
   </div>
 
   <!-- Group milestone / Family Goal -->
@@ -1700,6 +1707,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div id="fam-total-breakdown-content"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Now Reading card -->
+  <div class="card" style="margin-bottom:10px;">
+    <div class="card-title" style="margin-bottom:12px;">📖 Now Reading</div>
+    <div id="now-reading-list"></div>
   </div>
 
   <!-- Recent activity preview -->
@@ -2314,6 +2327,33 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Personal Goal Modal -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎯 Set My Reading Goal</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Pick a goal to chase this summer. You can update it any time.</div>
+    <div class="form-group">
+      <label class="form-label">Goal Type</label>
+      <select class="form-select" id="goal-type-select" onchange="updateGoalTargetHint()">
+        <option value="pts">⭐ Total Points</option>
+        <option value="books">📚 Books Finished</option>
+        <option value="hrs">⏱ Reading Hours</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="goal-target-label">Target</label>
+      <input class="form-input" type="number" id="goal-target-input" min="1" placeholder="e.g. 200">
+      <div id="goal-target-hint" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('goal-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveGoal()">Save Goal</button>
+    </div>
+    <button onclick="clearGoal()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Remove my goal</button>
+  </div>
+</div>
+
 <!-- Bingo Square Modal -->
 <div class="modal-overlay" id="bingo-modal">
   <div class="modal">
@@ -2472,7 +2512,7 @@ function getMemberColor(id) {
 const KIDS_BINGO = [
   { emoji:'📖', label:'Read Outside',      desc:'Read for 30+ min outdoors',                                    id:'kids_outside',        pts:25 },
   { emoji:'🛳️', label:'Read on the Ship',  desc:'Read for 30+ min on the Disney cruise ship',                  id:'kids_ship',           pts:15 },
-  { emoji:'📚', label:'Library Visit',     desc:'Visit the library',                                            id:'kids_library',        pts:25 },
+  { emoji:'📸', label:'Reading Selfie',    desc:'Snap a photo of yourself reading somewhere cool and post it in the Exchange!', id:'kids_library', pts:25 },
   { emoji:'✈️', label:'Read on a Plane',   desc:'Read for 30+ min during a flight',                             id:'kids_plane',          pts:15 },
   { emoji:'📗', label:'Full Novel',        desc:'Finish a prose novel (200+ pages)',                            id:'kids_novel',          pts:50 },
   { emoji:'⏰', label:'Lost in a Book',    desc:'Read for 2+ hours without stopping',                           id:'kids_2hr',            pts:50 },
@@ -2500,7 +2540,7 @@ const KIDS_BINGO = [
 const ADULTS_BINGO = [
   { emoji:'🌅', label:'Morning Read',      desc:'Read for 30+ min before or with your first coffee',           id:'adults_morning',   pts:25 },
   { emoji:'🛳️', label:'Read on the Ship',  desc:'Read for 30+ min on the Disney cruise ship',                  id:'adults_ship',      pts:15 },
-  { emoji:'📚', label:'Library Visit',     desc:'Visit the library',                                            id:'adults_library',   pts:25 },
+  { emoji:'✉️', label:'Book Letter',       desc:'Post a message in the Exchange telling another family member why they HAVE to read your book', id:'adults_library', pts:30 },
   { emoji:'✈️', label:'Read on a Plane',   desc:'Read for 30+ min during a flight',                             id:'adults_plane',     pts:15 },
   { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together as a family for 30+ min',              id:'adults_aloud',     pts:25 },
   { emoji:'⏰', label:'Lost in a Book',    desc:'Read for 2+ hours without stopping',                           id:'adults_2hr',       pts:50 },
@@ -2529,7 +2569,7 @@ const ADULTS_BINGO = [
 const HANI_BINGO = [
   { emoji:'🌅', label:'Morning Read',      desc:'Read for 30+ min before or with your first coffee',           id:'hani_morning',     pts:25 },
   { emoji:'☕', label:'Coffee Shop',       desc:'Read for 30+ min at a coffee shop',                           id:'hani_coffee',      pts:25 },
-  { emoji:'📚', label:'Library Visit',     desc:'Visit the library',                                            id:'hani_library',     pts:25 },
+  { emoji:'✉️', label:'Book Letter',       desc:'Post a message in the Exchange telling another family member why they HAVE to read your book', id:'hani_library', pts:30 },
   { emoji:'🦎', label:'Read with Sunny',   desc:'Read while Sunny the bearded dragon keeps you company',       id:'hani_sunny',       pts:25 },
   { emoji:'👨‍👩‍👧', label:'Family Read-Aloud', desc:'Read aloud together (video call totally counts!) for 30+ min', id:'hani_aloud',  pts:25 },
   { emoji:'⏰', label:'Lost in a Book',    desc:'Read for 2+ hours without stopping',                           id:'hani_2hr',         pts:50 },
@@ -2624,6 +2664,7 @@ let state = {
   memberColors: {},  // memberId -> hex color (chosen from COLOR_PALETTE)
   onboarded: {},     // memberId -> bool
   claimedRewards: {}, // 'memberId:milestoneId' or 'family:gmId' -> timestamp
+  memberGoals: {},    // memberId -> { type:'pts'|'books'|'hrs', target:N }
   notifications: {}  // memberId -> [{ id, type:'reaction'|'mention', emoji?, fromId, fromName, snippet, ts, seen }]
 };
 let currentMember = 'chris';
@@ -3063,6 +3104,128 @@ function renderGoalBreakdown() {
   if (panel && _goalBreakdownOpen) panel.style.maxHeight = panel.scrollHeight + 'px';
 }
 
+// ── Personal Goal ─────────────────────────────────────────────────────────────
+function openGoalModal() {
+  if (!state.memberGoals) state.memberGoals = {};
+  const g = state.memberGoals[currentMember];
+  const sel = document.getElementById('goal-type-select');
+  const inp = document.getElementById('goal-target-input');
+  if (sel && g) sel.value = g.type;
+  if (inp && g) inp.value = g.target;
+  updateGoalTargetHint();
+  openModal('goal-modal');
+}
+
+function updateGoalTargetHint() {
+  const type = document.getElementById('goal-type-select')?.value;
+  const hint = document.getElementById('goal-target-hint');
+  const lbl  = document.getElementById('goal-target-label');
+  const suggestions = { pts:'e.g. 200 pts — try starting with 150!', books:'e.g. 5 books for the summer', hrs:'e.g. 10 hours — about 20 min/day' };
+  if (hint) hint.textContent = suggestions[type] || '';
+  if (lbl) lbl.textContent = type === 'pts' ? 'Points target' : type === 'books' ? 'Books to finish' : 'Hours to read';
+}
+
+function saveGoal() {
+  const type   = document.getElementById('goal-type-select')?.value;
+  const target = parseInt(document.getElementById('goal-target-input')?.value) || 0;
+  if (!target || target < 1) { showToast('Enter a target number!'); return; }
+  if (!state.memberGoals) state.memberGoals = {};
+  state.memberGoals[currentMember] = { type, target };
+  closeModal('goal-modal');
+  saveToGist().then(() => renderHome());
+}
+
+function clearGoal() {
+  if (!state.memberGoals) state.memberGoals = {};
+  delete state.memberGoals[currentMember];
+  closeModal('goal-modal');
+  saveToGist().then(() => renderHome());
+}
+
+function renderPersonalGoal() {
+  const card    = document.getElementById('personal-goal-card');
+  const content = document.getElementById('personal-goal-content');
+  const btn     = document.getElementById('personal-goal-btn');
+  if (!card || !content || !btn) return;
+  if (!state.memberGoals) state.memberGoals = {};
+  const g = state.memberGoals[currentMember];
+  const color = getMemberColor(currentMember);
+  if (!g) {
+    content.innerHTML = `<div style="font-size:13px;color:var(--muted);">No personal goal set yet</div>
+      <div style="font-size:11px;color:#aaa;margin-top:2px;">Tap to set a goal for the summer →</div>`;
+    btn.textContent = 'Set Goal';
+    btn.style.cssText = `flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--sky);background:white;color:var(--sky);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;`;
+    return;
+  }
+  // Compute progress
+  const myReadingSess = (state.sessions[currentMember] || []).filter(s =>
+    !['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal'].includes(s.bookId));
+  const myPts  = getMemberPoints(currentMember);
+  const myMins = myReadingSess.reduce((a,s) => a + (s.minutes||0), 0);
+  const myBks  = (state.books[currentMember] || []).filter(b => b.status === 'finished').length;
+  let current = 0, unit = '';
+  if (g.type === 'pts')   { current = myPts;              unit = 'pts'; }
+  if (g.type === 'books') { current = myBks;              unit = 'books'; }
+  if (g.type === 'hrs')   { current = Math.floor(myMins/60); unit = 'hrs'; }
+  const pct   = Math.min(100, Math.round((current / g.target) * 100));
+  const done  = current >= g.target;
+  const label = g.type === 'pts' ? '⭐ Points goal' : g.type === 'books' ? '📚 Books goal' : '⏱ Reading hours goal';
+  content.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:3px;">${label}</div>
+    <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px;">
+      <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:${color};">${current.toLocaleString()}</span>
+      <span style="font-size:11px;color:var(--muted);">/ ${g.target.toLocaleString()} ${unit}</span>
+      ${done ? '<span style="font-size:13px;margin-left:4px;">🎉</span>' : ''}
+    </div>
+    <div style="background:#eee;border-radius:20px;height:7px;overflow:hidden;">
+      <div style="height:100%;border-radius:20px;background:${color};width:${pct}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);"></div>
+    </div>
+    ${!done ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;">${pct}% complete · ${(g.target - current).toLocaleString()} ${unit} to go</div>` : `<div style="font-size:10px;color:#27ae60;font-weight:700;margin-top:4px;">Goal reached! 🏆</div>`}`;
+  btn.textContent = 'Edit';
+  btn.style.cssText = `flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid #ddd;background:white;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;`;
+}
+
+// ── Now Reading ────────────────────────────────────────────────────────────────
+function renderNowReading() {
+  const el = document.getElementById('now-reading-list');
+  if (!el) return;
+  const rows = [];
+  MEMBERS.forEach(m => {
+    const readingBooks = (state.books[m.id] || []).filter(b => b.status === 'reading');
+    if (!readingBooks.length) return;
+    const color = getMemberColor(m.id);
+    const emoji = getMemberEmoji(m.id);
+    readingBooks.forEach(book => {
+      const sess = (state.sessions[m.id] || []).filter(s => s.bookId === book.id);
+      const mins = sess.reduce((a,s) => a + (s.minutes||0), 0);
+      const hrs = Math.floor(mins / 60), minRem = mins % 60;
+      const timeStr = mins > 0 ? (hrs > 0 ? `${hrs}h ${minRem}m` : `${minRem}m`) : null;
+      const coverHtml = book.coverUrl
+        ? `<img src="${book.coverUrl}" style="width:36px;height:54px;object-fit:cover;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">`
+        : `<div style="width:36px;height:54px;border-radius:4px;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📖</div>`;
+      rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sand);">
+        ${coverHtml}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${book.title}</div>
+          ${book.author ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">${book.author}</div>` : ''}
+          ${timeStr ? `<div style="font-size:10px;color:${color};font-weight:700;margin-top:2px;">⏱ ${timeStr} read</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          <span style="font-size:16px;">${emoji}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--muted);">${m.name}</span>
+        </div>
+      </div>`);
+    });
+  });
+  if (!rows.length) {
+    el.innerHTML = `<div style="text-align:center;padding:12px 0;color:var(--muted);font-size:13px;">No one has started a book yet — get reading! 📚</div>`;
+    return;
+  }
+  // Remove last border
+  el.innerHTML = rows.join('').replace(/border-bottom:1px solid var\(--sand\);">\s*$/, 'border-bottom:none;">');
+  el.innerHTML = rows.map((r, i) => i === rows.length - 1 ? r.replace('border-bottom:1px solid var(--sand)', 'border-bottom:none') : r).join('');
+}
+
 // ── Journal prompts ───────────────────────────────────────────────────────────
 const JOURNAL_PROMPTS = [
   // Young readers first
@@ -3401,6 +3564,41 @@ function renderHome() {
   document.getElementById('my-stat-mins').textContent = myMins >= 60
     ? Math.floor(myMins/60) + 'h ' + (myMins % 60) + 'm' : myMins + 'm';
   document.getElementById('my-stat-pts').textContent = myPts;
+  // Next milestone nudge
+  const nudgeEl = document.getElementById('my-stat-next-milestone');
+  if (nudgeEl) {
+    const earnedM = state.milestones[currentMember] || [];
+    const myReadMins = myReadingSess.reduce((a,s) => a + (s.minutes||0), 0);
+    const myFinishedBooks = myBooks.filter(b => b.status === 'finished');
+    const myJournals = (state.journal[currentMember] || []).length;
+    const myBingo = Object.keys(state.bingo?.[currentMember] || {}).filter(k => state.bingo[currentMember][k]).length;
+    const nextM = INDIVIDUAL_MILESTONES.find(m => {
+      if (earnedM.includes(m.id)) return false;
+      if (m.id === 'm_100pts')    return myPts < 100;
+      if (m.id === 'm_novel')     return !myFinishedBooks.some(b => b.genre === 'novel' || b.genre === 'other');
+      if (m.id === 'm_3books')    return myFinishedBooks.length < 3;
+      if (m.id === 'm_15hrs')     return myReadMins < 900;
+      if (m.id === 'm_50hrs')     return myReadMins < 3000;
+      if (m.id === 'm_100hrs')    return myReadMins < 6000;
+      if (m.id === 'm_journal20') return myJournals < 20;
+      if (m.id === 'm_bingo')     return myBingo < 25;
+      return true;
+    });
+    if (nextM) {
+      let nudgeText = '';
+      if (nextM.id === 'm_100pts')    nudgeText = `${nextM.icon} ${100 - myPts} pts to ${nextM.name}`;
+      else if (nextM.id === 'm_novel')     nudgeText = `${nextM.icon} Finish a novel for ${nextM.name}`;
+      else if (nextM.id === 'm_3books')    nudgeText = `${nextM.icon} ${3 - myFinishedBooks.length} more book${3 - myFinishedBooks.length !== 1 ? 's' : ''} for ${nextM.name}`;
+      else if (nextM.id === 'm_15hrs')     { const hLeft = Math.ceil((900 - myReadMins) / 60); nudgeText = `${nextM.icon} ${hLeft}h to go for ${nextM.name}`; }
+      else if (nextM.id === 'm_50hrs')     { const hLeft = Math.ceil((3000 - myReadMins) / 60); nudgeText = `${nextM.icon} ${hLeft}h to go for ${nextM.name}`; }
+      else if (nextM.id === 'm_100hrs')    { const hLeft = Math.ceil((6000 - myReadMins) / 60); nudgeText = `${nextM.icon} ${hLeft}h to go for ${nextM.name}`; }
+      else if (nextM.id === 'm_journal20') nudgeText = `${nextM.icon} ${20 - myJournals} more journal entries for ${nextM.name}`;
+      else if (nextM.id === 'm_bingo')     nudgeText = `${nextM.icon} ${25 - myBingo} more bingo squares for ${nextM.name}`;
+      nudgeEl.textContent = nudgeText;
+    } else {
+      nudgeEl.textContent = '🏆 All milestones complete!';
+    }
+  }
   document.getElementById('my-stat-avatar').textContent = getMemberEmoji(currentMember);
   document.getElementById('my-stat-name').textContent = myName;
   document.getElementById('my-stat-bg-emoji').textContent = myFinished >= 3 ? '🏆' : myReading > 0 ? '📖' : '📚';
@@ -3510,6 +3708,8 @@ function renderHome() {
   renderActivityList('activity-feed', 5);
   if (_goalBreakdownOpen) renderGoalBreakdown();
   if (_famTotalView) renderFamTotalBreakdown();
+  renderPersonalGoal();
+  renderNowReading();
 
 }
 
@@ -5585,14 +5785,15 @@ function getReadingStreak(memberId) {
   const dates = new Set(sessions.map(s => s.date).filter(Boolean));
   if (!dates.size) return 0;
   let streak = 0;
-  const d = new Date();
-  // If no session today, start counting from yesterday (don't penalise mid-day)
-  if (!dates.has(d.toISOString().split('T')[0])) d.setDate(d.getDate() - 1);
+  // Work in AZ time: start from today's AZ date
+  let cursor = new Date(Date.now() - 7 * 3600 * 1000); // now in AZ
+  // If no session today (AZ), start counting from yesterday (don't penalise mid-day)
+  if (!dates.has(azDateStr(new Date(cursor)))) cursor.setUTCDate(cursor.getUTCDate() - 1);
   while (true) {
-    const ds = d.toISOString().split('T')[0];
+    const ds = cursor.toISOString().split('T')[0]; // already AZ-offset, use UTC date string
     if (!dates.has(ds)) break;
     streak++;
-    d.setDate(d.getDate() - 1);
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
   return streak;
 }
@@ -5954,7 +6155,14 @@ function formatMins(m) {
   return `${Math.floor(m/60)}h ${m%60}m`;
 }
 function pad(n) { return String(n).padStart(2,'0'); }
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+// Arizona is always UTC-7 (no DST). Use AZ wall-clock date everywhere
+// so sessions logged after 5 pm don't bleed into the next UTC calendar day.
+function azDateStr(date) {
+  const d = (date instanceof Date) ? date : new Date(date || Date.now());
+  const azMs = d.getTime() - 7 * 3600 * 1000; // subtract 7h to get AZ time
+  return new Date(azMs).toISOString().split('T')[0];
+}
+function todayStr() { return azDateStr(); }
 function uid() { return Math.random().toString(36).substr(2,9); }
 function timeAgo(ts) {
   const diff = Date.now() - ts;
