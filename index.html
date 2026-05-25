@@ -1101,24 +1101,16 @@ body.theme-dark .sys-item { background: #0F3460; }
 body.theme-dark .msg-bubble { background: #16213E; }
 body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 
-/* ── SHELF FLIP CARDS ── */
-.shelf-grid { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 16px; }
-.shelf-flip-card { perspective: 1200px; cursor: pointer; height: 200px; }
-.shelf-flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
-.shelf-flip-card.flipped .shelf-flip-inner { transform: rotateY(180deg); }
-.shelf-face { position: absolute; top:0; left:0; width:100%; height:100%; backface-visibility: hidden; border-radius: 16px; overflow: hidden; }
-.shelf-front { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; flex-direction: row; }
-.shelf-back { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: rotateY(180deg); padding: 14px; display: flex; flex-direction: column; }
-.shelf-cover { width: 130px; min-width: 130px; height: 100%; object-fit: cover; display: block; border-radius: 16px 0 0 16px; }
-.shelf-cover-fallback { width: 130px; min-width: 130px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; border-radius: 16px 0 0 16px; }
-.shelf-front-info { padding: 14px; display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; }
-.shelf-card-title { font-size: 15px; font-weight: 800; line-height: 1.3; margin-bottom: 4px; }
-.shelf-card-author { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
-.shelf-card-time { font-size: 11px; color: var(--muted); margin-top: 6px; }
-.shelf-back-stars { display: flex; gap: 2px; font-size: 20px; color: var(--sun); margin: 6px 0; }
-.shelf-back-stars span { cursor: pointer; }
-.shelf-back-summary { font-size: 12px; color: var(--text); line-height: 1.55; flex: 1; overflow-y: auto; margin: 6px 0; }
-.shelf-back-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+/* ── SHELF CARDS ── */
+.shelf-grid { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 16px; }
+.shelf-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); display: flex; flex-direction: row; height: 130px; cursor: pointer; overflow: hidden; transition: box-shadow 0.15s, transform 0.15s; }
+.shelf-card:active { transform: scale(0.985); box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+.shelf-cover { width: 90px; min-width: 90px; height: 100%; object-fit: cover; display: block; }
+.shelf-cover-fallback { width: 90px; min-width: 90px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 38px; }
+.shelf-front-info { padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; }
+.shelf-card-title { font-size: 14px; font-weight: 800; line-height: 1.3; margin-bottom: 3px; }
+.shelf-card-author { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.shelf-card-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
 /* ── COLOR SWATCHES ── */
 .color-palette-grid {
@@ -2373,6 +2365,14 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('quick-log-modal')">Cancel</button>
       <button class="btn btn-primary" style="flex:1;" onclick="saveQuickLog()">+ Log Session</button>
     </div>
+  </div>
+</div>
+
+<!-- Book Detail Sheet (slides up from shelf) -->
+<div class="modal-overlay" id="book-sheet-modal">
+  <div class="modal" style="padding:0;overflow:hidden;max-height:88vh;">
+    <div class="modal-handle" style="margin:12px auto 0;"></div>
+    <div id="book-sheet-content" style="overflow-y:auto;max-height:calc(88vh - 28px);padding-bottom:env(safe-area-inset-bottom,16px);"></div>
   </div>
 </div>
 
@@ -4073,11 +4073,11 @@ function renderShelf() {
     if ((!b.coverUrl || b.summary === undefined) && !b._fetchingMeta) fetchAndStoreSummary(b);
   });
 
-  // Section header labels for each status group
+  // Section header labels and colors for status groups
   const statusLabels = { reading:'📖 Currently Reading', want:'🔖 Want to Read', finished:'✅ Finished', dnf:'🚩 Did Not Finish' };
   const statusColors = { reading:'#5B4FCF', want:'#c87000', finished:'#2e7d32', dnf:'#c62828' };
 
-  // Build cards, injecting section headers when _shelfFilter==='all'
+  // Build cards with section dividers between status groups when showing all
   let lastStatus = null;
   const cards = filtered.map((b, idx) => {
     let header = '';
@@ -4085,123 +4085,42 @@ function renderShelf() {
       lastStatus = b.status;
       const col = statusColors[b.status] || 'var(--muted)';
       const count = filtered.filter(x => x.status === b.status).length;
-      header = `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 0 2px;margin-top:${idx===0?'0':'8px'};">
+      header = `<div style="display:flex;align-items:center;gap:8px;padding:6px 0 2px;margin-top:${idx===0?'0':'8px'};">
         <div style="font-size:13px;font-weight:800;color:${col};">${statusLabels[b.status]||b.status}</div>
         <div style="font-size:11px;color:var(--muted);font-weight:600;">${count} book${count!==1?'s':''}</div>
         <div style="flex:1;height:1.5px;background:${col}22;border-radius:2px;"></div>
       </div>`;
     }
+
     const sessions = (state.sessions[_shelfViewMember]||[]).filter(s=>s.bookId===b.id);
     const mins = sessions.reduce((a,s)=>a+(s.minutes||0),0);
     const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
 
-    const frontCover = b.coverUrl
+    const cover = b.coverUrl
       ? `<img class="shelf-cover" src="${b.coverUrl}" alt="${b.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
          <div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};display:none;">${bookEmoji(b.genre)}</div>`
       : `<div class="shelf-cover-fallback" style="background:${bookColor(b.genre)};">${bookEmoji(b.genre)}</div>`;
 
-    const summaryText = b.summary
-      ? b.summary
-      : b.summary === ''
-        ? 'No description available.'
-        : b._fetchingMeta ? 'Loading summary…' : 'No description yet.';
-
-    const rating = b.rating || 0;
-    const stars = [1,2,3,4,5].map(n =>
-      `<span onclick="event.stopPropagation();rateBook('${b.id}',${n})" style="font-size:22px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
-    ).join('');
-
     const ownerTag = _shelfViewMember !== currentMember && _shelfViewMember !== 'all'
       ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${getMemberEmoji(_shelfViewMember)} ${MEMBERS.find(m=>m.id===_shelfViewMember)?.name||''}'s book</div>` : '';
 
-    // Back face: personal reading stats instead of unreliable API summary
-    const bookJournalEntries = (state.journal[_shelfViewMember]||[]).filter(e => e.bookTitle === b.title);
-    const latestEntry = bookJournalEntries.sort((a,z) => (z.ts||0)-(a.ts||0))[0];
-    const journalSnippet = latestEntry
-      ? latestEntry.text.slice(0, 90) + (latestEntry.text.length > 90 ? '…' : '')
-      : null;
-    const sessionCount = sessions.length;
-    const statusBadge = b.status === 'finished' ? '✅ Finished'
-      : b.status === 'dnf' ? '🚩 DNF'
-      : b.status === 'reading' ? '📖 Reading'
-      : b.status === 'want' ? '🔖 Want to Read' : '';
-    const accentColor = bookColor(b.genre);
+    // Chevron hint on right edge
+    const chevron = `<div style="display:flex;align-items:center;padding-right:12px;color:#ccc;font-size:18px;flex-shrink:0;">›</div>`;
 
     return header + `
-    <div class="shelf-flip-card" id="sfc-${idx}" onclick="toggleFlipCard('sfc-${idx}')">
-      <div class="shelf-flip-inner">
-        <div class="shelf-face shelf-front">
-          ${frontCover}
-          <div class="shelf-front-info">
-            <div class="shelf-card-title">${b.title}</div>
-            <div class="shelf-card-author">${b.author||'Unknown author'}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;">
-              <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
-              <span class="tag" style="background:#f0f0f0;color:var(--muted);">${genreLabel[b.genre]||'📚'}</span>
-            </div>
-            ${b.pages > 0 ? `<div class="shelf-card-time">📄 ${b.pages} pages</div>` : ''}
-            ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
-            ${ownerTag}
-            <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:0.5;">↩ Tap for stats</div>
-          </div>
+    <div class="shelf-card" onclick="openBookSheet('${b.id}','${_shelfViewMember}')">
+      ${cover}
+      <div class="shelf-front-info">
+        <div class="shelf-card-title">${b.title}</div>
+        <div class="shelf-card-author">${b.author||'Unknown author'}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;">
+          <span class="tag tag-${b.status}">${statusIcon(b.status)} ${capitalize(b.status)}</span>
+          <span class="tag" style="background:#f0f0f0;color:var(--muted);font-size:10px;">${genreLabel[b.genre]||'📚'}</span>
         </div>
-        <div class="shelf-face shelf-back">
-          <div style="display:flex;flex-direction:column;height:100%;padding:14px;gap:8px;">
-
-            <!-- Header row -->
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;">
-              <div style="font-size:13px;font-weight:800;line-height:1.2;flex:1;min-width:0;margin-right:8px;">${b.title}</div>
-              <button onclick="event.stopPropagation();toggleFlipCard('sfc-${idx}')" style="background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>
-            </div>
-
-            <!-- Reading stats pills -->
-            <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
-              ${mins > 0 ? `<div style="background:${accentColor}22;color:${accentColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">⏱ ${formatMins(mins)}</div>` : ''}
-              ${sessionCount > 0 ? `<div style="background:#f0f4ff;color:#5B4FCF;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📖 ${sessionCount} session${sessionCount!==1?'s':''}</div>` : ''}
-              ${mins > 0 ? `<div style="background:#fff8e1;color:#c87000;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">⭐ ${mins} pts</div>` : ''}
-              ${b.pages > 0 ? `<div style="background:#f0f0f0;color:var(--muted);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📄 ${b.pages}p</div>` : ''}
-              ${mins === 0 && sessionCount === 0 ? `<div style="color:var(--muted);font-size:11px;font-style:italic;">No sessions logged yet</div>` : ''}
-            </div>
-
-            <!-- Latest journal entry -->
-            <div style="flex:1;min-height:0;overflow:hidden;">
-              ${journalSnippet
-                ? `<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">📝 Latest note</div>
-                   <div style="font-size:12px;color:var(--text);line-height:1.45;font-style:italic;">"${journalSnippet}"</div>`
-                : `<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:4px;">No journal entries yet — write your thoughts!</div>`
-              }
-            </div>
-
-            <!-- Stars + status -->
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-top:1px solid rgba(0,0,0,0.06);padding-top:8px;">
-              <div style="line-height:1;">${stars}</div>
-              <div style="font-size:11px;font-weight:600;color:var(--muted);">${statusBadge}</div>
-            </div>
-
-            ${isOwnShelf ? `
-            <!-- Quick log (reading books only) -->
-            ${b.status === 'reading'
-              ? `<button onclick="event.stopPropagation();openQuickLog('${b.id}',${JSON.stringify(b.title)})" style="width:100%;padding:8px 0;border-radius:10px;border:none;background:#EDE9FE;color:#5B4FCF;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.01em;">⏱ Log Reading Time</button>`
-              : ''}
-            <!-- Status actions -->
-            <div style="display:flex;gap:6px;flex-shrink:0;">
-              ${b.status === 'want'
-                ? `<button onclick="event.stopPropagation();changeBookStatus('${b.id}','reading')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;">📖 Start Reading</button>`
-                : ''}
-              ${b.status === 'reading'
-                ? `<button onclick="event.stopPropagation();quickFinishBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;">✅ Finished!</button>
-                   <button onclick="event.stopPropagation();quickDNFBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#fff3e0;color:#e65100;font-size:12px;font-weight:700;cursor:pointer;">🚩 DNF</button>`
-                : ''}
-            </div>
-            <!-- Edit / Delete -->
-            <div style="display:flex;gap:6px;flex-shrink:0;">
-              <button onclick="event.stopPropagation();editBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:1.5px solid var(--muted);background:white;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
-              <button onclick="event.stopPropagation();deleteBook('${b.id}')" style="flex:1;padding:6px 0;border-radius:10px;border:none;background:#fdecea;color:#c62828;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete</button>
-            </div>` : ''}
-
-          </div>
-        </div>
+        ${mins > 0 ? `<div class="shelf-card-time">⏱ ${formatMins(mins)} read</div>` : ''}
+        ${ownerTag}
       </div>
+      ${chevron}
     </div>`;
   }).join('');
 
@@ -5572,6 +5491,114 @@ function openBookDetail(bookId) {
 }
 
 // rateBook is defined in the shelf section above
+
+function openBookSheet(bookId, memberId) {
+  const mid = memberId || _shelfViewMember || currentMember;
+  const book = (state.books[mid]||[]).find(b => b.id === bookId);
+  if (!book) return;
+
+  const sessions = (state.sessions[mid]||[]).filter(s => s.bookId === bookId);
+  const mins = sessions.reduce((a,s) => a+(s.minutes||0), 0);
+  const sessionCount = sessions.length;
+  const accentColor = bookColor(book.genre);
+  const isOwn = mid === currentMember;
+
+  const bookJournalEntries = (state.journal[mid]||[]).filter(e => e.bookTitle === book.title);
+  const latestEntry = bookJournalEntries.sort((a,z) => (z.ts||0)-(a.ts||0))[0];
+  const journalSnippet = latestEntry
+    ? latestEntry.text.slice(0, 120) + (latestEntry.text.length > 120 ? '…' : '')
+    : null;
+
+  const rating = book.rating || 0;
+  const stars = [1,2,3,4,5].map(n =>
+    `<span onclick="rateBookSheet('${bookId}','${mid}',${n})" style="font-size:28px;cursor:pointer;color:var(--sun);">${rating>=n?'★':'☆'}</span>`
+  ).join('');
+
+  const genreLabel = { novel:'📗 Novel', graphic:'🎨 Graphic', nonfiction:'📰 Nonfiction', poetry:'🌸 Poetry', article:'📄 Article', other:'📚 Other' };
+
+  const coverHtml = book.coverUrl
+    ? `<img src="${book.coverUrl}" style="width:80px;height:112px;object-fit:cover;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.18);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div style="width:80px;height:112px;border-radius:10px;background:${accentColor};display:none;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;">${bookEmoji(book.genre)}</div>`
+    : `<div style="width:80px;height:112px;border-radius:10px;background:${accentColor};display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;">${bookEmoji(book.genre)}</div>`;
+
+  const statPills = [
+    mins > 0 ? `<div style="background:${accentColor}22;color:${accentColor};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">⏱ ${formatMins(mins)}</div>` : '',
+    sessionCount > 0 ? `<div style="background:#f0f4ff;color:#5B4FCF;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">📖 ${sessionCount} session${sessionCount!==1?'s':''}</div>` : '',
+    mins > 0 ? `<div style="background:#fff8e1;color:#c87000;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">⭐ ${mins} pts</div>` : '',
+    book.pages > 0 ? `<div style="background:#f0f0f0;color:var(--muted);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">📄 ${book.pages} pages</div>` : '',
+    mins === 0 && sessionCount === 0 ? `<div style="color:var(--muted);font-size:12px;font-style:italic;padding:4px 0;">No reading sessions logged yet</div>` : ''
+  ].filter(Boolean).join('');
+
+  const actionButtons = isOwn ? `
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
+      ${book.status === 'reading' ? `
+        <button onclick="closeModal('book-sheet-modal');openQuickLog('${bookId}',${JSON.stringify(book.title)})"
+          style="width:100%;padding:13px;border-radius:14px;border:none;background:#EDE9FE;color:#5B4FCF;font-size:15px;font-weight:800;cursor:pointer;">
+          ⏱ Log Reading Time
+        </button>
+        <div style="display:flex;gap:8px;">
+          <button onclick="closeModal('book-sheet-modal');quickFinishBook('${bookId}')"
+            style="flex:1;padding:11px;border-radius:12px;border:none;background:#e8f5e9;color:#2e7d32;font-size:13px;font-weight:700;cursor:pointer;">✅ Mark Finished</button>
+          <button onclick="closeModal('book-sheet-modal');quickDNFBook('${bookId}')"
+            style="flex:1;padding:11px;border-radius:12px;border:none;background:#fff3e0;color:#e65100;font-size:13px;font-weight:700;cursor:pointer;">🚩 DNF</button>
+        </div>` : ''}
+      ${book.status === 'want' ? `
+        <button onclick="closeModal('book-sheet-modal');changeBookStatus('${bookId}','reading')"
+          style="width:100%;padding:13px;border-radius:14px;border:none;background:#e8f5e9;color:#2e7d32;font-size:15px;font-weight:800;cursor:pointer;">
+          📖 Start Reading
+        </button>` : ''}
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeModal('book-sheet-modal');editBook('${bookId}')"
+          style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ddd;background:white;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+        <button onclick="closeModal('book-sheet-modal');deleteBook('${bookId}')"
+          style="flex:1;padding:11px;border-radius:12px;border:none;background:#fdecea;color:#c62828;font-size:13px;font-weight:700;cursor:pointer;">🗑 Delete</button>
+      </div>
+    </div>` : '';
+
+  document.getElementById('book-sheet-content').innerHTML = `
+    <!-- Cover + title header -->
+    <div style="display:flex;gap:16px;padding:16px 20px 18px;border-bottom:1px solid var(--sand);">
+      ${coverHtml}
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;">
+        <div style="font-size:17px;font-weight:800;line-height:1.3;margin-bottom:3px;">${book.title}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">${book.author||'Unknown author'}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+          <span class="tag tag-${book.status}">${statusIcon(book.status)} ${capitalize(book.status)}</span>
+          <span class="tag" style="background:#f0f0f0;color:var(--muted);font-size:10px;">${genreLabel[book.genre]||'📚'}</span>
+        </div>
+        <div style="line-height:1;">${stars}</div>
+      </div>
+    </div>
+
+    <!-- Stats pills -->
+    ${statPills ? `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px;border-bottom:1px solid var(--sand);">${statPills}</div>` : ''}
+
+    <!-- Latest journal snippet -->
+    ${journalSnippet ? `
+    <div style="padding:14px 20px;border-bottom:1px solid var(--sand);">
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">📝 Latest Journal Note</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic;">"${journalSnippet}"</div>
+    </div>` : ''}
+
+    <!-- Action buttons -->
+    ${actionButtons}
+
+    <!-- Close button -->
+    <div style="padding:4px 20px 20px;">
+      <button onclick="closeModal('book-sheet-modal')"
+        style="width:100%;padding:11px;border-radius:12px;border:1.5px solid #ddd;background:white;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;">Close</button>
+    </div>
+  `;
+
+  openModal('book-sheet-modal');
+}
+
+function rateBookSheet(bookId, memberId, stars) {
+  const book = (state.books[memberId]||[]).find(b => b.id === bookId);
+  if (!book) return;
+  book.rating = stars;
+  saveToGist().then(() => { renderShelf(); openBookSheet(bookId, memberId); });
+}
 
 function openQuickLog(bookId, bookTitle) {
   document.getElementById('quick-log-book-id').value = bookId;
