@@ -5662,13 +5662,8 @@ const NOTEBOOK_GENRE_COLORS = {
   poetry:'#C07820', article:'#2874A6', other:'#6D6875'
 };
 
-function getNotebookColor(bookTitle) {
-  if (!bookTitle || bookTitle === 'General') return '#607D8B';
-  const book = (state.books[_journalViewMember] || []).find(b => b.title === bookTitle);
-  if (book?.genre) return NOTEBOOK_GENRE_COLORS[book.genre] || '#6D6875';
-  let hash = 0;
-  for (const c of bookTitle) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
-  return NOTEBOOK_PALETTE[hash % NOTEBOOK_PALETTE.length];
+function getNotebookColor(bookTitle, idx = 0) {
+  return NOTEBOOK_PALETTE[idx % NOTEBOOK_PALETTE.length];
 }
 
 let _openNotebooks = new Set(); // keys of expanded notebooks
@@ -5752,8 +5747,8 @@ function renderJournal() {
   };
 
   let globalIdx = 0;
-  el.innerHTML = [...groups.entries()].map(([bookTitle, entries]) => {
-    const color = getNotebookColor(bookTitle);
+  el.innerHTML = [...groups.entries()].map(([bookTitle, entries], nbIdx) => {
+    const color = getNotebookColor(bookTitle, nbIdx);
     const isGeneral = bookTitle === 'General';
     const nbEmoji = isGeneral ? '📓' : '📔';
     const safeKey = bookTitle.replace(/[^a-zA-Z0-9]/g, '_');
