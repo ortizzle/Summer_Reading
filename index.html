@@ -1546,6 +1546,21 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<!-- Journal prompt after logging -->
+<div id="journal-log-prompt" style="display:none;position:fixed;bottom:76px;left:0;right:0;z-index:16000;padding:0 12px;pointer-events:none;">
+  <div style="background:white;border-radius:16px;box-shadow:0 4px 28px rgba(0,0,0,0.18);padding:14px 16px;max-width:480px;margin:0 auto;pointer-events:all;display:flex;align-items:center;gap:12px;border-left:4px solid #16A34A;">
+    <div style="font-size:26px;flex-shrink:0;">📓</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:700;color:#1A1A2E;" id="journal-prompt-book-text">Write about what you just read?</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-sm" onclick="openJournalFromLog()" style="background:#16A34A;color:white;border:none;font-size:12px;padding:6px 14px;border-radius:10px;font-weight:700;cursor:pointer;">✏️ Write Now</button>
+        <button class="btn btn-secondary btn-sm" onclick="dismissJournalLogPrompt()" style="font-size:12px;padding:6px 12px;">Skip</button>
+      </div>
+    </div>
+    <button onclick="dismissJournalLogPrompt()" style="background:none;border:none;color:#90A4AE;font-size:18px;cursor:pointer;padding:2px;align-self:flex-start;flex-shrink:0;">✕</button>
+  </div>
+</div>
+
 <div id="streak-splash" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column;" onclick="dismissStreakSplash()">
   <div id="streak-splash-inner" style="text-align:center;padding:32px 28px;max-width:320px;position:relative;pointer-events:none;">
     <div id="streak-splash-emoji" style="font-size:90px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 4px 24px rgba(255,160,0,0.5));"></div>
@@ -1780,7 +1795,40 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <div class="section" id="sec-timer">
   <div class="member-select-bar" id="timer-member-bar"></div>
 
-  <!-- Manual entry — top -->
+  <!-- Start / End Calculator — top -->
+  <div class="card" id="start-end-calc-card">
+    <div class="card-title">🕐 Start / End Calculator</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Tap 📍 Now when you start reading, then log when you're done.</div>
+    <div id="calc-start-display" style="display:none;background:var(--sand);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--text);">
+      📍 Started at <span id="calc-start-label" style="font-weight:700;"></span>
+      <button onclick="clearCalcStart()" style="float:right;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">✕ Clear</button>
+    </div>
+    <div id="calc-no-start">
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
+        <div style="flex:1;">
+          <label class="form-label" style="margin-bottom:4px;display:block;">Start Time</label>
+          <input class="form-select" type="time" id="calc-start-input" style="width:100%;">
+        </div>
+        <button class="btn btn-primary" onclick="setCalcStart()" style="white-space:nowrap;padding:10px 14px;">📍 Now</button>
+      </div>
+      <button class="btn btn-secondary btn-full" onclick="setCalcStartFromInput()" style="margin-bottom:2px;">Set Start Time</button>
+    </div>
+    <div id="calc-end-row" style="display:none;">
+      <div class="form-row" style="margin-bottom:10px;">
+        <label class="form-label">End Time</label>
+        <input class="form-select" type="time" id="calc-end-input">
+      </div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <label class="form-label">Book</label>
+        <select class="form-select" id="calc-book-select">
+          <option value="">— Choose a book —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="logCalcSession()">✅ Log Session</button>
+    </div>
+  </div>
+
+  <!-- Manual entry -->
   <div class="card">
     <div class="card-title">📖 Log Reading</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Read away from your phone? Log it here.</div>
@@ -1825,38 +1873,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <button class="btn btn-secondary" id="timer-pause-btn" onclick="timerPause()" style="display:none;">⏸ Pause</button>
         <button class="btn btn-danger" id="timer-stop-btn" onclick="timerStop()" style="display:none;">⏹ Save</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Start / End Calculator -->
-  <div class="card" id="start-end-calc-card">
-    <div class="card-title">🕐 Start / End Calculator</div>
-    <div id="calc-start-display" style="display:none;background:var(--sand);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--text);">
-      📍 Started at <span id="calc-start-label" style="font-weight:700;"></span>
-      <button onclick="clearCalcStart()" style="float:right;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">✕ Clear</button>
-    </div>
-    <div id="calc-no-start">
-      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
-        <div style="flex:1;">
-          <label class="form-label" style="margin-bottom:4px;display:block;">Start Time</label>
-          <input class="form-select" type="time" id="calc-start-input" style="width:100%;">
-        </div>
-        <button class="btn btn-primary" onclick="setCalcStart()" style="white-space:nowrap;padding:10px 14px;">📍 Now</button>
-      </div>
-      <button class="btn btn-secondary btn-full" onclick="setCalcStartFromInput()" style="margin-bottom:2px;">Set Start Time</button>
-    </div>
-    <div id="calc-end-row" style="display:none;">
-      <div class="form-row" style="margin-bottom:10px;">
-        <label class="form-label">End Time</label>
-        <input class="form-select" type="time" id="calc-end-input">
-      </div>
-      <div class="form-row" style="margin-bottom:10px;">
-        <label class="form-label">Book</label>
-        <select class="form-select" id="calc-book-select">
-          <option value="">— Choose a book —</option>
-        </select>
-      </div>
-      <button class="btn btn-primary btn-full" onclick="logCalcSession()">✅ Log Session</button>
     </div>
   </div>
 
@@ -1992,6 +2008,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="font-size:12px;font-weight:600;color:var(--text);">Bingo Square</div>
           <div style="font-size:15px;font-weight:800;color:#F9A825;margin-top:2px;">15–50 pts</div>
           <div style="font-size:9px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:0.3px;">TAP FOR RANGES ▾</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2);border-radius:10px;padding:10px 12px;grid-column:span 2;">
+          <div style="font-size:18px;margin-bottom:4px;">🔥</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">Reading Streak Milestone</div>
+          <div style="font-size:13px;font-weight:800;color:#F9A825;margin-top:2px;">10 pts × streak days</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;">3 days = +30 · 5 days = +50 · 7 days = +70 · and so on. One-time bonus per milestone.</div>
         </div>
       </div>
 
@@ -3229,8 +3251,12 @@ function doSelectMember(id) {
     renderTab(activeTab);
   }
   if (!state.onboarded?.[id] && prevMember !== ADMIN_ID) startOnboarding(id);
-  // Show any pending reaction/mention notifications for this member
-  setTimeout(() => showPendingNotifications(id), 600);
+  // Show any pending reaction/mention notifications, then release notes for new members
+  setTimeout(() => {
+    const hasPending = ((state.notifications || {})[id] || []).some(n => !n.seen);
+    if (hasPending) showPendingNotifications(id);
+    else checkReleaseNotes(id);
+  }, 600);
 }
 
 // ═══════════════════════════════════════
@@ -3561,7 +3587,7 @@ function toggleFamTotal(view) {
 function renderFamTotalBreakdown() {
   const el = document.getElementById('fam-total-breakdown-content');
   if (!el) return;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   const view = _famTotalView;
 
   if (view === 'reading') {
@@ -3738,7 +3764,7 @@ function lbWeekStart() {
 
 function buildLbMembers() {
   const weekStart = _lbPeriod === 'week' ? lbWeekStart() : null;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   return [...MEMBERS].map(m => {
     let sess = state.sessions[m.id] || [];
     if (weekStart) sess = sess.filter(s => (s.date || '') >= weekStart);
@@ -3888,7 +3914,7 @@ function renderHome() {
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
@@ -4867,6 +4893,8 @@ function timerStop() {
       if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
       if (mins >= 30) celebrateThemed();
       else if (mins >= 10) celebrateSmall();
+      const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+      showJournalLogPrompt(timerBookId, book ? book.title : '');
     });
   });
   resetTimer();
@@ -5008,6 +5036,7 @@ function logCalcSession() {
     showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
     if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
     renderTimer();
+    showJournalLogPrompt(bookId, book ? book.title : '');
   });
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5079,6 +5108,7 @@ function logManualSession() {
       document.getElementById('manual-minutes').value = '';
       document.getElementById('manual-date').value = todayStr();
       renderTimer();
+      showJournalLogPrompt(bookId, book ? book.title : '');
     });
   });
 }
@@ -6593,18 +6623,18 @@ function getReadingStreak(memberId) {
 }
 
 const STREAK_MILESTONES = [
-  { days:3,  emoji:'🔥',  title:'On Fire!',              sub:'3 days in a row — you\'re just getting started!' },
-  { days:5,  emoji:'⚡',  title:'5-Day Streak!',          sub:'Five straight days of reading. You\'re electric!' },
-  { days:7,  emoji:'📅',  title:'One Whole Week!',        sub:'A full 7-day streak. That\'s a real reading habit!' },
-  { days:10, emoji:'💪',  title:'10 Days Strong!',        sub:'Double digits! You\'re officially a dedicated reader.' },
-  { days:14, emoji:'🌟',  title:'Two-Week Warrior!',      sub:'14 days straight. The whole family sees you grinding!' },
-  { days:20, emoji:'🚀',  title:'20 Days!',               sub:'20 consecutive reading days. You\'re on another level.' },
-  { days:25, emoji:'🎖️', title:'25-Day Legend!',          sub:'A quarter of a century — of days. Absolutely unstoppable!' },
-  { days:30, emoji:'🏆',  title:'30-Day Champion!',       sub:'One full month of daily reading. LEGENDARY.' },
-  { days:40, emoji:'👑',  title:'40-Day Royalty!',        sub:'40 days without missing once. You rule this family.' },
-  { days:50, emoji:'💎',  title:'50 Days!',               sub:'Fifty. Days. Straight. Are you even human?!' },
-  { days:60, emoji:'🌙',  title:'60-Day Titan!',          sub:'Only 12 days left. Don\'t stop now — you\'re so close!' },
-  { days:72, emoji:'🦁',  title:'PERFECT SUMMER!!!',      sub:'72 out of 72 days. Every single day of the challenge. You are the greatest reader this family has ever seen. 🏅' },
+  { days:3,  emoji:'🔥',  title:'On Fire!',              sub:'3 days in a row — you\'re just getting started! +30 bonus points 🎁' },
+  { days:5,  emoji:'⚡',  title:'5-Day Streak!',          sub:'Five straight days of reading. You\'re electric! +50 bonus points 🎁' },
+  { days:7,  emoji:'📅',  title:'One Whole Week!',        sub:'A full 7-day streak. That\'s a real reading habit! +70 bonus points 🎁' },
+  { days:10, emoji:'💪',  title:'10 Days Strong!',        sub:'Double digits! You\'re officially a dedicated reader. +100 bonus points 🎁' },
+  { days:14, emoji:'🌟',  title:'Two-Week Warrior!',      sub:'14 days straight. The whole family sees you grinding! +140 bonus points 🎁' },
+  { days:20, emoji:'🚀',  title:'20 Days!',               sub:'20 consecutive reading days. You\'re on another level. +200 bonus points 🎁' },
+  { days:25, emoji:'🎖️', title:'25-Day Legend!',          sub:'A quarter of a century — of days. Absolutely unstoppable! +250 bonus points 🎁' },
+  { days:30, emoji:'🏆',  title:'30-Day Champion!',       sub:'One full month of daily reading. LEGENDARY. +300 bonus points 🎁' },
+  { days:40, emoji:'👑',  title:'40-Day Royalty!',        sub:'40 days without missing once. You rule this family. +400 bonus points 🎁' },
+  { days:50, emoji:'💎',  title:'50 Days!',               sub:'Fifty. Days. Straight. Are you even human?! +500 bonus points 🎁' },
+  { days:60, emoji:'🌙',  title:'60-Day Titan!',          sub:'Only 12 days left. Don\'t stop now — you\'re so close! +600 bonus points 🎁' },
+  { days:72, emoji:'🦁',  title:'PERFECT SUMMER!!!',      sub:'72 out of 72 days. Every single day of the challenge. You are the greatest reader this family has ever seen. +720 bonus points 🏅' },
 ];
 
 function checkStreakMilestone(memberId) {
@@ -6617,6 +6647,18 @@ function checkStreakMilestone(memberId) {
   if (seen.includes(milestone.days)) return;
   // New milestone — fire it!
   state.streakMilestones[memberId] = [...seen, milestone.days];
+  // Award streak bonus points (10 × streak days, one-time per milestone)
+  const bonusPts = milestone.days * 10;
+  if (!state.sessions[memberId]) state.sessions[memberId] = [];
+  state.sessions[memberId].push({
+    id: uid(), bookId: 'streak_bonus',
+    bookTitle: `🔥 ${streak}-Day Streak Bonus`,
+    minutes: bonusPts, date: todayStr(), ts: Date.now()
+  });
+  const streakMember = MEMBERS.find(m => m.id === memberId);
+  if (streakMember) {
+    addActivity('🔥', `${streakMember.name} hit a ${streak}-day reading streak! +${bonusPts} bonus points 🏅`, memberId);
+  }
   saveToGist();
   setTimeout(() => showStreakSplash(milestone, streak), 800);
 }
@@ -6639,6 +6681,84 @@ function showStreakSplash(milestone, streak) {
 function dismissStreakSplash() {
   const el = document.getElementById('streak-splash');
   if (el) el.style.display = 'none';
+}
+
+// ─── Journal log prompt ───────────────────────────────────────────────────────
+let _journalPromptBookId = null;
+let _journalPromptTitle  = null;
+let _journalPromptTimer  = null;
+
+function showJournalLogPrompt(bookId, bookTitle) {
+  // Only prompt for real book sessions
+  if (!bookId || bookId === 'finish_bonus' || bookId === 'bingo' || bookId === 'library' || bookId === 'journal') return;
+  _journalPromptBookId = bookId;
+  _journalPromptTitle  = bookTitle;
+  const el = document.getElementById('journal-log-prompt');
+  const textEl = document.getElementById('journal-prompt-book-text');
+  if (!el) return;
+  if (textEl) textEl.textContent = `Write about "${bookTitle}"?`;
+  el.style.display = 'block';
+  clearTimeout(_journalPromptTimer);
+  _journalPromptTimer = setTimeout(dismissJournalLogPrompt, 12000);
+}
+
+function dismissJournalLogPrompt() {
+  clearTimeout(_journalPromptTimer);
+  const el = document.getElementById('journal-log-prompt');
+  if (el) el.style.display = 'none';
+}
+
+function openJournalFromLog() {
+  const bookId = _journalPromptBookId;
+  dismissJournalLogPrompt();
+  switchTab('journal');
+  setTimeout(() => {
+    openModal('journal-modal');
+    setTimeout(() => {
+      const sel = document.getElementById('journal-book-select');
+      if (sel && bookId) sel.value = bookId;
+    }, 120);
+  }, 350);
+}
+
+// ─── Release Notes ────────────────────────────────────────────────────────────
+const RELEASE_NOTES_VERSION = '2026-05-27-v1';
+const RELEASE_NOTES_UPDATES = [
+  { emoji: '🕐', text: 'Start/End Calculator moved to top of Log tab' },
+  { emoji: '📓', text: 'Journal prompt appears after each reading session' },
+  { emoji: '🔥', text: 'Reading streaks now earn bonus points at each milestone' },
+  { emoji: '🎨', text: 'Journal notebooks: distinct colors & collapsible sections' },
+  { emoji: '📅', text: 'July/August bingo cards with new squares are live' },
+  { emoji: '📚', text: 'Exchange: Now Reading strip, feed filters, book recs & photos' },
+  { emoji: '✅', text: 'Reading time no longer includes finish-bonus sessions' },
+  { emoji: '🕖', text: 'All dates/times now always use Arizona time' },
+];
+
+function checkReleaseNotes(memberId) {
+  if (!state.seenReleaseNotes) state.seenReleaseNotes = {};
+  if (state.seenReleaseNotes[memberId] === RELEASE_NOTES_VERSION) return;
+  state.seenReleaseNotes[memberId] = RELEASE_NOTES_VERSION;
+  saveToGist();
+  setTimeout(showReleaseNotes, 1500);
+}
+
+function showReleaseNotes() {
+  const listEl = document.getElementById('notif-list');
+  const overlay = document.getElementById('notif-overlay');
+  const card    = document.getElementById('notif-card');
+  if (!listEl || !overlay || !card) return;
+  const titleEl = card.querySelector('div[style*="Fraunces"]');
+  if (titleEl) titleEl.textContent = "🎉 What's New";
+  listEl.innerHTML =
+    RELEASE_NOTES_UPDATES.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#f9f9f9;border-radius:10px;">
+        <span style="font-size:18px;flex-shrink:0;">${u.emoji}</span>
+        <div style="font-size:12px;color:#1A1A2E;line-height:1.4;">${u.text}</div>
+      </div>`).join('');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => { card.style.transform = 'translateY(0)'; });
+  clearTimeout(_notifDismissTimer);
+  _notifDismissTimer = setTimeout(dismissNotifOverlay, 20000);
 }
 
 const REACTION_EMOJIS = ['🎉','❤️','🔥','⭐','💪'];
@@ -7506,7 +7626,7 @@ function showTzDiag() {
   const weekStart  = lbWeekStart();
   const deviceTz   = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus'];
+  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   let lines = [];
   lines.push(`Device timezone : ${deviceTz}`);
   lines.push(`Current AZ time : ${azTimeStr}`);
