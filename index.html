@@ -2145,9 +2145,14 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <!-- Message composer -->
   <div class="card" style="padding:12px 16px;">
     <div id="reply-quote-bar" style="display:none;align-items:center;background:var(--sand);border-radius:8px;padding:6px 10px;margin-bottom:8px;gap:6px;"></div>
-    <!-- Photo URL input (hidden until toggled) -->
+    <!-- Photo picker (hidden until toggled) -->
     <div id="photo-input-row" style="display:none;margin-bottom:8px;">
-      <input id="feed-photo-url" type="url" placeholder="Paste an image URL (iCloud, Google Photos share link, etc.)" class="form-select" style="font-size:13px;padding:8px 12px;border-radius:10px;" />
+      <input type="file" id="feed-photo-file" accept="image/*" style="display:none;" onchange="handlePhotoFileChange(event)">
+      <div id="photo-preview-wrap" style="display:none;position:relative;margin-bottom:8px;">
+        <img id="photo-preview-img" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;display:block;">
+        <button onclick="clearPhotoSelection()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border:none;border-radius:50%;width:26px;height:26px;color:white;font-size:14px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+      <button onclick="document.getElementById('feed-photo-file').click()" class="btn btn-secondary btn-full" style="font-size:13px;padding:9px;">📷 Choose from Camera Roll</button>
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
       <div style="flex:1;position:relative;">
@@ -4350,10 +4355,9 @@ function postFeedMessage() {
       });
     }
   });
-  // If photo panel is open and URL is filled, post as photo instead
-  const photoUrl = _photoInputOpen ? (document.getElementById('feed-photo-url')?.value || '').trim() : '';
-  if (_photoInputOpen && photoUrl) {
-    postPhotoMessage(photoUrl, fullText);
+  // If photo panel is open and a photo is selected, post as photo
+  if (_photoInputOpen && _pendingPhotoDataUrl) {
+    postPhotoMessage(_pendingPhotoDataUrl, fullText);
     return;
   }
   input.value = '';
@@ -4364,6 +4368,7 @@ function postFeedMessage() {
 
 // ── PHOTO POSTING ──────────────────────────────────────────────────────────────
 let _photoInputOpen = false;
+let _pendingPhotoDataUrl = null;
 
 function togglePhotoInput() {
   _photoInputOpen = !_photoInputOpen;
@@ -4372,17 +4377,50 @@ function togglePhotoInput() {
   if (row) row.style.display = _photoInputOpen ? 'block' : 'none';
   if (btn) btn.style.background = _photoInputOpen ? '#00897B' : 'white';
   if (btn) btn.style.color = _photoInputOpen ? 'white' : '#00897B';
-  if (_photoInputOpen) document.getElementById('feed-photo-url')?.focus();
+  if (!_photoInputOpen) clearPhotoSelection();
+}
+
+function clearPhotoSelection() {
+  _pendingPhotoDataUrl = null;
+  const preview = document.getElementById('photo-preview-wrap');
+  const fileInput = document.getElementById('feed-photo-file');
+  if (preview) preview.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+}
+
+function handlePhotoFileChange(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress: resize to max 600px wide, JPEG 70% quality
+      const MAX_W = 600;
+      const scale = img.width > MAX_W ? MAX_W / img.width : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      _pendingPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.70);
+      const previewWrap = document.getElementById('photo-preview-wrap');
+      const previewImg  = document.getElementById('photo-preview-img');
+      if (previewImg)  previewImg.src = _pendingPhotoDataUrl;
+      if (previewWrap) previewWrap.style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function postPhotoMessage(imageUrl, caption) {
-  if (!imageUrl) { showToast('Paste an image URL first!'); return; }
+  if (!imageUrl) { showToast('Choose a photo first!'); return; }
   if (!state.activity) state.activity = [];
   state.activity.push({ id: uid(), type: 'photo', imageUrl, text: caption || '', member: currentMember, ts: Date.now() });
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
   document.getElementById('feed-input').value = '';
-  document.getElementById('feed-photo-url').value = '';
-  togglePhotoInput(); // close the panel
+  clearPhotoSelection();
+  if (_photoInputOpen) togglePhotoInput(); // close the panel
   clearReplyQuote();
   saveToGist().then(() => renderFeed());
 }
