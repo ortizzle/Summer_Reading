@@ -2971,7 +2971,8 @@ async function loadFromGist() {
   updateSyncPill('syncing');
   try {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
-      headers: { Authorization: `token ${token}` }
+      headers: { Authorization: `token ${token}` },
+      cache: 'no-store'
     });
     if (!r.ok) { loadFromLocal(); updateSyncPill('error'); return; }
     const data = await r.json();
@@ -3059,7 +3060,8 @@ async function saveToGist() {
   try {
     // Pull latest Gist state first so we don't overwrite other members' data
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
-      headers: { Authorization: `token ${token}` }
+      headers: { Authorization: `token ${token}` },
+      cache: 'no-store'
     });
     if (r.ok) {
       const data = await r.json();
@@ -4870,7 +4872,17 @@ function timerResume() {
 
 // Recover timer if phone woke up mid-session
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && timerRunning) timerTick();
+  if (document.hidden) return;
+  // Resume timer tick if running
+  if (timerRunning) timerTick();
+  // Re-fetch Gist data so the app is fresh when coming back from background
+  loadFromGist().then(() => {
+    renderHome();
+    if (activeTab === 'shelf')    renderShelf();
+    if (activeTab === 'timer')    renderTimer();
+    if (activeTab === 'feed')     renderFeed();
+    if (activeTab === 'journal')  renderJournal();
+  });
 });
 
 function timerStop() {
@@ -6636,6 +6648,36 @@ const STREAK_MILESTONES = [
   { days:60, emoji:'🌙',  title:'60-Day Titan!',          sub:'Only 12 days left. Don\'t stop now — you\'re so close! +600 bonus points 🎁' },
   { days:72, emoji:'🦁',  title:'PERFECT SUMMER!!!',      sub:'72 out of 72 days. Every single day of the challenge. You are the greatest reader this family has ever seen. +720 bonus points 🏅' },
 ];
+
+function migrateStreakBonuses() {
+  // One-time patch: award bonus sessions for streak milestones that were earned
+  // before the bonus-points system existed (milestone recorded but no session created).
+  if (!state.streakMilestones) return;
+  let changed = false;
+  MEMBERS.forEach(m => {
+    const milestones = state.streakMilestones[m.id] || [];
+    if (!milestones.length) return;
+    const sessions = state.sessions[m.id] || [];
+    milestones.forEach(days => {
+      // Check if a streak_bonus session for exactly this milestone already exists
+      const alreadyAwarded = sessions.some(s =>
+        s.bookId === 'streak_bonus' &&
+        s.bookTitle === `🔥 ${days}-Day Streak Bonus`
+      );
+      if (!alreadyAwarded) {
+        const bonusPts = days * 10;
+        if (!state.sessions[m.id]) state.sessions[m.id] = [];
+        state.sessions[m.id].push({
+          id: uid(), bookId: 'streak_bonus',
+          bookTitle: `🔥 ${days}-Day Streak Bonus`,
+          minutes: bonusPts, date: todayStr(), ts: Date.now()
+        });
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveToGist();
+}
 
 function checkStreakMilestone(memberId) {
   const streak = getReadingStreak(memberId);
@@ -8420,6 +8462,9 @@ async function init() {
       }
     } catch(e) { localStorage.removeItem('ortizzle_timer'); }
   })();
+  // Retroactively award streak bonus points for milestones earned before the bonus system existed
+  migrateStreakBonuses();
+
   if (!state.pins) state.pins = {};
   if (!state.themes) state.themes = {};
   if (!state.defaultTabs) state.defaultTabs = {};
