@@ -4324,19 +4324,33 @@ function clearReplyQuote() {
   if (bar) bar.style.display = 'none';
 }
 
+let _postingMessage = false;
 function postFeedMessage() {
+  if (_postingMessage) return; // prevent double-tap / keyboard+button firing together
   const input = document.getElementById('feed-input');
   const text = (input.value || '').trim();
-  if (!text) { showToast('Type something first!'); return; }
-  const member = MEMBERS.find(m => m.id === currentMember);
+  if (!text && !(_photoInputOpen && _pendingPhotoDataUrl)) { showToast('Type something first!'); return; }
+  _postingMessage = true;
+  setTimeout(() => { _postingMessage = false; }, 800);
+
   if (!state.activity) state.activity = [];
   const quoteSnippet = _replyQuote ? `"${_replyQuote.text.slice(0,60)}${_replyQuote.text.length>60?'…':''}"` : null;
-  const fullText = quoteSnippet
-    ? `${text}\n↩ re: ${quoteSnippet}`
-    : text;
+  const fullText = quoteSnippet ? `${text}\n↩ re: ${quoteSnippet}` : text;
+
+  // Photo post — goes as a single photo card; fullText becomes the caption
+  if (_photoInputOpen && _pendingPhotoDataUrl) {
+    input.value = '';
+    clearReplyQuote();
+    hideMentionDropdown();
+    postPhotoMessage(_pendingPhotoDataUrl, fullText);
+    return;
+  }
+
+  // Regular text message
   const newActId = uid();
   state.activity.push({ id: newActId, emoji: '💬', text: fullText, member: currentMember, ts: Date.now(), type: 'message' });
   if (state.activity.length > 100) state.activity = state.activity.slice(-100);
+
   // Notify any @mentioned members
   const mentionMatches = fullText.match(/@(\w+)/g) || [];
   mentionMatches.forEach(tag => {
@@ -4355,11 +4369,7 @@ function postFeedMessage() {
       });
     }
   });
-  // If photo panel is open and a photo is selected, post as photo
-  if (_photoInputOpen && _pendingPhotoDataUrl) {
-    postPhotoMessage(_pendingPhotoDataUrl, fullText);
-    return;
-  }
+
   input.value = '';
   clearReplyQuote();
   hideMentionDropdown();
