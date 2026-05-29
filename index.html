@@ -2985,19 +2985,21 @@ async function loadFromGist() {
     if (raw) {
       const gistState = JSON.parse(raw.content);
       const clearedAt = gistState.clearedMembers || {};
+      // Capture local bingo BEFORE the Gist state overwrites it
+      const preMergeBingo = {};
+      if (state.bingo) MEMBERS.forEach(m => { preMergeBingo[m.id] = { ...(state.bingo[m.id] || {}) }; });
       // Apply Gist state as base
       state = { ...state, ...gistState };
       migrateBingoToPerMember();
-      // Merge per-member bingo: pull in remote completions the local device doesn't have,
-      // but let local state win (so intentional deselections aren't reversed)
-      if (gistState.bingo && typeof gistState.bingo === 'object') {
-        if (!state.bingo) state.bingo = {};
-        MEMBERS.forEach(m => {
-          const remoteMember = gistState.bingo[m.id] || {};
-          const localMember  = state.bingo[m.id]    || {};
-          state.bingo[m.id] = { ...remoteMember, ...localMember };
-        });
-      }
+      // Merge per-member bingo: union of remote (Gist) and local (pre-merge) completions.
+      // Remote wins for squares set to true, but explicit local false (intentional deselect) wins.
+      if (!state.bingo) state.bingo = {};
+      MEMBERS.forEach(m => {
+        const remoteMember = (gistState.bingo || {})[m.id] || {};
+        const localMember  = preMergeBingo[m.id] || {};
+        // Start from remote, then layer local on top so deselections and new completions both land
+        state.bingo[m.id] = { ...remoteMember, ...localMember };
+      });
       // Build the union of deleted session IDs from both local storage and Gist.
       // This ensures intentional deletes survive even when the Gist PATCH failed.
       const localRaw = localStorage.getItem('ortizzle_local');
@@ -6697,6 +6699,30 @@ const STREAK_MILESTONES = [
   { days:72, emoji:'🦁',  title:'PERFECT SUMMER!!!',      sub:'72 out of 72 days. Every single day of the challenge. You are the greatest reader this family has ever seen. +720 bonus points 🏅' },
 ];
 
+function repairBingoFromSessions() {
+  // Bingo sessions are the immutable source of truth — if a square has a session
+  // but is missing from state.bingo (lost via bad merge), restore it.
+  if (!state.sessions) return;
+  if (!state.bingo) state.bingo = {};
+  let changed = false;
+  MEMBERS.forEach(m => {
+    const sessions = state.sessions[m.id] || [];
+    const bingoSessions = sessions.filter(s => s.bookId === 'bingo' && s.squareId);
+    if (!bingoSessions.length) return;
+    if (!state.bingo[m.id]) state.bingo[m.id] = {};
+    bingoSessions.forEach(s => {
+      if (!state.bingo[m.id][s.squareId]) {
+        state.bingo[m.id][s.squareId] = true;
+        changed = true;
+      }
+    });
+  });
+  if (changed) {
+    saveToGist();
+    renderBingoCard?.();
+  }
+}
+
 function migrateStreakBonuses() {
   // One-time patch: award bonus sessions for streak milestones that were earned
   // before the bonus-points system existed (milestone recorded but no session created).
@@ -8510,6 +8536,8 @@ async function init() {
       }
     } catch(e) { localStorage.removeItem('ortizzle_timer'); }
   })();
+  // Repair bingo squares that got lost in bad merges (sessions are source of truth)
+  repairBingoFromSessions();
   // Retroactively award streak bonus points for milestones earned before the bonus system existed
   migrateStreakBonuses();
 
