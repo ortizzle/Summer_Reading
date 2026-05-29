@@ -1679,10 +1679,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div class="group-subtitle" id="group-milestone-label">Reading together all summer</div>
     <div class="group-progress-bar" style="position:relative;overflow:visible;">
       <div class="group-progress-fill" id="group-progress-fill" style="width:0%"></div>
-      <!-- Previous milestone marker (injected by renderHome) -->
-      <div id="group-prev-milestone-marker" style="display:none;position:absolute;top:-6px;bottom:-6px;width:2px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:none;">
-        <div id="group-prev-milestone-emoji" style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:16px;white-space:nowrap;"></div>
+      <!-- Previous milestone marker — notch + emoji below bar -->
+      <div id="group-prev-milestone-marker" style="display:none;position:absolute;top:-4px;bottom:-4px;width:2px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:none;">
+        <div id="group-prev-milestone-emoji" style="position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:15px;white-space:nowrap;"></div>
       </div>
+      <!-- Next milestone emoji anchored to right end of bar -->
+      <div id="group-next-milestone-emoji" style="display:none;position:absolute;top:50%;right:-4px;transform:translate(100%,-50%);font-size:18px;padding-left:6px;pointer-events:none;"></div>
     </div>
     <div class="group-progress-label">
       <span id="group-progress-current">0 pts</span>
@@ -4012,9 +4014,9 @@ function renderHome() {
     document.getElementById('group-progress-fill').style.width = pct + '%';
     document.getElementById('group-progress-next').textContent = `Next: ${nextGM.reward}`;
     document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold.toLocaleString() + ' pts';
-    // Previous milestone marker — show where the last earned goal landed on this bar
+    // Previous milestone marker — notch + emoji below bar
     const lastEarnedGM = GROUP_MILESTONES.slice().reverse().find(gm => earned.includes(gm.id));
-    const markerEl   = document.getElementById('group-prev-milestone-marker');
+    const markerEl    = document.getElementById('group-prev-milestone-marker');
     const markerEmoji = document.getElementById('group-prev-milestone-emoji');
     if (lastEarnedGM && markerEl && markerEmoji) {
       const markerPct = Math.min(99, (lastEarnedGM.threshold / nextGM.threshold) * 100);
@@ -4025,12 +4027,17 @@ function renderHome() {
     } else if (markerEl) {
       markerEl.style.display = 'none';
     }
+    // Next milestone emoji at right end of bar
+    const nextEmojiEl = document.getElementById('group-next-milestone-emoji');
+    if (nextEmojiEl) { nextEmojiEl.style.display = 'block'; nextEmojiEl.textContent = nextGM.icon; }
   } else {
     document.getElementById('group-progress-fill').style.width = '100%';
     document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
     document.getElementById('group-milestone-label').textContent = 'Every goal unlocked!';
     const markerEl = document.getElementById('group-prev-milestone-marker');
     if (markerEl) markerEl.style.display = 'none';
+    const nextEmojiEl = document.getElementById('group-next-milestone-emoji');
+    if (nextEmojiEl) nextEmojiEl.style.display = 'none';
   }
   // Earned milestone chips
   const earnedRow = document.getElementById('earned-milestones-row');
