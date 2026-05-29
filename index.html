@@ -1677,8 +1677,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <div class="group-progress-card" onclick="toggleGoalBreakdown()" style="cursor:pointer;">
     <div class="group-title">🌟 Family Goal</div>
     <div class="group-subtitle" id="group-milestone-label">Reading together all summer</div>
-    <div class="group-progress-bar">
+    <div class="group-progress-bar" style="position:relative;overflow:visible;">
       <div class="group-progress-fill" id="group-progress-fill" style="width:0%"></div>
+      <!-- Previous milestone marker (injected by renderHome) -->
+      <div id="group-prev-milestone-marker" style="display:none;position:absolute;top:-6px;bottom:-6px;width:2px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:none;">
+        <div id="group-prev-milestone-emoji" style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:16px;white-space:nowrap;"></div>
+      </div>
     </div>
     <div class="group-progress-label">
       <span id="group-progress-current">0 pts</span>
@@ -3355,10 +3359,26 @@ function renderGoalBreakdown() {
     color: getMemberColor(m.id),
     emoji: getMemberEmoji(m.id)
   })).sort((a, b) => b.pts - a.pts);
-  const topPts = memberData[0]?.pts || 1; // for relative bar scaling within the panel
-  barsEl.innerHTML = memberData.map(m => {
+  // Find last earned milestone for the marker line on individual bars
+  const earnedIds   = state.groupMilestones || [];
+  const lastEarned  = GROUP_MILESTONES.slice().reverse().find(gm => earnedIds.includes(gm.id));
+  const markerPct   = lastEarned ? Math.min(99, (lastEarned.threshold / threshold) * 100) : null;
+
+  // Header showing last unlocked milestone
+  const headerHtml = lastEarned ? `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;background:rgba(255,255,255,0.08);border-radius:12px;padding:8px 12px;">
+      <span style="font-size:20px;">${lastEarned.icon}</span>
+      <div>
+        <div style="color:rgba(255,255,255,0.5);font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">Last Unlocked</div>
+        <div style="color:white;font-size:12px;font-weight:700;">${lastEarned.name} · ${lastEarned.threshold.toLocaleString()} pts</div>
+      </div>
+    </div>` : '';
+
+  barsEl.innerHTML = headerHtml + memberData.map(m => {
     const pctOfGoal = Math.min(100, (m.pts / threshold) * 100);
-    const pctOfTop  = Math.min(100, (m.pts / Math.max(topPts, 1)) * 100);
+    // Marker line HTML — shows where last milestone fell on this member's bar
+    const markerHtml = markerPct ? `
+      <div style="position:absolute;top:0;bottom:0;left:${markerPct}%;width:2px;background:rgba(255,255,255,0.45);border-radius:2px;"></div>` : '';
     return `
       <div style="margin-bottom:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -3368,8 +3388,9 @@ function renderGoalBreakdown() {
           </div>
           <span style="color:rgba(255,255,255,0.8);font-size:12px;font-weight:700;">${m.pts.toLocaleString()} pts <span style="font-weight:400;opacity:.65;">(${pctOfGoal.toFixed(0)}% of goal)</span></span>
         </div>
-        <div style="background:rgba(255,255,255,0.12);border-radius:20px;height:10px;overflow:hidden;">
-          <div style="height:100%;border-radius:20px;background:${m.color};width:${pctOfTop}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);"></div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:20px;height:10px;overflow:visible;position:relative;">
+          <div style="height:100%;border-radius:20px;background:${m.color};width:${pctOfGoal}%;transition:width 0.5s cubic-bezier(.4,0,.2,1);overflow:hidden;"></div>
+          ${markerHtml}
         </div>
       </div>`;
   }).join('');
@@ -3991,10 +4012,25 @@ function renderHome() {
     document.getElementById('group-progress-fill').style.width = pct + '%';
     document.getElementById('group-progress-next').textContent = `Next: ${nextGM.reward}`;
     document.getElementById('group-milestone-label').textContent = nextGM.name + ' — ' + nextGM.threshold.toLocaleString() + ' pts';
+    // Previous milestone marker — show where the last earned goal landed on this bar
+    const lastEarnedGM = GROUP_MILESTONES.slice().reverse().find(gm => earned.includes(gm.id));
+    const markerEl   = document.getElementById('group-prev-milestone-marker');
+    const markerEmoji = document.getElementById('group-prev-milestone-emoji');
+    if (lastEarnedGM && markerEl && markerEmoji) {
+      const markerPct = Math.min(99, (lastEarnedGM.threshold / nextGM.threshold) * 100);
+      markerEl.style.display = 'block';
+      markerEl.style.left = markerPct + '%';
+      markerEmoji.textContent = lastEarnedGM.icon;
+      markerEmoji.title = lastEarnedGM.name;
+    } else if (markerEl) {
+      markerEl.style.display = 'none';
+    }
   } else {
     document.getElementById('group-progress-fill').style.width = '100%';
     document.getElementById('group-progress-next').textContent = '🏆 All family goals complete!';
     document.getElementById('group-milestone-label').textContent = 'Every goal unlocked!';
+    const markerEl = document.getElementById('group-prev-milestone-marker');
+    if (markerEl) markerEl.style.display = 'none';
   }
   // Earned milestone chips
   const earnedRow = document.getElementById('earned-milestones-row');
