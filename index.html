@@ -2913,10 +2913,10 @@ const INDIVIDUAL_MILESTONES = [
 ];
 
 const GROUP_MILESTONES = [
-  { id:'gm_2000',  threshold:2000,  name:'Family Reading Club',   desc:'Earn 2,000 family points together',       icon:'🍦', reward:'Ice cream outing 🍦 — everyone picks their treat' },
-  { id:'gm_5000',  threshold:5000,  name:'Sundae Funday',         desc:'Earn 5,000 family points together',       icon:'🍨', reward:'Ice cream sundae night 🍨 — make your own with ALL the fixings' },
-  { id:'gm_10000', threshold:10000, name:'Summer Scholars',       desc:'Earn 10,000 family points together',      icon:'🎬', reward:'Movie marathon night 🎬 — no bedtime, ultimate snack spread' },
-  { id:'gm_15000', threshold:15000, name:'Championship Readers',  desc:'Earn 15,000 points — ULTIMATE GOAL! 🏆', icon:'🍽️', reward:'Kids pick the restaurant — fancy dinner, everyone dresses up 🍽️✨' }
+  { id:'gm_2000',  threshold:2000,  name:'Family Reading Club',   desc:'Earn 2,000 family points together',        icon:'🍦',  reward:'Ice cream outing 🍦 — everyone picks their treat' },
+  { id:'gm_5000',  threshold:7500,  name:'Sundae Funday',         desc:'Earn 7,500 family points together',        icon:'🍨',  reward:'Ice cream sundae night 🍨 — make your own with ALL the fixings' },
+  { id:'gm_10000', threshold:15000, name:'Summer Scholars',       desc:'Earn 15,000 family points together',       icon:'🎬',  reward:'Movie marathon night 🎬 — no bedtime, ultimate snack spread' },
+  { id:'gm_15000', threshold:25000, name:'Championship Readers',  desc:'Earn 25,000 points — ULTIMATE GOAL! 🏆',  icon:'🍽️', reward:'Kids pick the restaurant — fancy dinner, everyone dresses up 🍽️✨' }
 ];
 
 // ═══════════════════════════════════════
@@ -5356,7 +5356,9 @@ function openBingoSquare(id) {
   document.getElementById('bingo-modal-label').textContent = sq.label;
   document.getElementById('bingo-modal-desc').textContent = sq.desc;
   const confirmBtn = document.getElementById('bingo-confirm-btn');
-  if (confirmBtn) confirmBtn.textContent = `✓ Mark Complete (+${sq.pts ?? 25} pts)`;
+  const isKidOnAdultCard = MEMBERS.find(m => m.id === currentMember)?.adult === false && activeBingoCard === 'adults';
+  const displayPts = isKidOnAdultCard ? Math.round((sq.pts ?? 25) / 2) : (sq.pts ?? 25);
+  if (confirmBtn) confirmBtn.textContent = `✓ Mark Complete (+${displayPts} pts${isKidOnAdultCard ? ' · ½ bonus card' : ''})`;
   openModal('bingo-modal');
 }
 
@@ -5365,7 +5367,12 @@ function confirmBingo() {
   if (!state.bingo[currentMember]) state.bingo[currentMember] = {};
   state.bingo[currentMember][pendingBingoSquare] = true;
   const sq = getBingoSquares(activeBingoCard).find(s => s.id === pendingBingoSquare);
-  const pts = sq?.pts ?? 25;
+  const basePts = sq?.pts ?? 25;
+  // Kids completing the adult card earn half points (bonus card rule)
+  const isKid = MEMBERS.find(m => m.id === currentMember)?.adult === false;
+  const isAdultCard = activeBingoCard === 'adults';
+  const halfPoints = isKid && isAdultCard;
+  const pts = halfPoints ? Math.round(basePts / 2) : basePts;
   // Guard: only award points if no session already exists for this square
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
   const alreadyAwarded = state.sessions[currentMember].some(s => s.bookId === 'bingo' && s.squareId === pendingBingoSquare);
@@ -5377,7 +5384,7 @@ function confirmBingo() {
   saveToGist().then(() => {
     checkBingo();
     checkBadges(currentMember); checkStreakMilestone(currentMember);
-    showToast(`+${pts} pts! Bingo square complete! 🎯`);
+    showToast(`+${pts} pts! Bingo square complete! 🎯${halfPoints ? ' (½ pts — bonus card)' : ''}`);
     renderBingoCard();
   });
   closeModal('bingo-modal');
