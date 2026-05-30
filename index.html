@@ -6843,6 +6843,26 @@ const STREAK_MILESTONES = [
   { days:72, emoji:'🦁',  title:'PERFECT SUMMER!!!',      sub:'72 out of 72 days. Every single day of the challenge. You are the greatest reader this family has ever seen. +720 bonus points 🏅' },
 ];
 
+function retroactiveHalfBingo() {
+  // One-time migration: halve points on adult bingo sessions already completed
+  // by non-adult members (Sedona, River) before the half-points rule existed.
+  if (state.retroactiveHalfBingoDone) return;
+  const kidMembers = MEMBERS.filter(m => m.adult === false).map(m => m.id);
+  if (!kidMembers.length) { state.retroactiveHalfBingoDone = true; return; }
+  let changed = false;
+  kidMembers.forEach(memberId => {
+    const sessions = state.sessions[memberId] || [];
+    sessions.forEach(s => {
+      if (s.bookId === 'bingo' && s.squareId && s.squareId.startsWith('adults_') && s.minutes > 0) {
+        s.minutes = Math.round(s.minutes / 2);
+        changed = true;
+      }
+    });
+  });
+  state.retroactiveHalfBingoDone = true;
+  if (changed) saveToGist();
+}
+
 function repairBingoFromSessions() {
   // Bingo sessions are the immutable source of truth — if a square has a session
   // but is missing from state.bingo (lost via bad merge), restore it.
@@ -8680,6 +8700,8 @@ async function init() {
       }
     } catch(e) { localStorage.removeItem('ortizzle_timer'); }
   })();
+  // Retroactively halve adult bingo points for kid members (one-time)
+  retroactiveHalfBingo();
   // Repair bingo squares that got lost in bad merges (sessions are source of truth)
   repairBingoFromSessions();
   // Retroactively award streak bonus points for milestones earned before the bonus system existed
