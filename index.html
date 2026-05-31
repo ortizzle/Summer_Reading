@@ -1558,18 +1558,15 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
-<!-- Journal prompt after logging -->
-<div id="journal-log-prompt" style="display:none;position:fixed;bottom:76px;left:0;right:0;z-index:16000;padding:0 12px;pointer-events:none;">
-  <div style="background:white;border-radius:16px;box-shadow:0 4px 28px rgba(0,0,0,0.18);padding:14px 16px;max-width:480px;margin:0 auto;pointer-events:all;display:flex;align-items:center;gap:12px;border-left:4px solid #16A34A;">
-    <div style="font-size:26px;flex-shrink:0;">📓</div>
-    <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;font-weight:700;color:#1A1A2E;" id="journal-prompt-book-text">Write about what you just read?</div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn-sm" onclick="openJournalFromLog()" style="background:#16A34A;color:white;border:none;font-size:12px;padding:6px 14px;border-radius:10px;font-weight:700;cursor:pointer;">✏️ Write Now</button>
-        <button class="btn btn-secondary btn-sm" onclick="dismissJournalLogPrompt()" style="font-size:12px;padding:6px 12px;">Skip</button>
-      </div>
-    </div>
-    <button onclick="dismissJournalLogPrompt()" style="background:none;border:none;color:#90A4AE;font-size:18px;cursor:pointer;padding:2px;align-self:flex-start;flex-shrink:0;">✕</button>
+<!-- Journal prompt after logging — full bottom sheet -->
+<div id="journal-log-prompt" style="display:none;position:fixed;inset:0;z-index:16000;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)dismissJournalLogPrompt()">
+  <div style="background:white;border-radius:24px 24px 0 0;padding:28px 24px 40px;max-width:480px;width:100%;box-shadow:0 -4px 32px rgba(0,0,0,0.2);">
+    <div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;margin:0 auto 20px;"></div>
+    <div style="font-size:36px;text-align:center;margin-bottom:10px;">📓</div>
+    <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#1A1A2E;text-align:center;margin-bottom:6px;">Write about it?</div>
+    <div style="font-size:14px;color:#607D8B;text-align:center;margin-bottom:24px;" id="journal-prompt-book-text">Capture your thoughts while they're fresh.</div>
+    <button onclick="openJournalFromLog()" style="width:100%;background:#16A34A;color:white;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">✏️ Write a Journal Entry</button>
+    <button onclick="dismissJournalLogPrompt()" style="width:100%;background:none;border:none;color:#90A4AE;font-size:15px;cursor:pointer;padding:8px;font-family:'DM Sans',sans-serif;">Not right now</button>
   </div>
 </div>
 
@@ -5004,10 +5001,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function timerStop() {
+  if (_logBusy) return;
   clearInterval(timerInterval);
   const elapsed = Math.ceil(timerSeconds / 60);
   const mins = Math.max(1, elapsed);
   validateAndLog(mins, () => {
+    setLogBusy(true, 'timer-stop-btn');
     const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
     const session = {
       id: uid(), bookId: timerBookId, bookTitle: book ? book.title : '?',
@@ -5017,6 +5016,7 @@ function timerStop() {
     state.sessions[currentMember].push(session);
     addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
     saveToGist().then(() => {
+      setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
       checkGroupMilestones();
       showToast(`+${mins} pts! Great reading! 📚`);
@@ -5025,7 +5025,7 @@ function timerStop() {
       else if (mins >= 10) celebrateSmall();
       const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
       showJournalLogPrompt(timerBookId, book ? book.title : '');
-    });
+    }).catch(() => setLogBusy(false));
   });
   resetTimer();
   renderTimer();
@@ -5131,6 +5131,7 @@ function renderCalcCard() {
 }
 
 function logCalcSession() {
+  if (_logBusy) return;
   const saved = localStorage.getItem(CALC_START_KEY);
   if (!saved) { showToast('No start time saved.'); return; }
   const bookId = document.getElementById('calc-book-select').value;
@@ -5160,14 +5161,16 @@ function logCalcSession() {
   state.sessions[currentMember].push(session);
   addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
   clearCalcStart();
+  setLogBusy(true);
   saveToGist().then(() => {
+    setLogBusy(false);
     checkBadges(currentMember); checkStreakMilestone(currentMember);
     checkGroupMilestones();
     showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
     if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
     renderTimer();
     showJournalLogPrompt(bookId, book ? book.title : '');
-  });
+  }).catch(() => setLogBusy(false));
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5198,6 +5201,18 @@ function deleteSession(sessionId) {
 }
 
 // Validate session minutes — shows a confirmation for suspiciously long sessions
+// ── Log-busy lock — prevents double-tap on all session logging buttons ─────────
+let _logBusy = false;
+function setLogBusy(busy, btnId) {
+  _logBusy = busy;
+  const btn = btnId ? document.getElementById(btnId) : null;
+  if (btn) {
+    btn.disabled = busy;
+    if (busy) { btn._origText = btn.textContent; btn.textContent = '⏳ Saving…'; }
+    else if (btn._origText) { btn.textContent = btn._origText; }
+  }
+}
+
 function validateAndLog(mins, onValid) {
   if (isNaN(mins) || mins < 1) { showToast('Enter the number of minutes you read!'); return; }
   if (mins > 600) { showToast('Maximum 600 minutes per session. Double-check your entry!'); return; }
@@ -5213,12 +5228,14 @@ function validateAndLog(mins, onValid) {
 }
 
 function logManualSession() {
+  if (_logBusy) return;
   const bookId = document.getElementById('manual-book-select').value;
   const minsRaw = document.getElementById('manual-minutes').value;
   const dateVal = document.getElementById('manual-date').value;
   if (!bookId) { shakeField('manual-book-select'); showToast('📚 Pick a book first!'); return; }
   const mins = parseInt(minsRaw, 10);
   validateAndLog(mins, () => {
+    setLogBusy(true);
     const date = dateVal || todayStr();
     const book = (state.books[currentMember]||[]).find(b=>b.id===bookId);
     const session = {
@@ -5230,6 +5247,7 @@ function logManualSession() {
     const who = MEMBERS.find(m=>m.id===currentMember).name;
     addActivity('📖', `${who} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
     saveToGist().then(() => {
+      setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
       checkGroupMilestones();
       showToast(`+${mins} pts logged! 📖`);
@@ -5239,7 +5257,7 @@ function logManualSession() {
       document.getElementById('manual-date').value = todayStr();
       renderTimer();
       showJournalLogPrompt(bookId, book ? book.title : '');
-    });
+    }).catch(() => setLogBusy(false));
   });
 }
 
@@ -6512,6 +6530,7 @@ function openBookSheet(bookId, memberId) {
 }
 
 function logFromSheet(bookId, memberId) {
+  if (_logBusy) return;
   const minsRaw = document.getElementById('sheet-log-mins').value;
   const dateVal = document.getElementById('sheet-log-date').value;
   const mins = parseInt(minsRaw, 10);
@@ -6525,6 +6544,7 @@ function logFromSheet(bookId, memberId) {
   const book = (state.books[mid]||[]).find(b => b.id === bookId);
   if (!book) return;
   validateAndLog(mins, () => {
+    setLogBusy(true);
     const date = dateVal || todayStr();
     const session = { id: uid(), bookId, bookTitle: book.title, minutes: mins, date, ts: Date.now(), manual: true };
     if (!state.sessions[mid]) state.sessions[mid] = [];
@@ -6532,12 +6552,14 @@ function logFromSheet(bookId, memberId) {
     const who = MEMBERS.find(m => m.id === mid)?.name || mid;
     addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, mid);
     saveToGist().then(() => {
+      setLogBusy(false);
       checkBadges(mid); checkStreakMilestone(mid); checkGroupMilestones();
       closeModal('book-sheet-modal');
       showToast(`+${mins} pts logged for "${book.title}"! 📖`);
       if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
       renderHome();
-    });
+      showJournalLogPrompt(bookId, book.title);
+    }).catch(() => setLogBusy(false));
   });
 }
 
@@ -7035,14 +7057,12 @@ function dismissJournalLogPrompt() {
 function openJournalFromLog() {
   const bookId = _journalPromptBookId;
   dismissJournalLogPrompt();
-  switchTab('journal');
-  setTimeout(() => {
-    openModal('journal-modal');
-    setTimeout(() => {
-      const sel = document.getElementById('journal-book-select');
-      if (sel && bookId) sel.value = bookId;
-    }, 120);
-  }, 350);
+  // Open the journal entry modal directly — no tab switch needed
+  openModal('journal-modal');
+  requestAnimationFrame(() => {
+    const sel = document.getElementById('journal-book-select');
+    if (sel && bookId) sel.value = bookId;
+  });
 }
 
 // ─── Release Notes ────────────────────────────────────────────────────────────
