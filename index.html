@@ -3511,12 +3511,17 @@ function renderNowReading() {
       const coverHtml = book.coverUrl
         ? `<img src="${book.coverUrl}" style="width:36px;height:54px;object-fit:cover;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">`
         : `<div style="width:36px;height:54px;border-radius:4px;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📖</div>`;
+      const finishDays = estimateFinishDays(book.id, m.id);
+      const finishStr  = formatFinishEstimate(finishDays);
       rows.push(`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sand);cursor:pointer;" onclick="showBookSummary('${book.id}','${m.id}')">
         ${coverHtml}
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${book.title}</div>
           ${book.author ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;">${book.author}</div>` : ''}
-          ${timeStr ? `<div style="font-size:10px;color:${color};font-weight:700;margin-top:2px;">⏱ ${timeStr} read</div>` : ''}
+          <div style="display:flex;gap:8px;align-items:center;margin-top:2px;flex-wrap:wrap;">
+            ${timeStr ? `<span style="font-size:10px;color:${color};font-weight:700;">⏱ ${timeStr} read</span>` : ''}
+            ${finishStr ? `<span style="font-size:10px;color:var(--muted);font-weight:600;">📅 ${finishStr}</span>` : ''}
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <span style="font-size:16px;">${emoji}</span>
@@ -6112,6 +6117,7 @@ async function showBookSummary(bookId, memberId) {
         </div>
         ${timeStr ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;">⏱ ${timeStr} logged</div>` : ''}
         ${book.pages ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">📄 ${book.pages} pages</div>` : ''}
+        ${(()=>{ const f=formatFinishEstimate(estimateFinishDays(bookId,memberId)); return f?`<div style="font-size:11px;color:#5B4FCF;font-weight:700;margin-top:4px;">📅 ${f}</div>`:''; })()}
       </div>
     </div>
     <div id="book-summary-desc" style="font-size:14px;color:var(--text);line-height:1.65;">
@@ -6219,6 +6225,44 @@ function saveBook() {
     clearBookForm();
     renderShelf();
   });
+}
+
+// ── Reading pace & finish estimate ───────────────────────────────────────────
+const NON_READING_PACE = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+
+function getMemberDailyPace(memberId) {
+  // Average reading minutes/day based on last 28 days of real reading sessions
+  const sessions = (state.sessions[memberId] || [])
+    .filter(s => !NON_READING_PACE.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)'));
+  const cutoffTs = Date.now() - 28 * 86400000;
+  const recent = sessions.filter(s => (s.ts || 0) >= cutoffTs);
+  if (!recent.length) return 20; // fallback: 20 min/day
+  const totalMins = recent.reduce((a, s) => a + (s.minutes || 0), 0);
+  // Spread over 28 days (not just active days) so infrequent readers get a realistic estimate
+  return Math.max(5, totalMins / 28);
+}
+
+function estimateFinishDays(bookId, memberId) {
+  const book = (state.books[memberId] || []).find(b => b.id === bookId);
+  if (!book || !book.pages || book.status !== 'reading') return null;
+  const sessions = (state.sessions[memberId] || []).filter(s => s.bookId === bookId);
+  const minsRead = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+  const MINS_PER_PAGE = 1.5;
+  const pagesRead = Math.round(minsRead / MINS_PER_PAGE);
+  const pagesLeft = Math.max(0, book.pages - pagesRead);
+  if (pagesLeft <= 0) return 0;
+  const minsLeft = pagesLeft * MINS_PER_PAGE;
+  const dailyPace = getMemberDailyPace(memberId);
+  return Math.ceil(minsLeft / dailyPace);
+}
+
+function formatFinishEstimate(days) {
+  if (days === null) return null;
+  if (days === 0) return '🎉 Nearly done!';
+  if (days === 1) return '~1 day left';
+  if (days < 14) return `~${days} days left`;
+  const weeks = Math.round(days / 7);
+  return `~${weeks} week${weeks !== 1 ? 's' : ''} left`;
 }
 
 function awardFinishPoints(memberId, book) {
@@ -6363,22 +6407,22 @@ function openBookSheet(bookId, memberId) {
     mins === 0 && sessionCount === 0 ? `<div style="color:var(--muted);font-size:12px;font-style:italic;padding:4px 0;">No reading sessions logged yet</div>` : ''
   ].filter(Boolean).join('');
 
-  // Reading pace estimate (only for in-progress books with pages + at least 2 sessions)
+  // Reading pace estimate (in-progress books with pages set)
   let paceHtml = '';
-  if (book.status === 'reading' && book.pages > 0 && sessionCount >= 2) {
-    const avgMinsPerSession = mins / sessionCount;
-    const MINS_PER_PAGE = 2; // rough: ~30 pages/hr for mixed readers
-    const pagesRead = Math.round(mins / MINS_PER_PAGE);
-    const pagesLeft = Math.max(0, book.pages - pagesRead);
-    if (pagesLeft <= 0) {
+  if (book.status === 'reading' && book.pages > 0) {
+    const days  = estimateFinishDays(book.id, memberId);
+    const label = formatFinishEstimate(days);
+    if (days === 0) {
       paceHtml = `<div style="background:#e8f5e9;border-radius:10px;padding:10px 14px;font-size:12px;color:#2e7d32;font-weight:600;">🎉 You may be nearly done! Consider marking this finished.</div>`;
-    } else {
-      const sessionsLeft = Math.ceil((pagesLeft * MINS_PER_PAGE) / avgMinsPerSession);
-      const daysLeft = Math.ceil(sessionsLeft / 1); // assume 1 session/day
+    } else if (label) {
+      const MINS_PER_PAGE = 1.5;
+      const pagesRead = Math.round(mins / MINS_PER_PAGE);
+      const pagesLeft = Math.max(0, book.pages - pagesRead);
+      const dailyPace = getMemberDailyPace(memberId);
       paceHtml = `<div style="background:#F5F3FF;border-radius:10px;padding:10px 14px;">
-        <div style="font-size:10px;font-weight:800;color:#5B4FCF;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📈 Reading Pace</div>
-        <div style="font-size:13px;color:#3730a3;font-weight:600;">~${pagesLeft} pages left · about ${sessionsLeft} more session${sessionsLeft!==1?'s':''}</div>
-        <div style="font-size:11px;color:#5B4FCF;opacity:0.7;margin-top:2px;">Based on your avg ${Math.round(avgMinsPerSession)} min/session</div>
+        <div style="font-size:10px;font-weight:800;color:#5B4FCF;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📅 Estimated Finish</div>
+        <div style="font-size:14px;color:#3730a3;font-weight:700;">${label}</div>
+        <div style="font-size:11px;color:#5B4FCF;opacity:0.8;margin-top:3px;">~${pagesLeft} pages left · your pace: ${Math.round(dailyPace)} min/day</div>
       </div>`;
     }
   }
