@@ -5470,7 +5470,23 @@ function deselectBingo() {
       a.member === currentMember && a.emoji === '🎯' &&
       (a.squareId === id || a.text?.includes(sq.label))
     );
-    if (actIdx >= 0) state.activity.splice(actIdx, 1);
+    if (actIdx >= 0) {
+      // Add to deletedActivityIds so the Gist merge doesn't resurrect it
+      const actId = state.activity[actIdx].id;
+      if (actId) {
+        if (!state.deletedActivityIds) state.deletedActivityIds = [];
+        if (!state.deletedActivityIds.includes(actId)) state.deletedActivityIds.push(actId);
+      }
+      state.activity.splice(actIdx, 1);
+    }
+  }
+  // Also remove any notification entries related to this bingo square
+  if (state.notifications) {
+    Object.keys(state.notifications).forEach(memberId => {
+      state.notifications[memberId] = (state.notifications[memberId] || []).filter(n =>
+        !(n.type === 'bingo' && n.squareId === id && n.fromId === currentMember)
+      );
+    });
   }
   saveToGist();
   renderBingoCard();
