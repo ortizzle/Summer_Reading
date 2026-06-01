@@ -3902,6 +3902,26 @@ function renderLbList(members) {
   }).join('');
 }
 
+function markMaricopaLogged() {
+  if (!state.maricopaLogged) state.maricopaLogged = {};
+  if (!state.maricopaLogged[currentMember]) state.maricopaLogged[currentMember] = [];
+  const today = todayStr();
+  if (!state.maricopaLogged[currentMember].includes(today)) {
+    state.maricopaLogged[currentMember].push(today);
+  }
+  saveToGist();
+  renderDailyWrapup();
+  showToast('✅ Marked as logged to Maricopa County Reads!');
+}
+
+function unmarkMaricopaLogged() {
+  const today = todayStr();
+  if (!state.maricopaLogged?.[currentMember]) return;
+  state.maricopaLogged[currentMember] = state.maricopaLogged[currentMember].filter(d => d !== today);
+  saveToGist();
+  renderDailyWrapup();
+}
+
 function renderDailyWrapup() {
   const el = document.getElementById('daily-wrapup-card');
   if (!el) return;
@@ -3919,8 +3939,9 @@ function renderDailyWrapup() {
     byBook[title] = (byBook[title] || 0) + (s.minutes || 0);
   });
   const totalMins = Object.values(byBook).reduce((a, b) => a + b, 0);
-  const hrs = Math.floor(totalMins / 60), mins = totalMins % 60;
-  const totalStr = hrs > 0 ? `${hrs}h ${mins}m` : `${totalMins}m`;
+  const hrs = Math.floor(totalMins / 60), minRem = totalMins % 60;
+  const totalStr = hrs > 0 ? `${hrs}h ${minRem}m` : `${totalMins}m`;
+  const alreadyLogged = (state.maricopaLogged?.[currentMember] || []).includes(today);
 
   const bookRows = Object.entries(byBook).map(([title, m]) => {
     const h = Math.floor(m/60), rm = m%60;
@@ -3931,22 +3952,42 @@ function renderDailyWrapup() {
     </div>`;
   }).join('');
 
+  const dateLabel = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
   el.style.display = 'block';
-  el.innerHTML = `
-    <div style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:18px 20px 20px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <span style="font-size:20px;">📚</span>
-        <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:white;">Today's Reading</div>
-        <div style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;color:white;">${totalStr}</div>
-      </div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px;">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
-      <div style="margin-bottom:14px;">${bookRows}</div>
-      <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;background:white;color:#1565C0;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800;text-decoration:none;cursor:pointer;">
-        <span>🏛️</span> Log to Maricopa County Reads <span style="font-size:12px;opacity:0.6;">↗</span>
-      </a>
-      <div style="font-size:10px;color:rgba(255,255,255,0.45);text-align:center;margin-top:8px;">maricopacountyreads.org · Program ends July 20</div>
-    </div>`;
+  if (alreadyLogged) {
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border-radius:16px;padding:16px 20px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:28px;">✅</span>
+          <div style="flex:1;">
+            <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:white;">Logged to Maricopa County Reads!</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;">${totalStr} · ${dateLabel}</div>
+          </div>
+          <button onclick="unmarkMaricopaLogged()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;">Undo</button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:18px 20px 20px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:20px;">📚</span>
+          <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:white;">Today's Reading</div>
+          <div style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;color:white;">${totalStr}</div>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px;">${dateLabel}</div>
+        <div style="margin-bottom:14px;">${bookRows}</div>
+        <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;background:white;color:#1565C0;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800;text-decoration:none;margin-bottom:10px;">
+          <span>🏛️</span> Open Maricopa County Reads <span style="font-size:12px;opacity:0.6;">↗</span>
+        </a>
+        <button onclick="markMaricopaLogged()"
+          style="width:100%;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);border-radius:12px;padding:11px;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          ✓ Mark as Entered in Library Program
+        </button>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px;">maricopacountyreads.org · Program ends July 20</div>
+      </div>`;
+  }
 }
 
 function renderHome() {
