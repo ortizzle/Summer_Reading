@@ -1780,6 +1780,9 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div id="now-reading-list"></div>
   </div>
 
+  <!-- Daily wrap-up / Maricopa County Reads reminder -->
+  <div id="daily-wrapup-card" style="display:none;"></div>
+
   <!-- Recent activity preview -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -3899,6 +3902,53 @@ function renderLbList(members) {
   }).join('');
 }
 
+function renderDailyWrapup() {
+  const el = document.getElementById('daily-wrapup-card');
+  if (!el) return;
+  const today = todayStr();
+  const NON_READ = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const todaySessions = (state.sessions[currentMember] || []).filter(s =>
+    s.date === today && !NON_READ.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')
+  );
+  if (!todaySessions.length) { el.style.display = 'none'; return; }
+
+  // Group by book title
+  const byBook = {};
+  todaySessions.forEach(s => {
+    const title = s.bookTitle || 'Unknown';
+    byBook[title] = (byBook[title] || 0) + (s.minutes || 0);
+  });
+  const totalMins = Object.values(byBook).reduce((a, b) => a + b, 0);
+  const hrs = Math.floor(totalMins / 60), mins = totalMins % 60;
+  const totalStr = hrs > 0 ? `${hrs}h ${mins}m` : `${totalMins}m`;
+
+  const bookRows = Object.entries(byBook).map(([title, m]) => {
+    const h = Math.floor(m/60), rm = m%60;
+    const t = h > 0 ? `${h}h ${rm}m` : `${m}m`;
+    return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+      <span style="font-size:13px;color:rgba(255,255,255,0.9);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;">📖 ${title}</span>
+      <span style="font-size:13px;font-weight:700;color:white;flex-shrink:0;">${t}</span>
+    </div>`;
+  }).join('');
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:18px 20px 20px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:20px;">📚</span>
+        <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:white;">Today's Reading</div>
+        <div style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;color:white;">${totalStr}</div>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px;">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
+      <div style="margin-bottom:14px;">${bookRows}</div>
+      <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:white;color:#1565C0;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800;text-decoration:none;cursor:pointer;">
+        <span>🏛️</span> Log to Maricopa County Reads <span style="font-size:12px;opacity:0.6;">↗</span>
+      </a>
+      <div style="font-size:10px;color:rgba(255,255,255,0.45);text-align:center;margin-top:8px;">maricopacountyreads.org · Program ends July 20</div>
+    </div>`;
+}
+
 function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
@@ -4077,7 +4127,7 @@ function renderHome() {
   if (_famTotalView) renderFamTotalBreakdown();
   renderPersonalGoal();
   renderNowReading();
-
+  renderDailyWrapup();
 }
 
 function renderActivityList(containerId, limit) {
