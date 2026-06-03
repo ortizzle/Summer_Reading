@@ -3924,10 +3924,12 @@ function renderDailyWrapup() {
     (s.bookTitle||'') !== 'Bingo Square'
   );
 
-  // Group sessions by date
+  // Group sessions by date — only within the library program window (June 1–July 20)
+  const PROGRAM_START = '2026-06-01';
+  const PROGRAM_END   = '2026-07-20';
   const byDate = {};
   allSessions.forEach(s => {
-    if (!s.date) return;
+    if (!s.date || s.date < PROGRAM_START || s.date > PROGRAM_END) return;
     if (!byDate[s.date]) byDate[s.date] = { mins: 0, books: new Set() };
     byDate[s.date].mins += s.minutes || 0;
     if (s.bookTitle) byDate[s.date].books.add(s.bookTitle);
