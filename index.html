@@ -3644,7 +3644,7 @@ function toggleFamTotal(view) {
 function renderFamTotalBreakdown() {
   const el = document.getElementById('fam-total-breakdown-content');
   if (!el) return;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   const view = _famTotalView;
 
   if (view === 'reading') {
@@ -3656,7 +3656,7 @@ function renderFamTotalBreakdown() {
       // Build bookId → minutes map from reading sessions
       const sess = state.sessions[m.id] || [];
       const bookMins = {};
-      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).forEach(s => {
+      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square').forEach(s => {
         bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
       });
       const color = getMemberColor(m.id);
@@ -3694,7 +3694,7 @@ function renderFamTotalBreakdown() {
       if (!memberBooks.length) return;
       const sess = state.sessions[m.id] || [];
       const bookMins = {};
-      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).forEach(s => {
+      sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square').forEach(s => {
         bookMins[s.bookId] = (bookMins[s.bookId] || 0) + (s.minutes || 0);
       });
       const color = getMemberColor(m.id);
@@ -3728,7 +3728,7 @@ function renderFamTotalBreakdown() {
     // Reading time bars per member
     const memberData = MEMBERS.map(m => {
       const sess = state.sessions[m.id] || [];
-      const readMins = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
+      const readMins = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square').reduce((a,s) => a + (s.minutes||0), 0);
       return { ...m, readMins, color: getMemberColor(m.id), emoji: getMemberEmoji(m.id) };
     }).sort((a,b) => b.readMins - a.readMins);
     const topMins = memberData[0]?.readMins || 1;
@@ -3756,7 +3756,7 @@ function renderFamTotalBreakdown() {
     // Points breakdown per member by category
     const memberData = MEMBERS.map(m => {
       const sess = state.sessions[m.id] || [];
-      const readPts  = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
+      const readPts  = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square').reduce((a,s) => a + (s.minutes||0), 0);
       const bingoPts = sess.filter(s => ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(s.bookId)).reduce((a,s) => a + (s.minutes||0), 0);
       const libPts   = sess.filter(s => s.bookId === 'library').reduce((a,s) => a + (s.minutes||0), 0);
       const jrnlPts  = sess.filter(s => s.bookId === 'journal').reduce((a,s) => a + (s.minutes||0), 0);
@@ -3821,11 +3821,11 @@ function lbWeekStart() {
 
 function buildLbMembers() {
   const weekStart = _lbPeriod === 'week' ? lbWeekStart() : null;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   return [...MEMBERS].map(m => {
     let sess = state.sessions[m.id] || [];
     if (weekStart) sess = sess.filter(s => (s.date || '') >= weekStart);
-    const readSess = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)'));
+    const readSess = sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square');
     const readMins = readSess.reduce((a,s) => a + (s.minutes||0), 0);
     const pts = weekStart
       ? sess.reduce((a,s) => a + (s.minutes||0), 0)
@@ -3902,22 +3902,13 @@ function renderLbList(members) {
   }).join('');
 }
 
-function markMaricopaLogged() {
+function toggleMaricopaDay(date) {
   if (!state.maricopaLogged) state.maricopaLogged = {};
   if (!state.maricopaLogged[currentMember]) state.maricopaLogged[currentMember] = [];
-  const today = todayStr();
-  if (!state.maricopaLogged[currentMember].includes(today)) {
-    state.maricopaLogged[currentMember].push(today);
-  }
-  saveToGist();
-  renderDailyWrapup();
-  showToast('✅ Marked as logged to Maricopa County Reads!');
-}
-
-function unmarkMaricopaLogged() {
-  const today = todayStr();
-  if (!state.maricopaLogged?.[currentMember]) return;
-  state.maricopaLogged[currentMember] = state.maricopaLogged[currentMember].filter(d => d !== today);
+  const logged = state.maricopaLogged[currentMember];
+  const idx = logged.indexOf(date);
+  if (idx >= 0) logged.splice(idx, 1);
+  else logged.push(date);
   saveToGist();
   renderDailyWrapup();
 }
@@ -3925,69 +3916,72 @@ function unmarkMaricopaLogged() {
 function renderDailyWrapup() {
   const el = document.getElementById('daily-wrapup-card');
   if (!el) return;
-  const today = todayStr();
-  const NON_READ = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
-  const todaySessions = (state.sessions[currentMember] || []).filter(s =>
-    s.date === today && !NON_READ.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')
+
+  const NON_READ = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const allSessions = (state.sessions[currentMember] || []).filter(s =>
+    !NON_READ.includes(s.bookId) &&
+    !(s.bookTitle||'').includes('(finish bonus)') &&
+    (s.bookTitle||'') !== 'Bingo Square'
   );
-  if (!todaySessions.length) { el.style.display = 'none'; return; }
 
-  // Group by book title
-  const byBook = {};
-  todaySessions.forEach(s => {
-    const title = s.bookTitle || 'Unknown';
-    byBook[title] = (byBook[title] || 0) + (s.minutes || 0);
+  // Group sessions by date
+  const byDate = {};
+  allSessions.forEach(s => {
+    if (!s.date) return;
+    if (!byDate[s.date]) byDate[s.date] = { mins: 0, books: new Set() };
+    byDate[s.date].mins += s.minutes || 0;
+    if (s.bookTitle) byDate[s.date].books.add(s.bookTitle);
   });
-  const totalMins = Object.values(byBook).reduce((a, b) => a + b, 0);
-  const hrs = Math.floor(totalMins / 60), minRem = totalMins % 60;
-  const totalStr = hrs > 0 ? `${hrs}h ${minRem}m` : `${totalMins}m`;
-  const alreadyLogged = (state.maricopaLogged?.[currentMember] || []).includes(today);
 
-  const bookRows = Object.entries(byBook).map(([title, m]) => {
-    const h = Math.floor(m/60), rm = m%60;
-    const t = h > 0 ? `${h}h ${rm}m` : `${m}m`;
-    return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-      <span style="font-size:13px;color:rgba(255,255,255,0.9);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;">📖 ${title}</span>
-      <span style="font-size:13px;font-weight:700;color:white;flex-shrink:0;">${t}</span>
-    </div>`;
+  const dates = Object.keys(byDate).sort().reverse(); // newest first
+  if (!dates.length) { el.style.display = 'none'; return; }
+
+  const logged = new Set(state.maricopaLogged?.[currentMember] || []);
+  const doneCount = dates.filter(d => logged.has(d)).length;
+
+  const rows = dates.map(d => {
+    const { mins, books } = byDate[d];
+    const h = Math.floor(mins/60), m = mins%60;
+    const timeStr = h > 0 ? `${h}h ${m}m` : `${mins}m`;
+    const isLogged = logged.has(d);
+    const dateObj = new Date(d + 'T12:00:00');
+    const dateLabel = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short' });
+    const booksStr = [...books].join(', ');
+    return `
+      <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--sand);cursor:pointer;">
+        <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">
+          ${isLogged ? '<span style="color:white;font-size:13px;line-height:1;">✓</span>' : ''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:13px;font-weight:${isLogged?'600':'700'};color:${isLogged?'var(--muted)':'var(--text)'};${isLogged?'text-decoration:line-through;':''}">${dateLabel}</span>
+            <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'#1565C0'};margin-left:8px;">${timeStr}</span>
+          </div>
+          ${booksStr ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${booksStr}</div>` : ''}
+        </div>
+      </div>`;
   }).join('');
 
-  const dateLabel = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-
   el.style.display = 'block';
-  if (alreadyLogged) {
-    el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border-radius:16px;padding:16px 20px;margin-bottom:10px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:28px;">✅</span>
-          <div style="flex:1;">
-            <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:white;">Logged to Maricopa County Reads!</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;">${totalStr} · ${dateLabel}</div>
+  el.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;">
+      <div style="background:linear-gradient(135deg,#1565C0,#0D47A1);padding:14px 18px 12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:white;">🏛️ Maricopa County Reads</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;">${doneCount} of ${dates.length} day${dates.length!==1?'s':''} submitted · ends July 20</div>
           </div>
-          <button onclick="unmarkMaricopaLogged()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;padding:5px 10px;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;">Undo</button>
+          <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
+            style="background:rgba(255,255,255,0.2);border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:white;text-decoration:none;white-space:nowrap;">
+            Open Site ↗
+          </a>
         </div>
-      </div>`;
-  } else {
-    el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:18px 20px 20px;margin-bottom:10px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:20px;">📚</span>
-          <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:white;">Today's Reading</div>
-          <div style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;color:white;">${totalStr}</div>
-        </div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px;">${dateLabel}</div>
-        <div style="margin-bottom:14px;">${bookRows}</div>
-        <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
-          style="display:flex;align-items:center;justify-content:center;gap:8px;background:white;color:#1565C0;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800;text-decoration:none;margin-bottom:10px;">
-          <span>🏛️</span> Open Maricopa County Reads <span style="font-size:12px;opacity:0.6;">↗</span>
-        </a>
-        <button onclick="markMaricopaLogged()"
-          style="width:100%;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);border-radius:12px;padding:11px;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
-          ✓ Mark as Entered in Library Program
-        </button>
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px;">maricopacountyreads.org · Program ends July 20</div>
-      </div>`;
-  }
+      </div>
+      <div style="padding:4px 16px 8px;">
+        <div style="font-size:11px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">TAP A DAY TO MARK AS SUBMITTED</div>
+        ${rows}
+      </div>
+    </div>`;
 }
 
 function renderHome() {
@@ -4059,14 +4053,14 @@ function renderHome() {
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
     const sess = state.sessions[m.id] || [];
     famReading += books.filter(b => b.status === 'reading').length;
     famBooks   += books.filter(b => b.status === 'finished').length;
-    famMins    += sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')).reduce((a,s) => a + (s.minutes||0), 0);
+    famMins    += sess.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square').reduce((a,s) => a + (s.minutes||0), 0);
     famPts     += getMemberPoints(m.id);
   });
   document.getElementById('fam-total-reading').textContent = famReading;
@@ -6353,7 +6347,7 @@ function saveBook() {
 }
 
 // ── Reading pace & finish estimate ───────────────────────────────────────────
-const NON_READING_PACE = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+const NON_READING_PACE = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
 
 function getMemberDailyPace(memberId) {
   // Average reading minutes/day based on last 28 days of real reading sessions
@@ -8077,7 +8071,7 @@ function showTzDiag() {
   const weekStart  = lbWeekStart();
   const deviceTz   = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const NON_READING = ['bingo','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
   let lines = [];
   lines.push(`Device timezone : ${deviceTz}`);
   lines.push(`Current AZ time : ${azTimeStr}`);
@@ -8089,7 +8083,7 @@ function showTzDiag() {
   MEMBERS.forEach(m => {
     const all = state.sessions[m.id] || [];
     const week = all.filter(s => (s.date || '') >= weekStart);
-    const reading = week.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)'));
+    const reading = week.filter(s => !NON_READING.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square');
     const totalMins = reading.reduce((a,s) => a+(s.minutes||0), 0);
     lines.push(`\n${m.name} (${totalMins} min reading this week):`);
     if (!week.length) {
