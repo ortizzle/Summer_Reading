@@ -1,4 +1,4 @@
-const CACHE = 'ortizzle-v1';
+const CACHE = 'ortizzle-v2';
 const APP_SHELL = [
   '/Summer_Reading/',
   '/Summer_Reading/index.html',
@@ -36,11 +36,22 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for app shell files
+  // Network-first for index.html so code updates arrive immediately
+  if (url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets (icons, manifest)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      // Cache new app-shell responses as they arrive
-      if (res.ok && APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith('index.html'))) {
+      if (res.ok) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
