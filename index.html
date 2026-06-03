@@ -3934,7 +3934,6 @@ function renderDailyWrapup() {
   });
 
   const dates = Object.keys(byDate).sort().reverse(); // newest first
-  if (!dates.length) { el.style.display = 'none'; return; }
 
   const logged = new Set(state.maricopaLogged?.[currentMember] || []);
   const doneCount = dates.filter(d => logged.has(d)).length;
@@ -3962,6 +3961,13 @@ function renderDailyWrapup() {
       </div>`;
   }).join('');
 
+  const bodyContent = dates.length
+    ? `<div style="padding:4px 16px 8px;">
+        <div style="font-size:11px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">TAP A DAY TO MARK AS SUBMITTED</div>
+        ${rows}
+       </div>`
+    : `<div style="padding:16px;text-align:center;font-size:13px;color:var(--muted);">No reading sessions yet — log some time above!</div>`;
+
   el.style.display = 'block';
   el.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;">
@@ -3969,7 +3975,7 @@ function renderDailyWrapup() {
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:white;">🏛️ Maricopa County Reads</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;">${doneCount} of ${dates.length} day${dates.length!==1?'s':''} submitted · ends July 20</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;">${dates.length ? `${doneCount} of ${dates.length} day${dates.length!==1?'s':''} submitted · ` : ''}ends July 20</div>
           </div>
           <a href="https://maricopacountyreads.org/en-US/SignIn" target="_blank" rel="noopener"
             style="background:rgba(255,255,255,0.2);border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:white;text-decoration:none;white-space:nowrap;">
@@ -3977,10 +3983,7 @@ function renderDailyWrapup() {
           </a>
         </div>
       </div>
-      <div style="padding:4px 16px 8px;">
-        <div style="font-size:11px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">TAP A DAY TO MARK AS SUBMITTED</div>
-        ${rows}
-      </div>
+      ${bodyContent}
     </div>`;
 }
 
