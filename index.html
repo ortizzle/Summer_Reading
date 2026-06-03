@@ -1780,9 +1780,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div id="now-reading-list"></div>
   </div>
 
-  <!-- Daily wrap-up / Maricopa County Reads reminder -->
-  <div id="daily-wrapup-card" style="display:none;"></div>
-
   <!-- Recent activity preview -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1901,6 +1898,9 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
       <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No reading logged today yet!</div>
     </div>
   </div>
+
+  <!-- Maricopa County Reads checklist -->
+  <div id="daily-wrapup-card" style="display:none;"></div>
 
   <!-- Library Visits -->
   <div class="card">
@@ -4162,7 +4162,6 @@ function renderHome() {
   if (_famTotalView) renderFamTotalBreakdown();
   renderPersonalGoal();
   renderNowReading();
-  renderDailyWrapup();
 }
 
 function renderActivityList(containerId, limit) {
@@ -5002,6 +5001,7 @@ function renderTimer() {
         </div>
       </div>`).join('');
   }
+  renderDailyWrapup();
 }
 
 function timerPreset(minutes) {
