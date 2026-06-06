@@ -275,6 +275,44 @@ body {
   gap: 12px;
   justify-content: center;
 }
+
+/* ── TIMER FOCUS MODE ── */
+body.timer-focus .app-header,
+body.timer-focus .bottom-nav { display: none !important; }
+body.timer-focus .section:not(#sec-timer) { display: none !important; }
+body.timer-focus #sec-timer {
+  min-height: 100svh;
+  background: #0a0a1a;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  margin: 0; padding: 0;
+}
+body.timer-focus #timer-member-bar,
+body.timer-focus #daily-wrapup-card { display: none !important; }
+body.timer-focus .card:not(#timer-main-card) { display: none !important; }
+body.timer-focus #timer-main-card {
+  background: transparent;
+  box-shadow: none;
+  width: 100%;
+}
+body.timer-focus .timer-face {
+  font-size: 88px;
+  color: #ffffff;
+}
+body.timer-focus .timer-book-title { color: rgba(255,255,255,0.5); }
+body.timer-focus #timer-focus-btn { display: none !important; }
+body.timer-focus #timer-focus-exit-btn { display: flex !important; }
+#timer-focus-exit-btn {
+  display: none;
+  position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 11px 28px; border-radius: 50px;
+  font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+  z-index: 9999; cursor: pointer; backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+#timer-focus-btn { display: none; }
 .btn {
   padding: 12px 24px;
   border-radius: 50px;
@@ -1870,7 +1908,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 
   <!-- Timer -->
-  <div class="card">
+  <div class="card" id="timer-main-card">
     <div class="timer-display">
       <div class="timer-face" id="timer-display">00:00:00</div>
       <div class="timer-book-title" id="timer-book-name">Select a book to start</div>
@@ -1890,9 +1928,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <button class="btn btn-primary" id="timer-start-btn" onclick="timerStart()">▶ Start</button>
         <button class="btn btn-secondary" id="timer-pause-btn" onclick="timerPause()" style="display:none;">⏸ Pause</button>
         <button class="btn btn-danger" id="timer-stop-btn" onclick="timerStop()" style="display:none;">⏹ Save</button>
+        <button class="btn btn-secondary" id="timer-focus-btn" onclick="enterTimerFocus()" title="Focus mode" style="display:none;">🌙</button>
       </div>
     </div>
   </div>
+  <!-- Focus mode exit (fixed, only visible in focus mode) -->
+  <button id="timer-focus-exit-btn" onclick="exitTimerFocus()">✕ Exit Focus</button>
 
   <!-- Today's Sessions -->
   <div class="card">
@@ -5033,6 +5074,82 @@ function timerTick() {
   }
 }
 
+// ── Timer alarm (Web Audio chime) ────────────────────────────────────────────
+function timerPlayAlarm() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Three-note ascending chime: C5 → E5 → G5
+    [[523.25, 0], [659.25, 0.35], [783.99, 0.7]].forEach(([freq, offset]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + offset;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.45, t + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      osc.start(t);
+      osc.stop(t + 0.85);
+    });
+  } catch(e) {}
+}
+
+// ── Screen Wake Lock ──────────────────────────────────────────────────────────
+let _wakeLock = null;
+async function timerRequestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+function timerReleaseWakeLock() {
+  try { if (_wakeLock) { _wakeLock.release(); _wakeLock = null; } } catch(e) {}
+}
+// Re-acquire wake lock if screen was locked mid-session (e.g. phone put down briefly)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && timerRunning && !_wakeLock) timerRequestWakeLock();
+});
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+async function timerRequestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+function timerNotifyDone(bookTitle) {
+  // Prefer service worker notification (works with screen off on Android PWA)
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'TIMER_DONE',
+      body: bookTitle ? `Great job reading ${bookTitle}! Tap to log your session.` : 'Tap to log your reading session.'
+    });
+    return;
+  }
+  // Fallback: plain Notification API (works when tab is open)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('📚 Reading timer done!', {
+      body: bookTitle ? `Great job reading ${bookTitle}!` : 'Time to log your session.',
+      icon: '/Summer_Reading/icon-192.png',
+      tag: 'ortizzle-timer'
+    });
+  }
+}
+
+// ── Focus mode ────────────────────────────────────────────────────────────────
+function enterTimerFocus() {
+  document.body.classList.add('timer-focus');
+  // Keep screen on
+  timerRequestWakeLock();
+}
+function exitTimerFocus() {
+  document.body.classList.remove('timer-focus');
+  timerReleaseWakeLock();
+}
+
 function timerStart() {
   const bookId = document.getElementById('timer-book-select').value;
   if (!bookId) { shakeField('timer-book-select'); showToast('📚 Pick a book first!'); return; }
@@ -5049,8 +5166,13 @@ function timerStart() {
   document.getElementById('timer-start-btn').style.display = 'none';
   document.getElementById('timer-pause-btn').style.display = '';
   document.getElementById('timer-stop-btn').style.display = '';
+  document.getElementById('timer-focus-btn').style.display = '';
   document.getElementById('timer-presets').style.display = 'none';
   timerInterval = setInterval(timerTick, 1000);
+  // Request notification permission (prompts once; silently skips if already decided)
+  timerRequestNotificationPermission();
+  // Auto-enter focus mode when a preset countdown is chosen
+  if (timerCountdownTarget > 0) enterTimerFocus();
 }
 
 function timerPause() {
@@ -5095,6 +5217,10 @@ function timerStop() {
   clearInterval(timerInterval);
   const elapsed = Math.ceil(timerSeconds / 60);
   const mins = Math.max(1, elapsed);
+  const bookForNotify = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+  // Play chime + send notification immediately (before async save)
+  timerPlayAlarm();
+  timerNotifyDone(bookForNotify ? bookForNotify.title : '');
   validateAndLog(mins, () => {
     setLogBusy(true, 'timer-stop-btn');
     const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
@@ -5130,11 +5256,14 @@ function resetTimer() {
   timerBookId = null;
   timerRunning = false;
   localStorage.removeItem('ortizzle_timer');
+  exitTimerFocus();
+  timerReleaseWakeLock();
   document.getElementById('timer-display').textContent = '00:00:00';
   document.getElementById('timer-book-name').textContent = 'Select a book to start';
   document.getElementById('timer-start-btn').style.display = '';
   document.getElementById('timer-pause-btn').style.display = 'none';
   document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-focus-btn').style.display = 'none';
   document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
   document.getElementById('timer-pause-btn').onclick = timerPause;
   const presets = document.getElementById('timer-presets');

@@ -24,6 +24,20 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Timer-done notification — fires even when screen is off on Android PWA
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'TIMER_DONE') {
+    self.registration.showNotification('📚 Reading timer done!', {
+      body: e.data.body || 'Tap to log your reading session.',
+      icon: '/Summer_Reading/icon-192.png',
+      badge: '/Summer_Reading/icon-192.png',
+      vibrate: [200, 100, 200, 100, 200],
+      requireInteraction: true,
+      tag: 'ortizzle-timer'
+    });
+  }
+});
+
 // Fetch: serve from cache for app shell; network-first for Gist API calls
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
