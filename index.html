@@ -6180,14 +6180,19 @@ function saveJournalEntry() {
     const book = (state.books[currentMember]||[]).find(b => b.id === bookId);
     if (book) book.rating = journalStarRating;
   }
+  // Close and render immediately — don't wait on network
+  const wasEdit = !!editId;
   document.getElementById('journal-text').value = '';
+  document.getElementById('journal-edit-id').value = '';
+  document.getElementById('journal-modal-title').textContent = '✏️ Journal Entry';
   journalStarRating = 0;
   resetJournalStars();
+  closeModal('journal-modal');
+  showToast(wasEdit ? 'Entry updated! ✏️' : 'Journal entry saved! 📝');
+  renderJournal();
+  // Save in background
   saveToGist().then(() => {
     checkBadges(currentMember); checkStreakMilestone(currentMember);
-    showToast(editId ? 'Entry updated! ✏️' : 'Journal entry saved! 📝');
-    closeModal('journal-modal');
-    renderJournal();
   });
 }
 
