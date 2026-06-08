@@ -1608,6 +1608,29 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<div id="timer-done-prompt" style="display:none;position:fixed;inset:0;z-index:16500;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
+  <div style="background:white;border-radius:24px 24px 0 0;padding:28px 24px 40px;max-width:480px;width:100%;box-shadow:0 -4px 32px rgba(0,0,0,0.2);">
+    <div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;margin:0 auto 20px;"></div>
+    <div style="font-size:36px;text-align:center;margin-bottom:10px;">⏰</div>
+    <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#1A1A2E;text-align:center;margin-bottom:6px;">Time's up!</div>
+    <div style="font-size:14px;color:#607D8B;text-align:center;margin-bottom:22px;" id="timer-done-msg">You set a goal. Did you keep reading?</div>
+
+    <div id="timer-done-main-options">
+      <button onclick="timerDoneLogPlanned()" style="width:100%;background:#16A34A;color:white;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">✅ Log <span id="timer-done-planned-mins"></span> min — read the full time</button>
+      <button onclick="timerDoneKeepReading()" style="width:100%;background:#4ECDC4;color:white;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">📖 Keep reading — I'll stop later</button>
+      <button onclick="timerDoneShowCustom()" style="width:100%;background:#F7E9D7;color:#1A1A2E;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">✏️ Log a different amount of time</button>
+      <button onclick="timerDoneCancel()" style="width:100%;background:none;border:none;color:#90A4AE;font-size:15px;cursor:pointer;padding:8px;font-family:'DM Sans',sans-serif;">✕ Cancel this session</button>
+    </div>
+
+    <div id="timer-done-custom-row" style="display:none;">
+      <label class="form-label" style="margin-bottom:6px;display:block;">Minutes to log</label>
+      <input type="number" min="1" id="timer-done-custom-input" class="form-select" placeholder="Minutes" style="width:100%;margin-bottom:12px;">
+      <button onclick="timerDoneLogCustom()" style="width:100%;background:#16A34A;color:white;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">Log this time</button>
+      <button onclick="timerDoneShowMain()" style="width:100%;background:none;border:none;color:#90A4AE;font-size:15px;cursor:pointer;padding:8px;font-family:'DM Sans',sans-serif;">← Back</button>
+    </div>
+  </div>
+</div>
+
 <div id="streak-splash" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column;" onclick="dismissStreakSplash()">
   <div id="streak-splash-inner" style="text-align:center;padding:32px 28px;max-width:320px;position:relative;pointer-events:none;">
     <div id="streak-splash-emoji" style="font-size:90px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 4px 24px rgba(255,160,0,0.5));"></div>
@@ -1872,7 +1895,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div id="calc-end-row" style="display:none;">
       <div class="form-row" style="margin-bottom:10px;">
         <label class="form-label">End Time</label>
-        <input class="form-select" type="time" id="calc-end-input">
+        <input class="form-select" type="time" id="calc-end-input" oninput="_calcEndTouched=true">
       </div>
       <div class="form-row" style="margin-bottom:10px;">
         <label class="form-label">Book</label>
@@ -3004,6 +3027,7 @@ let timerBookId = null;
 let timerCountdownTarget = 0; // 0 = open-ended up-count, >0 = countdown from this many seconds
 let timerWallStart = 0;   // Date.now() when timer last started/resumed
 let timerAccruedMs = 0;   // ms accumulated across pauses
+let timerCountdownReached = false; // true once a countdown timer hits 0 (shows the "time's up" prompt once)
 
 // ═══════════════════════════════════════
 //  GIST SYNC
@@ -5061,15 +5085,24 @@ function timerPreset(minutes) {
 function timerTick() {
   // Always compute from wall clock — immune to phone sleep
   timerSeconds = Math.floor((timerAccruedMs + (Date.now() - timerWallStart)) / 1000);
+  const el = document.getElementById('timer-display');
   if (timerCountdownTarget > 0) {
-    const remaining = Math.max(0, timerCountdownTarget - timerSeconds);
-    const h = Math.floor(remaining/3600), m = Math.floor((remaining%3600)/60), s = remaining%60;
-    const el = document.getElementById('timer-display');
-    if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-    if (remaining === 0) { timerStop(); return; }
+    const remaining = timerCountdownTarget - timerSeconds;
+    if (remaining > 0) {
+      const h = Math.floor(remaining/3600), m = Math.floor((remaining%3600)/60), s = remaining%60;
+      if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    } else {
+      // Goal reached — keep counting up so readers who continue aren't cut off
+      const over = -remaining;
+      const h = Math.floor(over/3600), m = Math.floor((over%3600)/60), s = over%60;
+      if (el) el.textContent = `+${pad(h)}:${pad(m)}:${pad(s)}`;
+      if (!timerCountdownReached) {
+        timerCountdownReached = true;
+        timerHandleCountdownComplete();
+      }
+    }
   } else {
     const h = Math.floor(timerSeconds/3600), m = Math.floor((timerSeconds%3600)/60), s = timerSeconds%60;
-    const el = document.getElementById('timer-display');
     if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 }
@@ -5094,6 +5127,12 @@ function timerPlayAlarm() {
       osc.stop(t + 0.85);
     });
   } catch(e) {}
+}
+// Ring the chime several times in a row (e.g. when a countdown finishes)
+function timerPlayAlarmRepeats(times) {
+  for (let i = 0; i < times; i++) {
+    setTimeout(() => timerPlayAlarm(), i * 1400);
+  }
 }
 
 // ── Screen Wake Lock ──────────────────────────────────────────────────────────
@@ -5158,6 +5197,7 @@ function timerStart() {
   timerWallStart = Date.now();
   timerAccruedMs = 0;
   timerRunning = true;
+  timerCountdownReached = false;
   // Persist so app-close + reopen can recover
   localStorage.setItem('ortizzle_timer', JSON.stringify({
     bookId, memberId: currentMember, wallStart: timerWallStart, accruedMs: 0, countdown: timerCountdownTarget
@@ -5212,15 +5252,8 @@ document.addEventListener('visibilitychange', () => {
   });
 });
 
-function timerStop() {
-  if (_logBusy) return;
-  clearInterval(timerInterval);
-  const elapsed = Math.ceil(timerSeconds / 60);
-  const mins = Math.max(1, elapsed);
-  const bookForNotify = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
-  // Play chime + send notification immediately (before async save)
-  timerPlayAlarm();
-  timerNotifyDone(bookForNotify ? bookForNotify.title : '');
+// Shared: build a session, save it, and run all the celebratory follow-ups
+function timerLogSession(mins) {
   validateAndLog(mins, () => {
     setLogBusy(true, 'timer-stop-btn');
     const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
@@ -5239,12 +5272,98 @@ function timerStop() {
       if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
       if (mins >= 30) celebrateThemed();
       else if (mins >= 10) celebrateSmall();
-      const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
-      showJournalLogPrompt(timerBookId, book ? book.title : '');
+      const book2 = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+      showJournalLogPrompt(timerBookId, book2 ? book2.title : '');
     }).catch(() => setLogBusy(false));
   });
+}
+
+function timerStop() {
+  if (_logBusy) return;
+  clearInterval(timerInterval);
+  hideTimerDonePrompt();
+  const elapsed = Math.ceil(timerSeconds / 60);
+  const mins = Math.max(1, elapsed);
+  // Only chime/notify here if the countdown-complete handler hasn't already done so
+  if (!timerCountdownReached) {
+    const bookForNotify = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+    timerPlayAlarm();
+    timerNotifyDone(bookForNotify ? bookForNotify.title : '');
+  }
+  timerLogSession(mins);
   resetTimer();
   renderTimer();
+}
+
+// ── "Time's up!" prompt (shown when a countdown reaches its target) ─────────
+function timerHandleCountdownComplete() {
+  timerPlayAlarmRepeats(4);
+  const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+  timerNotifyDone(book ? book.title : '');
+  showTimerDonePrompt();
+}
+
+function showTimerDonePrompt() {
+  const plannedMins = Math.max(1, Math.round(timerCountdownTarget / 60));
+  const planned = document.getElementById('timer-done-planned-mins');
+  const msg = document.getElementById('timer-done-msg');
+  if (planned) planned.textContent = plannedMins;
+  if (msg) msg.textContent = `Your ${plannedMins}-minute timer is done. Did you read the whole time, or do you want to log something different?`;
+  const main = document.getElementById('timer-done-main-options');
+  const custom = document.getElementById('timer-done-custom-row');
+  if (main) main.style.display = 'block';
+  if (custom) custom.style.display = 'none';
+  const el = document.getElementById('timer-done-prompt');
+  if (el) el.style.display = 'flex';
+}
+function hideTimerDonePrompt() {
+  const el = document.getElementById('timer-done-prompt');
+  if (el) el.style.display = 'none';
+}
+function timerDoneShowCustom() {
+  const main = document.getElementById('timer-done-main-options');
+  const custom = document.getElementById('timer-done-custom-row');
+  if (main) main.style.display = 'none';
+  if (custom) custom.style.display = 'block';
+  const input = document.getElementById('timer-done-custom-input');
+  if (input) { input.value = Math.max(1, Math.round(timerCountdownTarget / 60)); input.focus(); }
+}
+function timerDoneShowMain() {
+  const main = document.getElementById('timer-done-main-options');
+  const custom = document.getElementById('timer-done-custom-row');
+  if (main) main.style.display = 'block';
+  if (custom) custom.style.display = 'none';
+}
+function timerDoneLogPlanned() {
+  if (_logBusy) return;
+  const plannedMins = Math.max(1, Math.round(timerCountdownTarget / 60));
+  hideTimerDonePrompt();
+  clearInterval(timerInterval);
+  timerLogSession(plannedMins);
+  resetTimer();
+  renderTimer();
+}
+function timerDoneKeepReading() {
+  hideTimerDonePrompt();
+  showToast("📖 Keep going! Tap Save whenever you're ready.");
+  // Timer keeps running (now counting "+overtime") until they hit Save/Stop,
+  // at which point timerStop logs the actual elapsed time.
+}
+function timerDoneLogCustom() {
+  if (_logBusy) return;
+  const val = parseInt(document.getElementById('timer-done-custom-input').value, 10);
+  if (!val || val < 1) { showToast('Enter a valid number of minutes.'); return; }
+  hideTimerDonePrompt();
+  clearInterval(timerInterval);
+  timerLogSession(val);
+  resetTimer();
+  renderTimer();
+}
+function timerDoneCancel() {
+  hideTimerDonePrompt();
+  resetTimer();
+  renderTimer();
+  showToast('Session cancelled — nothing logged.');
 }
 
 function resetTimer() {
@@ -5253,9 +5372,11 @@ function resetTimer() {
   timerWallStart = 0;
   timerAccruedMs = 0;
   timerCountdownTarget = 0;
+  timerCountdownReached = false;
   timerBookId = null;
   timerRunning = false;
   localStorage.removeItem('ortizzle_timer');
+  hideTimerDonePrompt();
   exitTimerFocus();
   timerReleaseWakeLock();
   document.getElementById('timer-display').textContent = '00:00:00';
@@ -5272,10 +5393,16 @@ function resetTimer() {
 
 // ── Start/End Calculator ──────────────────────────────────────────────────
 const CALC_START_KEY = 'ortizzle_calc_start';
+// Tracks whether the user has manually typed an end time — once they have,
+// stop auto-filling it with "now" so we don't clobber their edit.
+let _calcEndTouched = false;
 
 function setCalcStart() {
   const now = Date.now();
   localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts: now, memberId: currentMember }));
+  _calcEndTouched = false;
+  const endInput = document.getElementById('calc-end-input');
+  if (endInput) endInput.value = '';
   renderCalcCard();
   showToast('📍 Start time saved!');
 }
@@ -5291,12 +5418,18 @@ function setCalcStartFromInput() {
   // If the result is in the future, assume it was yesterday
   if (ts > Date.now()) ts -= 86400000;
   localStorage.setItem(CALC_START_KEY, JSON.stringify({ ts, memberId: currentMember }));
+  _calcEndTouched = false;
+  const endInput = document.getElementById('calc-end-input');
+  if (endInput) endInput.value = '';
   renderCalcCard();
   showToast('📍 Start time saved!');
 }
 
 function clearCalcStart() {
   localStorage.removeItem(CALC_START_KEY);
+  _calcEndTouched = false;
+  const endInput = document.getElementById('calc-end-input');
+  if (endInput) endInput.value = '';
   renderCalcCard();
 }
 
@@ -5325,11 +5458,12 @@ function renderCalcCard() {
       startDisplay.style.display = 'block';
       noStart.style.display = 'none';
       endRow.style.display = 'block';
-      // Pre-fill end time to now
+      // Keep end time pinned to "now" every time this re-renders (e.g. when
+      // returning to the Log tab) — until the user manually edits it.
       const endInput = document.getElementById('calc-end-input');
-      if (endInput && !endInput.value) {
-        const nowAZ = new Date(Date.now() - 7 * 3600 * 1000);
-        endInput.value = `${String(nowAZ.getUTCHours()).padStart(2,'0')}:${String(nowAZ.getUTCMinutes()).padStart(2,'0')}`;
+      if (endInput && !_calcEndTouched) {
+        const nowAZ2 = new Date(Date.now() - 7 * 3600 * 1000);
+        endInput.value = `${String(nowAZ2.getUTCHours()).padStart(2,'0')}:${String(nowAZ2.getUTCMinutes()).padStart(2,'0')}`;
       }
       // Populate book select
       const calcBook = document.getElementById('calc-book-select');
