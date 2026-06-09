@@ -3978,6 +3978,25 @@ function toggleMaricopaDay(date) {
   renderDailyWrapup();
 }
 
+// Renders a time value with hours and minutes in distinct colors.
+// Hours = warm navy/bold; minutes = teal/medium.
+// Pass dimmed=true for checked/submitted rows (all muted grey).
+function fmtMaricopaTime(totalMins, dimmed) {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  const hrColor  = dimmed ? 'var(--muted)' : '#1A1A2E';
+  const hrUnit   = dimmed ? 'var(--muted)' : '#607D8B';
+  const minColor = dimmed ? 'var(--muted)' : '#0B7285';
+  const minUnit  = dimmed ? 'var(--muted)' : '#607D8B';
+  if (h > 0 && m > 0) {
+    return `<span style="font-weight:800;color:${hrColor};">${h}</span><span style="font-size:11px;color:${hrUnit};font-weight:500;">h </span><span style="font-weight:700;color:${minColor};">${m}</span><span style="font-size:11px;color:${minUnit};font-weight:500;">m</span>`;
+  } else if (h > 0) {
+    return `<span style="font-weight:800;color:${hrColor};">${h}</span><span style="font-size:11px;color:${hrUnit};font-weight:500;">h</span>`;
+  } else {
+    return `<span style="font-weight:700;color:${minColor};">${m}</span><span style="font-size:11px;color:${minUnit};font-weight:500;">min</span>`;
+  }
+}
+
 function renderDailyWrapup() {
   const el = document.getElementById('daily-wrapup-card');
   if (!el) return;
@@ -4003,49 +4022,92 @@ function renderDailyWrapup() {
   });
 
   const dates = Object.keys(byDate).sort().reverse(); // newest first
-
   const logged = new Set(state.maricopaLogged?.[currentMember] || []);
   const doneCount = dates.filter(d => logged.has(d)).length;
 
+  // Totals for summary strip
+  let checkedMins = 0, uncheckedMins = 0;
+  const uncheckedBookMins = {};
+  dates.forEach(d => {
+    const { mins, bookMins } = byDate[d];
+    if (logged.has(d)) {
+      checkedMins += mins;
+    } else {
+      uncheckedMins += mins;
+      Object.entries(bookMins).forEach(([title, m]) => {
+        uncheckedBookMins[title] = (uncheckedBookMins[title] || 0) + m;
+      });
+    }
+  });
+
+  // Summary strip (submitted vs. to-submit totals)
+  const summaryStrip = dates.length ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--sand);">
+      <div style="background:white;padding:10px 14px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#16A34A;text-transform:uppercase;margin-bottom:3px;">✅ Submitted</div>
+        <div style="font-size:18px;line-height:1;">${checkedMins > 0 ? fmtMaricopaTime(checkedMins, false) : '<span style="color:var(--muted);font-size:13px;">none yet</span>'}</div>
+      </div>
+      <div style="background:white;padding:10px 14px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#E65100;text-transform:uppercase;margin-bottom:3px;">📋 To Submit</div>
+        <div style="font-size:18px;line-height:1;">${uncheckedMins > 0 ? fmtMaricopaTime(uncheckedMins, false) : '<span style="color:var(--muted);font-size:13px;">all done!</span>'}</div>
+      </div>
+    </div>` : '';
+
+  // Per-book subtotal for unchecked days
+  const uncheckedBookEntries = Object.entries(uncheckedBookMins).sort((a,b) => b[1]-a[1]);
+  const pendingBooks = uncheckedBookEntries.length ? `
+    <div style="background:#FFF8F0;border-bottom:1px solid var(--sand);padding:10px 16px 8px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#E65100;text-transform:uppercase;margin-bottom:7px;">📚 Still to submit — by book</div>
+      ${uncheckedBookEntries.map(([title, m]) => `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;">
+          <span style="font-size:12px;color:#374151;flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📖 ${title}</span>
+          <span style="font-size:13px;white-space:nowrap;">${fmtMaricopaTime(m, false)}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // Day rows: checked = collapsed (header only); unchecked = expanded with per-book detail
   const rows = dates.map(d => {
     const { mins, bookMins } = byDate[d];
-    const h = Math.floor(mins/60), m = mins%60;
-    const totalStr = h > 0 ? `${h}h ${m}m` : `${mins} min`;
     const isLogged = logged.has(d);
-    const dateObj = new Date(d + 'T12:00:00');
+    const dateObj  = new Date(d + 'T12:00:00');
     const dateLabel = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short' });
-    const mutedColor = isLogged ? 'var(--muted)' : 'var(--text)';
-    const strikeStyle = isLogged ? 'text-decoration:line-through;' : '';
 
-    // Per-book breakdown rows
+    const checkbox = `<div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">${isLogged?'<span style="color:white;font-size:13px;line-height:1;">✓</span>':''}</div>`;
+
+    const headerRow = `
+      <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:9px 4px ${isLogged?'9px':'4px'};">
+        ${checkbox}
+        <div style="flex:1;display:flex;justify-content:space-between;align-items:baseline;">
+          <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'var(--text)'};${isLogged?'text-decoration:line-through;':''}">${dateLabel}</span>
+          <span style="font-size:13px;margin-left:8px;">${fmtMaricopaTime(mins, isLogged)}</span>
+        </div>
+      </div>`;
+
+    // Checked days: collapsed — no book rows
+    if (isLogged) return `<div style="border-bottom:1px solid var(--sand);">${headerRow}</div>`;
+
+    // Unchecked days: show per-book breakdown
     const bookRows = Object.entries(bookMins)
       .sort((a, b) => b[1] - a[1])
       .map(([title, m]) =>
-        `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 2px 4px;">
-          <span style="font-size:12px;color:${isLogged?'var(--muted)':'#374151'};${strikeStyle}flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📖 ${title}</span>
-          <span style="font-size:12px;font-weight:600;color:${isLogged?'var(--muted)':'#1565C0'};white-space:nowrap;">${m} min</span>
+        `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 4px 3px 0;">
+          <span style="font-size:12px;color:#374151;flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📖 ${title}</span>
+          <span style="font-size:12px;white-space:nowrap;">${fmtMaricopaTime(m, false)}</span>
         </div>`
       ).join('');
 
     return `
-      <div style="border-bottom:1px solid var(--sand);padding:9px 4px;">
-        <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;">
-          <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">
-            ${isLogged ? '<span style="color:white;font-size:13px;line-height:1;">✓</span>' : ''}
-          </div>
-          <div style="flex:1;display:flex;justify-content:space-between;align-items:baseline;">
-            <span style="font-size:13px;font-weight:700;color:${mutedColor};${strikeStyle}">${dateLabel}</span>
-            <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'#1565C0'};margin-left:8px;">${totalStr} total</span>
-          </div>
-        </div>
-        ${Object.keys(bookMins).length ? `<div style="margin-top:5px;margin-left:34px;">${bookRows}</div>` : ''}
+      <div style="border-bottom:1px solid var(--sand);">
+        ${headerRow}
+        <div style="margin:0 4px 8px 34px;">${bookRows}</div>
       </div>`;
   }).join('');
 
   const bodyContent = dates.length
-    ? `<div style="padding:4px 16px 8px;">
-        <div style="font-size:11px;color:var(--muted);padding:8px 4px 4px;font-weight:600;">TAP A DAY TO MARK AS SUBMITTED</div>
-        ${rows}
+    ? `${summaryStrip}${pendingBooks}
+       <div style="padding:4px 16px 8px;">
+         <div style="font-size:10px;color:var(--muted);padding:8px 4px 4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Tap a day to mark as submitted</div>
+         ${rows}
        </div>`
     : `<div style="padding:16px;text-align:center;font-size:13px;color:var(--muted);">No reading sessions yet — log some time above!</div>`;
 
