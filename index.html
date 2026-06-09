@@ -4718,11 +4718,17 @@ function toggleMapRoadmap() {
     school:    { phase:'🎒 Finish Line',  pts:'25,000 pts', reward:'12,500 pts to go — the big home-stretch push! 🏆' },
   };
 
-  // Phase accent color per waypoint
-  const PHASE_COLOR = {
-    phoenix:'#aaaaaa', off:'#87CEEB', vancouver:'#4ECDC4', aboard:'#4ECDC4',
-    skagway:'#26C6B9', juneau:'#26C6B9', ketchikan:'#26C6B9',
-    home:'#FFB347', school:'#FFE66D'
+  // Phase data: border color + card bg tint + label text color + tag bg
+  const PHASE_DATA = {
+    phoenix:   { col:'#9E9E9E', bg:'rgba(158,158,158,0.08)', tag:'#ccc',      tagBg:'rgba(158,158,158,0.2)'  },
+    off:       { col:'#87CEEB', bg:'rgba(135,206,235,0.08)', tag:'#87CEEB',   tagBg:'rgba(135,206,235,0.2)'  },
+    vancouver: { col:'#4ECDC4', bg:'rgba(78,205,196,0.08)',  tag:'#4ECDC4',   tagBg:'rgba(78,205,196,0.2)'   },
+    aboard:    { col:'#4ECDC4', bg:'rgba(78,205,196,0.08)',  tag:'#4ECDC4',   tagBg:'rgba(78,205,196,0.2)'   },
+    skagway:   { col:'#26C6B9', bg:'rgba(38,198,185,0.08)',  tag:'#26C6B9',   tagBg:'rgba(38,198,185,0.2)'   },
+    juneau:    { col:'#26C6B9', bg:'rgba(38,198,185,0.08)',  tag:'#26C6B9',   tagBg:'rgba(38,198,185,0.2)'   },
+    ketchikan: { col:'#26C6B9', bg:'rgba(38,198,185,0.08)',  tag:'#26C6B9',   tagBg:'rgba(38,198,185,0.2)'   },
+    home:      { col:'#FFB347', bg:'rgba(255,179,71,0.08)',  tag:'#FFB347',   tagBg:'rgba(255,179,71,0.2)'   },
+    school:    { col:'#FFE66D', bg:'rgba(255,230,109,0.08)', tag:'#FFE66D',   tagBg:'rgba(255,230,109,0.2)'  },
   };
 
   const rows = JOURNEY_WAYPOINTS.map((wp, i) => {
@@ -4731,76 +4737,83 @@ function toggleMapRoadmap() {
     const isNext   = nextWP && wp.id === nextWP.id;
     const detail   = WP_DETAIL[wp.id] || {};
     const ptsLeft  = Math.max(0, wp.threshold - famPts);
-    const phaseCol = PHASE_COLOR[wp.id] || '#4ECDC4';
+    const pd       = PHASE_DATA[wp.id] || PHASE_DATA.vancouver;
     const isLast   = i === JOURNEY_WAYPOINTS.length - 1;
 
-    // Node dot appearance
-    let nodeBg, nodeBorder, nodeShadow;
+    // Card styling by state
+    let cardBg, borderLeft, rowOpacity;
     if (isCur) {
-      nodeBg = '#FFE66D'; nodeBorder = '#FFE66D';
-      nodeShadow = '0 0 8px 2px rgba(255,230,60,0.6)';
+      cardBg     = 'rgba(255,230,60,0.12)';
+      borderLeft = '4px solid #FFE66D';
+      rowOpacity = '1';
     } else if (reached) {
-      nodeBg = phaseCol; nodeBorder = phaseCol;
-      nodeShadow = `0 0 4px ${phaseCol}66`;
+      cardBg     = pd.bg;
+      borderLeft = `4px solid ${pd.col}`;
+      rowOpacity = '1';
+    } else if (isNext) {
+      cardBg     = 'rgba(255,179,71,0.07)';
+      borderLeft = '4px solid #FFB347';
+      rowOpacity = '1';
     } else {
-      nodeBg = 'transparent'; nodeBorder = isNext ? phaseCol : 'rgba(255,255,255,0.18)';
-      nodeShadow = 'none';
+      cardBg     = 'rgba(0,0,0,0.2)';
+      borderLeft = '4px solid rgba(255,255,255,0.1)';
+      rowOpacity = '0.45';
     }
 
-    // Connector line between this node and next
-    const lineColor = reached && !isLast ? phaseCol : 'rgba(255,255,255,0.1)';
-
-    // Right-side status badge
+    // Status badge (solid, high-contrast)
     let badge;
     if (isCur) {
-      badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:10px;padding:2px 8px;font-size:8px;font-weight:800;letter-spacing:.4px;white-space:nowrap;">📍 HERE</span>`;
+      badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:3px 10px;font-size:9px;font-weight:800;letter-spacing:.5px;white-space:nowrap;box-shadow:0 2px 8px rgba(255,230,60,0.4);">📍 YOU ARE HERE</span>`;
     } else if (reached) {
-      badge = `<span style="background:${phaseCol}22;color:${phaseCol};border:1px solid ${phaseCol}55;border-radius:10px;padding:2px 7px;font-size:8px;font-weight:700;">✓ Done</span>`;
+      badge = `<span style="background:${pd.col};color:#0d1b2a;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:800;white-space:nowrap;">✓ DONE</span>`;
     } else if (isNext) {
-      badge = `<span style="background:rgba(255,179,71,0.15);color:#FFB347;border:1px solid rgba(255,179,71,0.35);border-radius:10px;padding:2px 7px;font-size:8px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
+      badge = `<span style="background:#FFB347;color:#1a1a2e;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:800;white-space:nowrap;">🎯 ${ptsLeft.toLocaleString()} to go</span>`;
     } else {
-      badge = `<span style="color:rgba(255,255,255,0.25);font-size:8px;">${wp.threshold === 0 ? 'Start' : wp.threshold.toLocaleString()}</span>`;
+      badge = `<span style="color:rgba(255,255,255,0.5);font-size:10px;font-weight:600;">${wp.threshold === 0 ? 'Start' : wp.threshold.toLocaleString()}</span>`;
     }
 
-    // Progress bar for current segment
+    // Phase tag (solid tinted bg, colored text — always readable)
+    const phaseTag = detail.phase
+      ? `<span style="background:${pd.tagBg};color:${pd.tag};border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;white-space:nowrap;">${detail.phase}</span>`
+      : '';
+
+    // Progress bar only for current waypoint
     const progressSeg = isCur && nextWP ? (() => {
       const pct = Math.min(100, Math.round(((famPts - wp.threshold) / (nextWP.threshold - wp.threshold)) * 100));
-      return `<div style="margin-top:6px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:2px;transition:width .5s;"></div>
-      </div>
-      <div style="color:rgba(255,255,255,0.35);font-size:9px;margin-top:3px;">${pct}% to ${nextWP.label}</div>`;
+      return `
+        <div style="margin-top:7px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:2px;"></div>
+        </div>
+        <div style="color:rgba(255,255,255,0.45);font-size:9px;margin-top:3px;">${pct}% of the way to ${nextWP.label}</div>`;
     })() : '';
 
-    // Phase tag pill
-    const phaseTag = detail.phase
-      ? `<span style="background:${phaseCol}22;color:${phaseCol};border-radius:6px;padding:1px 5px;font-size:8px;font-weight:600;letter-spacing:.3px;">${detail.phase}</span>`
+    // Connector dot between cards
+    const connector = !isLast
+      ? `<div style="width:2px;height:6px;margin:0 0 0 14px;background:${reached ? pd.col : 'rgba(255,255,255,0.1)'};border-radius:1px;opacity:0.6;"></div>`
       : '';
 
     return `
-      <div style="display:flex;align-items:stretch;gap:0;">
-        <!-- Timeline column -->
-        <div style="display:flex;flex-direction:column;align-items:center;width:24px;flex-shrink:0;">
-          <div style="width:14px;height:14px;border-radius:50%;background:${nodeBg};border:2px solid ${nodeBorder};
-            box-shadow:${nodeShadow};flex-shrink:0;margin-top:9px;${isCur?'animation:pulse 2s ease-in-out infinite;':''}"></div>
-          ${!isLast ? `<div style="width:2px;flex:1;min-height:8px;background:${lineColor};border-radius:1px;margin-top:2px;"></div>` : ''}
-        </div>
-        <!-- Content column -->
-        <div style="flex:1;padding:6px 8px 10px 8px;${isCur?'background:rgba(255,230,60,0.06);border-radius:10px;':''}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;">
-              <span style="font-size:13px;line-height:1;opacity:${reached||isCur?1:0.3};">${wp.emoji}</span>
-              <span style="color:${isCur?'#FFE66D':reached?'white':'rgba(255,255,255,0.35)'};
-                font-size:12px;font-weight:700;line-height:1.2;">${wp.label}</span>
-              ${phaseTag}
+      <div style="border-radius:10px;background:${cardBg};border-left:${borderLeft};
+        padding:9px 10px 9px 11px;opacity:${rowOpacity};">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;">
+            <span style="font-size:16px;line-height:1;flex-shrink:0;">${wp.emoji}</span>
+            <div>
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                <span style="color:${isCur?'#FFE66D':reached?'white':'rgba(255,255,255,0.7)'};
+                  font-size:13px;font-weight:700;line-height:1.2;">${wp.label}</span>
+                ${phaseTag}
+              </div>
+              <div style="color:rgba(255,255,255,0.55);font-size:10px;margin-top:3px;line-height:1.35;">
+                ${detail.reward || wp.desc || ''}
+              </div>
+              ${progressSeg}
             </div>
-            <div style="flex-shrink:0;">${badge}</div>
           </div>
-          <div style="color:rgba(255,255,255,${reached||isCur?'0.5':'0.25'});font-size:10px;margin-top:3px;line-height:1.35;padding-left:18px;">
-            ${detail.reward || wp.desc || ''}
-          </div>
-          ${progressSeg}
+          <div style="flex-shrink:0;padding-top:1px;">${badge}</div>
         </div>
-      </div>`;
+      </div>
+      ${connector}`;
   }).join('');
 
   panel.style.display = 'block';
