@@ -3,426 +3,367 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roadmap Design Prototypes</title>
+<title>Roadmap — C+D Combined Prototype</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'DM Sans', sans-serif;
-    background: #1a1f3a;
-    padding: 20px;
+    background: #111827;
+    padding: 24px 16px 40px;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  h1 {
-    color: white;
-    font-size: 18px;
-    font-weight: 800;
-    text-align: center;
-    margin-bottom: 6px;
-    letter-spacing: .5px;
-  }
-  .subtitle {
-    color: rgba(255,255,255,0.45);
-    font-size: 12px;
-    text-align: center;
-    margin-bottom: 24px;
-  }
+  h1 { color: white; font-size: 17px; font-weight: 800; margin-bottom: 4px; text-align: center; }
+  .subtitle { color: rgba(255,255,255,0.4); font-size: 12px; margin-bottom: 24px; text-align: center; }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  /* The journey card — same bg as real app */
+  /* Simulate the real journey card */
   .journey-card {
     background: linear-gradient(135deg, #0D47A1, #1565C0, #0277BD);
     border-radius: 20px;
     padding: 16px;
-    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
   }
 
-  .design-label {
-    color: rgba(255,255,255,0.9);
-    font-size: 13px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    letter-spacing: .3px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .design-label .num {
-    background: rgba(255,255,255,0.15);
-    border-radius: 20px;
-    padding: 2px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.6);
-  }
-
-  .roadmap-header {
+  .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 14px;
   }
-  .roadmap-header-label {
+  .card-header-label {
+    font-size: 10px; font-weight: 800;
+    letter-spacing: .8px; color: rgba(255,255,255,0.7);
+  }
+  .card-header-pts {
+    font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85);
+  }
+  .card-header-pts span { color: rgba(255,255,255,0.4); }
+
+  /* ─── Timeline container ─── */
+  .timeline {
+    position: relative;
+    padding-left: 0;
+  }
+
+  /* ─── Phase chapter marker ─── */
+  .phase-chapter {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  /* The vertical line segment above the chapter chip */
+  .phase-chapter .line-above {
+    width: 2px;
+    flex-shrink: 0;
+    margin-left: 14px; /* centers on 30px dot column */
+    border-radius: 2px;
+  }
+  .phase-chapter .chapter-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 20px;
+    padding: 4px 11px 4px 8px;
     font-size: 10px;
     font-weight: 800;
-    letter-spacing: .8px;
-    color: rgba(255,255,255,0.7);
+    letter-spacing: .3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 8px;
   }
-  .roadmap-header-pts {
-    font-size: 10px;
+  .phase-chapter .chapter-chip .chip-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  /* Spacer line to the right of chip — fills remaining width */
+  .phase-chapter .line-right {
+    flex: 1;
+    height: 2px;
+    border-radius: 2px;
+    margin-left: 6px;
+  }
+
+  /* ─── Stop row ─── */
+  .stop-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .stop-row .dot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 30px;
+    flex-shrink: 0;
+  }
+  .stop-row .dot-col .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .stop-row .dot-col .dot.current {
+    width: 18px; height: 18px;
+    margin-top: 2px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .stop-row .dot-col .dot.small {
+    width: 10px; height: 10px;
+    margin-top: 6px;
+  }
+  .stop-row .dot-col .seg-line {
+    width: 2px;
+    flex: 1;
+    min-height: 8px;
+    border-radius: 1px;
+    margin-top: 3px;
+  }
+  .stop-row .text-col {
+    flex: 1;
+    padding: 2px 4px 12px 6px;
+    min-width: 0;
+  }
+  .stop-row .text-col .row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .stop-row .text-col .stop-name {
+    font-size: 13px;
     font-weight: 700;
-    color: rgba(255,255,255,0.8);
+    line-height: 1.25;
   }
-  .roadmap-header-pts span {
-    color: rgba(255,255,255,0.4);
+  .stop-row .text-col .stop-desc {
+    font-size: 10px;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .stop-row .text-col .progress-wrap {
+    margin-top: 6px;
+  }
+  .stop-row .text-col .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stop-row .text-col .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .stop-row .text-col .progress-label {
+    font-size: 9px;
+    margin-top: 3px;
+    color: rgba(255,255,255,0.45);
   }
 
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 6px 1px rgba(255,230,60,0.5); }
-    50% { box-shadow: 0 0 14px 4px rgba(255,230,60,0.9); }
+    0%,100% { box-shadow: 0 0 0 3px rgba(255,230,60,0.2), 0 0 8px 2px rgba(255,230,60,0.5); }
+    50%      { box-shadow: 0 0 0 5px rgba(255,230,60,0.12), 0 0 16px 5px rgba(255,230,60,0.8); }
   }
 </style>
 </head>
 <body>
 
-<h1>📍 Roadmap Panel — Design Options</h1>
-<p class="subtitle">Same dark blue background as the real journey card · Pick your favorite</p>
+<h1>📍 Combined C + D Prototype</h1>
+<p class="subtitle">Phase chapter markers · Vertical timeline · Gradient progress bar</p>
 
-<div class="grid">
-
-  <!-- ══════════════════════════════════════════
-       OPTION A: Light Cards
-  ══════════════════════════════════════════ -->
-  <div class="journey-card">
-    <div class="design-label"><span class="num">A</span> Light Cards</div>
-    <div class="roadmap-header">
-      <div class="roadmap-header-label">JOURNEY ROADMAP</div>
-      <div class="roadmap-header-pts">2,450 <span>/ 25,000 pts</span></div>
-    </div>
-    <div id="design-a"></div>
+<div class="journey-card">
+  <div class="card-header">
+    <div class="card-header-label">JOURNEY ROADMAP</div>
+    <div class="card-header-pts">2,450 <span>/ 25,000 pts</span></div>
   </div>
-
-  <!-- ══════════════════════════════════════════
-       OPTION B: Frosted Glass
-  ══════════════════════════════════════════ -->
-  <div class="journey-card">
-    <div class="design-label"><span class="num">B</span> Frosted Glass</div>
-    <div class="roadmap-header">
-      <div class="roadmap-header-label">JOURNEY ROADMAP</div>
-      <div class="roadmap-header-pts">2,450 <span>/ 25,000 pts</span></div>
-    </div>
-    <div id="design-b"></div>
-  </div>
-
-  <!-- ══════════════════════════════════════════
-       OPTION C: Phase Tiles
-  ══════════════════════════════════════════ -->
-  <div class="journey-card">
-    <div class="design-label"><span class="num">C</span> Phase Tiles</div>
-    <div class="roadmap-header">
-      <div class="roadmap-header-label">JOURNEY ROADMAP</div>
-      <div class="roadmap-header-pts">2,450 <span>/ 25,000 pts</span></div>
-    </div>
-    <div id="design-c"></div>
-  </div>
-
-  <!-- ══════════════════════════════════════════
-       OPTION D: Minimal Timeline
-  ══════════════════════════════════════════ -->
-  <div class="journey-card">
-    <div class="design-label"><span class="num">D</span> Minimal Timeline</div>
-    <div class="roadmap-header">
-      <div class="roadmap-header-label">JOURNEY ROADMAP</div>
-      <div class="roadmap-header-pts">2,450 <span>/ 25,000 pts</span></div>
-    </div>
-    <div id="design-d"></div>
-  </div>
-
+  <div class="timeline" id="roadmap"></div>
 </div>
 
 <script>
 const FAM_PTS = 2450;
 
-const WAYPOINTS = [
-  { id:'phoenix',   emoji:'🌵', label:'Phoenix',        threshold:0,     phase:'🛫 Pre-Trip',     desc:'The summer adventure begins!',                           phaseCol:'#78909C' },
-  { id:'off',       emoji:'✈️', label:"We're Off!",     threshold:6500,  phase:'✈️ In Flight',    desc:'Wheels up — the Ortiz family is on the move!',           phaseCol:'#29B6F6' },
-  { id:'vancouver', emoji:'🏔️', label:'Vancouver',      threshold:8500,  phase:'🏙️ Vancouver',    desc:'4 days exploring Vancouver before boarding.',             phaseCol:'#4ECDC4' },
-  { id:'aboard',    emoji:'🚢', label:'All Aboard!',    threshold:10000, phase:'🚢 Boarding',     desc:'Welcome to the Disney Wonder — let\'s sail!',            phaseCol:'#26C6DA' },
-  { id:'skagway',   emoji:'⚓', label:'Skagway',        threshold:10500, phase:'⚓ Cruise Day 2', desc:'Lynn Canal & gold rush country — 500 pts from boarding!', phaseCol:'#00BCD4' },
-  { id:'juneau',    emoji:'🦅', label:'Juneau',         threshold:11000, phase:'⚓ Cruise Day 4', desc:'Bald eagles, glaciers — just 500 more pts!',             phaseCol:'#00ACC1' },
-  { id:'ketchikan', emoji:'🐟', label:'Ketchikan',      threshold:11500, phase:'⚓ Cruise Day 6', desc:'Salmon capital — last port, 500 pts from Juneau!',       phaseCol:'#0097A7' },
-  { id:'home',      emoji:'🏠', label:'Back to Phoenix',threshold:12500, phase:'✈️ Homebound',    desc:'Cruise complete — flying back to Phoenix!',              phaseCol:'#FFA726' },
-  { id:'school',    emoji:'🎒', label:'Back to School', threshold:25000, phase:'🎒 Finish Line',  desc:'12,500 pts to go — the big home-stretch push! 🏆',       phaseCol:'#FFC107' },
+const PHASES = [
+  {
+    id: 'pretrip',
+    label: 'Pre-Trip & Flight',
+    emoji: '✈️',
+    col: '#29B6F6',
+    stops: [
+      { id:'phoenix',   emoji:'🌵', label:'Phoenix',      threshold:0,     desc:'The summer adventure begins!' },
+      { id:'off',       emoji:'✈️', label:"We're Off!",   threshold:6500,  desc:'Wheels up — the Ortiz family is on the move!' },
+    ]
+  },
+  {
+    id: 'vancouver',
+    label: 'Vancouver & Boarding',
+    emoji: '🏙️',
+    col: '#4ECDC4',
+    stops: [
+      { id:'vancouver', emoji:'🏔️', label:'Vancouver',    threshold:8500,  desc:'4 days exploring Vancouver before boarding.' },
+      { id:'aboard',    emoji:'🚢', label:'All Aboard!',  threshold:10000, desc:"Welcome to the Disney Wonder — let's sail!" },
+    ]
+  },
+  {
+    id: 'cruise',
+    label: 'Alaska Cruise',
+    emoji: '⚓',
+    col: '#00BCD4',
+    stops: [
+      { id:'skagway',   emoji:'⚓', label:'Skagway',      threshold:10500, desc:'Lynn Canal & gold rush country — just 500 pts from boarding!' },
+      { id:'juneau',    emoji:'🦅', label:'Juneau',       threshold:11000, desc:"Alaska's capital — bald eagles, glaciers, 500 more pts!" },
+      { id:'ketchikan', emoji:'🐟', label:'Ketchikan',    threshold:11500, desc:'Salmon capital — last Alaskan port, 500 pts from Juneau!' },
+    ]
+  },
+  {
+    id: 'home',
+    label: 'Homeward Bound',
+    emoji: '🏠',
+    col: '#FFA726',
+    stops: [
+      { id:'home',      emoji:'🏠', label:'Back to Phoenix', threshold:12500, desc:'Cruise complete — flying back to Phoenix!' },
+      { id:'school',    emoji:'🎒', label:'Back to School',  threshold:25000, desc:'12,500 pts to go — the big home-stretch push! 🏆' },
+    ]
+  },
 ];
 
-function getState(wp, i) {
-  const reached = FAM_PTS >= wp.threshold;
-  const curIdx  = [...WAYPOINTS].reverse().find(w => FAM_PTS >= w.threshold);
-  const curId   = curIdx ? curIdx.id : WAYPOINTS[0].id;
-  const nextWP  = WAYPOINTS.find(w => FAM_PTS < w.threshold);
-  const isCur   = wp.id === curId;
-  const isNext  = nextWP && wp.id === nextWP.id;
-  const ptsLeft = Math.max(0, wp.threshold - FAM_PTS);
-  const pct     = isCur && nextWP
-    ? Math.min(100, Math.round(((FAM_PTS - wp.threshold) / (nextWP.threshold - wp.threshold)) * 100))
+// Flatten stops to find current/next
+const ALL_STOPS = PHASES.flatMap(p => p.stops);
+const curStop   = [...ALL_STOPS].reverse().find(s => FAM_PTS >= s.threshold) || ALL_STOPS[0];
+const nextStop  = ALL_STOPS.find(s => FAM_PTS < s.threshold);
+
+function stopState(stop) {
+  const reached = FAM_PTS >= stop.threshold;
+  const isCur   = stop.id === curStop.id;
+  const isNext  = nextStop && stop.id === nextStop.id;
+  const ptsLeft = Math.max(0, stop.threshold - FAM_PTS);
+  const pct     = isCur && nextStop
+    ? Math.min(100, Math.round(((FAM_PTS - stop.threshold) / (nextStop.threshold - stop.threshold)) * 100))
     : 0;
-  return { reached, isCur, isNext, ptsLeft, pct, nextWP };
+  return { reached, isCur, isNext, ptsLeft, pct };
 }
 
-// ════════════════════════════════════════════════
-// OPTION A: Light Cards
-// ════════════════════════════════════════════════
-function renderA() {
-  return WAYPOINTS.map((wp, i) => {
-    const { reached, isCur, isNext, ptsLeft, pct, nextWP } = getState(wp, i);
-    const pc = wp.phaseCol;
+function phaseStatus(phase) {
+  const allReached = phase.stops.every(s => FAM_PTS >= s.threshold);
+  const hasActive  = phase.stops.some(s => {
+    const st = stopState(s);
+    return st.isCur || st.isNext;
+  });
+  return { allReached, hasActive };
+}
 
-    let cardBg, borderCol, nameCol, descCol;
-    if (isCur)        { cardBg='#FFF9E3'; borderCol='#F9A825'; nameCol='#4A3000'; descCol='#7A5800'; }
-    else if (reached) { cardBg='#F0FFFE'; borderCol=pc;        nameCol='#0D3331'; descCol='#2E5E5C'; }
-    else if (isNext)  { cardBg='#FFF5E6'; borderCol='#FFA726'; nameCol='#4A2800'; descCol='#7A5200'; }
-    else              { cardBg='rgba(255,255,255,0.1)'; borderCol='rgba(255,255,255,0.18)'; nameCol='rgba(255,255,255,0.4)'; descCol='rgba(255,255,255,0.25)'; }
+// ── Build HTML ──────────────────────────────────────
+let html = '';
 
-    let badge;
-    if (isCur)        badge = `<span style="background:#F9A825;color:#fff;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:800;">📍 HERE</span>`;
-    else if (reached) badge = `<span style="background:${pc};color:#fff;border-radius:20px;padding:3px 8px;font-size:9px;font-weight:800;">✓ Done</span>`;
-    else if (isNext)  badge = `<span style="background:#FFA726;color:#fff;border-radius:20px;padding:3px 8px;font-size:9px;font-weight:800;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
-    else              badge = `<span style="color:rgba(255,255,255,0.3);font-size:10px;">${wp.threshold===0?'Start':wp.threshold.toLocaleString()}</span>`;
+PHASES.forEach((phase, pi) => {
+  const { allReached, hasActive } = phaseStatus(phase);
+  const pc = phase.col;
 
-    const tagBg  = (reached||isCur||isNext) ? `${pc}22` : 'rgba(255,255,255,0.07)';
-    const tagCol = (reached||isCur||isNext) ? pc : 'rgba(255,255,255,0.3)';
-    const tag    = `<span style="background:${tagBg};color:${tagCol};border-radius:5px;padding:1px 5px;font-size:8px;font-weight:700;">${wp.phase}</span>`;
+  // Chapter chip color logic
+  let chipBg, chipText, lineCol;
+  if (allReached)    { chipBg = pc;                        chipText = '#fff';                  lineCol = pc; }
+  else if (hasActive){ chipBg = pc;                        chipText = '#fff';                  lineCol = `${pc}66`; }
+  else               { chipBg = 'rgba(255,255,255,0.1)';   chipText = 'rgba(255,255,255,0.4)'; lineCol = 'rgba(255,255,255,0.1)'; }
 
-    const bar = isCur && nextWP ? `
-      <div style="margin-top:5px;height:3px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#00BCD4,#FFC107);"></div>
+  // Line above the chapter chip (connecting from previous section)
+  const lineAboveCol = pi === 0 ? 'transparent' : lineCol;
+  const lineAboveH   = pi === 0 ? '0' : '10px';
+
+  html += `
+    <div style="display:flex;flex-direction:column;">
+      <!-- Chapter marker -->
+      <div style="display:flex;align-items:center;margin-bottom:4px;">
+        <div style="width:2px;height:${lineAboveH};background:${lineAboveCol};margin-left:14px;border-radius:1px;flex-shrink:0;"></div>
       </div>
-      <div style="color:${descCol};font-size:9px;margin-top:2px;opacity:0.8;">${pct}% to ${nextWP.label}</div>` : '';
-
-    const dot = i < WAYPOINTS.length-1
-      ? `<div style="width:2px;height:5px;margin-left:14px;background:${reached?pc:'rgba(255,255,255,0.12)'};border-radius:1px;"></div>` : '';
-
-    return `
-      <div style="background:${cardBg};border-radius:10px;border-left:4px solid ${borderCol};padding:8px 10px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div style="display:flex;align-items:flex-start;gap:7px;flex:1;min-width:0;">
-            <span style="font-size:17px;line-height:1.2;flex-shrink:0;">${wp.emoji}</span>
-            <div style="min-width:0;flex:1;">
-              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-                <span style="color:${nameCol};font-size:13px;font-weight:700;">${wp.label}</span>
-                ${tag}
-              </div>
-              <div style="color:${descCol};font-size:10px;margin-top:2px;line-height:1.4;">${wp.desc}</div>
-              ${bar}
-            </div>
-          </div>
-          <div style="flex-shrink:0;padding-top:2px;">${badge}</div>
+      <div style="display:flex;align-items:center;margin-bottom:6px;">
+        <div style="width:30px;flex-shrink:0;display:flex;justify-content:center;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${chipBg};box-shadow:${allReached||hasActive?`0 0 0 3px ${pc}33`:'none'};"></div>
         </div>
-      </div>${dot}`;
-  }).join('');
-}
-
-// ════════════════════════════════════════════════
-// OPTION B: Frosted Glass
-// ════════════════════════════════════════════════
-function renderB() {
-  return WAYPOINTS.map((wp, i) => {
-    const { reached, isCur, isNext, ptsLeft, pct, nextWP } = getState(wp, i);
-    const pc = wp.phaseCol;
-
-    let glassBg, glowBorder, nameCol, descCol;
-    if (isCur)        { glassBg='rgba(255,230,60,0.18)';  glowBorder=`2px solid rgba(255,230,60,0.6)`;  nameCol='#FFE66D'; descCol='rgba(255,230,60,0.7)'; }
-    else if (reached) { glassBg='rgba(255,255,255,0.13)'; glowBorder=`2px solid ${pc}`;                 nameCol='white';   descCol='rgba(255,255,255,0.6)'; }
-    else if (isNext)  { glassBg='rgba(255,179,71,0.12)';  glowBorder='2px solid rgba(255,179,71,0.6)';  nameCol='#FFD59E'; descCol='rgba(255,200,120,0.7)'; }
-    else              { glassBg='rgba(255,255,255,0.05)';  glowBorder='1px solid rgba(255,255,255,0.1)'; nameCol='rgba(255,255,255,0.4)'; descCol='rgba(255,255,255,0.25)'; }
-
-    let badge;
-    if (isCur)        badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:800;box-shadow:0 0 10px rgba(255,230,60,0.5);">📍 HERE</span>`;
-    else if (reached) badge = `<span style="background:${pc};color:#fff;border-radius:20px;padding:3px 8px;font-size:9px;font-weight:800;box-shadow:0 0 8px ${pc}88;">✓</span>`;
-    else if (isNext)  badge = `<span style="background:rgba(255,179,71,0.25);color:#FFD59E;border:1px solid rgba(255,179,71,0.5);border-radius:20px;padding:3px 8px;font-size:9px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()}</span>`;
-    else              badge = `<span style="color:rgba(255,255,255,0.25);font-size:10px;">${wp.threshold===0?'Start':wp.threshold.toLocaleString()}</span>`;
-
-    const tagCol = isCur ? '#FFE66D' : reached ? pc : isNext ? '#FFB347' : 'rgba(255,255,255,0.3)';
-    const tag = `<span style="color:${tagCol};font-size:8px;font-weight:700;opacity:0.9;">${wp.phase}</span>`;
-
-    const bar = isCur && nextWP ? `
-      <div style="margin-top:5px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${pc},#FFE66D);box-shadow:0 0 6px ${pc};"></div>
-      </div>
-      <div style="color:rgba(255,230,60,0.6);font-size:9px;margin-top:2px;">${pct}% to ${nextWP.label}</div>` : '';
-
-    const dot = i < WAYPOINTS.length-1
-      ? `<div style="width:2px;height:5px;margin-left:14px;background:${reached?`${pc}99`:'rgba(255,255,255,0.1)'};border-radius:1px;"></div>` : '';
-
-    return `
-      <div style="background:${glassBg};border-radius:10px;border:${glowBorder};padding:8px 10px;backdrop-filter:blur(4px);">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div style="display:flex;align-items:flex-start;gap:7px;flex:1;min-width:0;">
-            <span style="font-size:17px;line-height:1.2;flex-shrink:0;filter:${reached||isCur?'none':'grayscale(1) opacity(0.35)'};">${wp.emoji}</span>
-            <div style="min-width:0;flex:1;">
-              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-                <span style="color:${nameCol};font-size:13px;font-weight:700;">${wp.label}</span>
-                ${tag}
-              </div>
-              <div style="color:${descCol};font-size:10px;margin-top:2px;line-height:1.4;">${wp.desc}</div>
-              ${bar}
-            </div>
-          </div>
-          <div style="flex-shrink:0;padding-top:2px;">${badge}</div>
+        <div style="display:flex;align-items:center;gap:5px;background:${chipBg};border-radius:20px;padding:4px 12px 4px 8px;flex-shrink:0;">
+          <span style="font-size:12px;line-height:1;">${phase.emoji}</span>
+          <span style="color:${chipText};font-size:10px;font-weight:800;letter-spacing:.2px;">${phase.label}</span>
+          ${allReached ? `<span style="color:rgba(255,255,255,0.75);font-size:9px;margin-left:2px;">✓</span>` : ''}
         </div>
-      </div>${dot}`;
-  }).join('');
-}
-
-// ════════════════════════════════════════════════
-// OPTION C: Phase Tiles (grouped, colorful)
-// ════════════════════════════════════════════════
-function renderC() {
-  // Group waypoints into phases
-  const phases = [
-    { label:'✈️ Pre-Trip & Flight', col:'#29B6F6', darkCol:'#0277BD', wps:['phoenix','off'] },
-    { label:'🏙️ Vancouver & Boarding', col:'#26C6DA', darkCol:'#00838F', wps:['vancouver','aboard'] },
-    { label:'⚓ Alaska Cruise', col:'#00ACC1', darkCol:'#006064', wps:['skagway','juneau','ketchikan'] },
-    { label:'🏠 Homeward Bound', col:'#FFA726', darkCol:'#E65100', wps:['home','school'] },
-  ];
-
-  return phases.map(phase => {
-    const pWps = WAYPOINTS.filter(w => phase.wps.includes(w.id));
-    const allReached = pWps.every(w => FAM_PTS >= w.threshold);
-    const anyActive  = pWps.some(w => {
-      const { isCur, isNext } = getState(w, 0);
-      return isCur || isNext;
-    });
-    const headerBg  = anyActive ? phase.col : allReached ? `${phase.col}CC` : 'rgba(255,255,255,0.1)';
-    const headerTxt = anyActive || allReached ? '#fff' : 'rgba(255,255,255,0.4)';
-
-    const rows = pWps.map(wp => {
-      const { reached, isCur, isNext, ptsLeft, pct, nextWP } = getState(wp, 0);
-      const rowBg  = isCur ? 'rgba(255,255,255,0.25)' : reached ? 'rgba(255,255,255,0.12)' : isNext ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
-      const namCol = isCur ? '#FFE66D' : reached ? 'white' : isNext ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)';
-      const dscCol = isCur ? 'rgba(255,230,60,0.75)' : reached ? 'rgba(255,255,255,0.7)' : isNext ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.2)';
-
-      let rightEl;
-      if (isCur)        rightEl = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:12px;padding:2px 7px;font-size:8px;font-weight:800;">📍 HERE</span>`;
-      else if (reached) rightEl = `<span style="font-size:13px;">✅</span>`;
-      else if (isNext)  rightEl = `<span style="background:rgba(255,255,255,0.2);color:white;border-radius:12px;padding:2px 7px;font-size:8px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()}</span>`;
-      else              rightEl = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">${wp.threshold.toLocaleString()}</span>`;
-
-      const bar = isCur && nextWP ? `
-        <div style="margin-top:4px;height:2px;background:rgba(255,255,255,0.2);border-radius:1px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:rgba(255,255,255,0.8);"></div>
-        </div>` : '';
-
-      return `
-        <div style="background:${rowBg};border-radius:7px;padding:6px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
-          <div style="display:flex;align-items:flex-start;gap:6px;flex:1;min-width:0;">
-            <span style="font-size:14px;line-height:1.3;flex-shrink:0;">${wp.emoji}</span>
-            <div>
-              <div style="color:${namCol};font-size:12px;font-weight:700;line-height:1.2;">${wp.label}</div>
-              <div style="color:${dscCol};font-size:9px;margin-top:1px;line-height:1.3;">${wp.desc}</div>
-              ${bar}
-            </div>
-          </div>
-          <div style="flex-shrink:0;">${rightEl}</div>
-        </div>`;
-    }).join('<div style="height:3px;"></div>');
-
-    return `
-      <div style="border-radius:11px;overflow:hidden;margin-bottom:6px;">
-        <div style="background:${headerBg};padding:5px 9px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="color:${headerTxt};font-size:10px;font-weight:800;letter-spacing:.3px;">${phase.label}</span>
-          ${allReached?`<span style="color:rgba(255,255,255,0.7);font-size:10px;">✓ Complete</span>`:anyActive?`<span style="color:rgba(255,255,255,0.7);font-size:10px;">● Active</span>`:`<span style="color:rgba(255,255,255,0.3);font-size:9px;">Locked</span>`}
-        </div>
-        <div style="background:${phase.darkCol}44;padding:5px 6px;display:flex;flex-direction:column;gap:3px;">
-          ${rows}
-        </div>
+        <div style="flex:1;height:2px;background:${lineCol};margin-left:8px;border-radius:1px;opacity:0.5;"></div>
       </div>`;
-  }).join('');
-}
 
-// ════════════════════════════════════════════════
-// OPTION D: Minimal Timeline (large dots, no boxes)
-// ════════════════════════════════════════════════
-function renderD() {
-  // Build a continuous vertical line with nodes
-  const items = WAYPOINTS.map((wp, i) => {
-    const { reached, isCur, isNext, ptsLeft, pct, nextWP } = getState(wp, i);
-    const pc = wp.phaseCol;
-    const isLast = i === WAYPOINTS.length - 1;
+  // Stops within this phase
+  phase.stops.forEach((stop, si) => {
+    const { reached, isCur, isNext, ptsLeft, pct } = stopState(stop);
+    const isLastInPhase = si === phase.stops.length - 1;
+    const isVeryLast    = pi === PHASES.length - 1 && isLastInPhase;
 
-    // Node dot
-    let dotSize, dotBg, dotBorder, dotShadow, dotAnim;
+    // Dot style
+    let dotBg, dotBorder, dotClass, dotShadow;
     if (isCur) {
-      dotSize='18px'; dotBg='#FFE66D'; dotBorder='3px solid #FFE66D';
-      dotShadow='0 0 0 4px rgba(255,230,60,0.25)'; dotAnim='animation:pulse 2s ease-in-out infinite;';
+      dotBg = '#FFE66D'; dotBorder = '2px solid #FFE66D';
+      dotClass = 'dot current'; dotShadow = '';
     } else if (reached) {
-      dotSize='14px'; dotBg=pc; dotBorder=`2px solid ${pc}`;
-      dotShadow=`0 0 0 3px ${pc}33`; dotAnim='';
+      dotBg = pc; dotBorder = `2px solid ${pc}`;
+      dotClass = 'dot'; dotShadow = `box-shadow:0 0 0 3px ${pc}33;`;
     } else if (isNext) {
-      dotSize='14px'; dotBg='transparent'; dotBorder='2px dashed #FFA726';
-      dotShadow='none'; dotAnim='';
+      dotBg = 'transparent'; dotBorder = `2px dashed ${pc}`;
+      dotClass = 'dot'; dotShadow = '';
     } else {
-      dotSize='10px'; dotBg='transparent'; dotBorder='1px solid rgba(255,255,255,0.2)';
-      dotShadow='none'; dotAnim='';
+      dotBg = 'transparent'; dotBorder = '1px solid rgba(255,255,255,0.2)';
+      dotClass = 'dot small'; dotShadow = '';
     }
 
-    const lineCol = reached && !isLast ? `${pc}CC` : 'rgba(255,255,255,0.12)';
+    // Connector line below dot
+    const segLineCol = reached && !isVeryLast ? `${pc}BB` : 'rgba(255,255,255,0.1)';
 
-    const nameCol = isCur ? '#FFE66D' : reached ? 'white' : isNext ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)';
-    const phaseCol2 = isCur ? 'rgba(255,230,60,0.6)' : reached ? `${pc}CC` : isNext ? 'rgba(255,179,71,0.6)' : 'rgba(255,255,255,0.2)';
-    const descColD = isCur ? 'rgba(255,230,60,0.55)' : reached ? 'rgba(255,255,255,0.5)' : isNext ? 'rgba(255,200,120,0.6)' : 'rgba(255,255,255,0.18)';
+    // Text colors
+    const nameCol = isCur ? '#FFE66D' : reached ? 'white' : isNext ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)';
+    const descCol = isCur ? 'rgba(255,230,60,0.6)' : reached ? 'rgba(255,255,255,0.5)' : isNext ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)';
 
-    let rightTag;
-    if (isCur)        rightTag = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:800;white-space:nowrap;">📍 HERE</span>`;
-    else if (reached) rightTag = `<span style="background:${pc};color:#fff;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:700;">✓</span>`;
-    else if (isNext)  rightTag = `<span style="color:#FFB347;font-size:9px;font-weight:700;white-space:nowrap;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
-    else              rightTag = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">${wp.threshold===0?'–':wp.threshold.toLocaleString()}</span>`;
+    // Badge
+    let badge;
+    if (isCur) {
+      badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(255,230,60,0.45);">📍 HERE</span>`;
+    } else if (reached) {
+      badge = `<span style="background:${pc};color:#fff;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:800;">✓</span>`;
+    } else if (isNext) {
+      badge = `<span style="background:rgba(255,179,71,0.2);color:#FFB347;border:1px solid rgba(255,179,71,0.5);border-radius:20px;padding:2px 8px;font-size:8px;font-weight:700;white-space:nowrap;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
+    } else {
+      badge = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">${stop.threshold === 0 ? '—' : stop.threshold.toLocaleString()}</span>`;
+    }
 
-    const bar = isCur && nextWP ? `
-      <div style="margin-top:5px;height:2px;background:rgba(255,255,255,0.1);border-radius:1px;overflow:hidden;width:100%;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${pc},#FFE66D);box-shadow:0 0 4px ${pc};"></div>
+    // Gradient progress bar (only on current stop)
+    const barHTML = isCur && nextStop ? `
+      <div class="progress-wrap">
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg, ${pc}, #FFE66D);box-shadow:0 0 6px ${pc}88;"></div>
+        </div>
+        <div class="progress-label">${pct}% of the way to ${nextStop.label}</div>
       </div>` : '';
 
-    return `
-      <div style="display:flex;align-items:stretch;gap:0;">
-        <!-- Dot + line column -->
-        <div style="display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;padding-top:2px;">
-          <div style="width:${dotSize};height:${dotSize};border-radius:50%;background:${dotBg};border:${dotBorder};box-shadow:${dotShadow};${dotAnim}flex-shrink:0;"></div>
-          ${!isLast ? `<div style="width:2px;flex:1;min-height:10px;margin-top:2px;background:${lineCol};border-radius:1px;"></div>` : ''}
+    html += `
+      <div class="stop-row" style="opacity:${reached||isCur||isNext?1:0.45};">
+        <div class="dot-col">
+          <div class="${dotClass}" style="background:${dotBg};border:${dotBorder};${dotShadow}"></div>
+          ${!isVeryLast ? `<div class="seg-line" style="background:${segLineCol};"></div>` : ''}
         </div>
-        <!-- Text -->
-        <div style="flex:1;padding:0 4px ${isLast?'0':'12px'} 4px;">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;">
-            <div>
-              <span style="color:${nameCol};font-size:12px;font-weight:700;">${wp.emoji} ${wp.label}</span>
-              <span style="color:${phaseCol2};font-size:9px;margin-left:5px;">${wp.phase}</span>
-            </div>
-            <div style="flex-shrink:0;">${rightTag}</div>
+        <div class="text-col">
+          <div class="row-top">
+            <span style="font-size:15px;line-height:1.3;margin-right:4px;flex-shrink:0;">${stop.emoji}</span>
+            <span class="stop-name" style="color:${nameCol};flex:1;">${stop.label}</span>
+            <div style="flex-shrink:0;">${badge}</div>
           </div>
-          <div style="color:${descColD};font-size:10px;margin-top:2px;line-height:1.35;">${wp.desc}</div>
-          ${bar}
+          <div class="stop-desc" style="color:${descCol};">${stop.desc}</div>
+          ${barHTML}
         </div>
       </div>`;
-  }).join('');
+  });
 
-  return `<div style="padding-left:0;">${items}</div>`;
-}
+  html += `</div>`; // close phase group
+});
 
-// Render all
-document.getElementById('design-a').innerHTML = renderA();
-document.getElementById('design-b').innerHTML = renderB();
-document.getElementById('design-c').innerHTML = renderC();
-document.getElementById('design-d').innerHTML = renderD();
+document.getElementById('roadmap').innerHTML = html;
 </script>
 </body>
 </html>
