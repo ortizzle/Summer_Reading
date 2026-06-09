@@ -910,6 +910,7 @@ body.timer-focus #timer-focus-exit-btn { display: flex !important; }
 .badge-chip-emoji { font-size:22px; line-height:1; filter:grayscale(1) opacity(0.2); transition:filter 0.3s; }
 .badge-chip.earned .badge-chip-emoji { filter:none; animation:badgeShimmer 3.5s ease-in-out infinite; }
 @keyframes badgeShimmer { 0%,100%{filter:none;} 50%{filter:brightness(1.25) saturate(1.3) drop-shadow(0 0 4px rgba(255,230,100,0.7));} }
+@keyframes pulse { 0%,100%{box-shadow:0 0 6px 1px rgba(255,230,60,0.5);} 50%{box-shadow:0 0 12px 4px rgba(255,230,60,0.85);} }
 .badge-chip-label { font-size:9px; font-weight:600; color:rgba(255,255,255,0.35); text-align:center; line-height:1.2; }
 .badge-chip.earned .badge-chip-label { color:rgba(255,255,255,0.9); }
 
@@ -4717,65 +4718,99 @@ function toggleMapRoadmap() {
     school:    { phase:'🎒 Finish Line',  pts:'25,000 pts', reward:'12,500 pts to go — the big home-stretch push! 🏆' },
   };
 
+  // Phase accent color per waypoint
+  const PHASE_COLOR = {
+    phoenix:'#aaaaaa', off:'#87CEEB', vancouver:'#4ECDC4', aboard:'#4ECDC4',
+    skagway:'#26C6B9', juneau:'#26C6B9', ketchikan:'#26C6B9',
+    home:'#FFB347', school:'#FFE66D'
+  };
+
   const rows = JOURNEY_WAYPOINTS.map((wp, i) => {
     const reached  = famPts >= wp.threshold;
     const isCur    = wp.id === currentWP.id;
     const isNext   = nextWP && wp.id === nextWP.id;
     const detail   = WP_DETAIL[wp.id] || {};
     const ptsLeft  = Math.max(0, wp.threshold - famPts);
+    const phaseCol = PHASE_COLOR[wp.id] || '#4ECDC4';
+    const isLast   = i === JOURNEY_WAYPOINTS.length - 1;
 
-    let statusIcon, statusColor;
-    if (isCur)      { statusIcon = '📍'; statusColor = '#FFE66D'; }
-    else if (reached){ statusIcon = '✅'; statusColor = '#4ECDC4'; }
-    else            { statusIcon = '🔒'; statusColor = 'rgba(255,255,255,0.25)'; }
+    // Node dot appearance
+    let nodeBg, nodeBorder, nodeShadow;
+    if (isCur) {
+      nodeBg = '#FFE66D'; nodeBorder = '#FFE66D';
+      nodeShadow = '0 0 8px 2px rgba(255,230,60,0.6)';
+    } else if (reached) {
+      nodeBg = phaseCol; nodeBorder = phaseCol;
+      nodeShadow = `0 0 4px ${phaseCol}66`;
+    } else {
+      nodeBg = 'transparent'; nodeBorder = isNext ? phaseCol : 'rgba(255,255,255,0.18)';
+      nodeShadow = 'none';
+    }
 
-    const thresholdLabel = wp.threshold === 0 ? 'Start' : wp.threshold.toLocaleString() + ' pts';
-    const ptsPill = isCur
-      ? `<span style="background:rgba(255,230,60,0.2);color:#FFE66D;border-radius:8px;padding:2px 7px;font-size:9px;font-weight:700;">YOU ARE HERE</span>`
-      : reached
-        ? `<span style="color:#4ECDC4;font-size:9px;font-weight:700;">✅ ${thresholdLabel}</span>`
-        : isNext
-          ? `<span style="color:#FFB347;font-size:9px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()} pts away</span>`
-          : `<span style="color:rgba(255,255,255,0.3);font-size:9px;">${thresholdLabel}</span>`;
+    // Connector line between this node and next
+    const lineColor = reached && !isLast ? phaseCol : 'rgba(255,255,255,0.1)';
 
-    // Progress bar for current waypoint
+    // Right-side status badge
+    let badge;
+    if (isCur) {
+      badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:10px;padding:2px 8px;font-size:8px;font-weight:800;letter-spacing:.4px;white-space:nowrap;">📍 HERE</span>`;
+    } else if (reached) {
+      badge = `<span style="background:${phaseCol}22;color:${phaseCol};border:1px solid ${phaseCol}55;border-radius:10px;padding:2px 7px;font-size:8px;font-weight:700;">✓ Done</span>`;
+    } else if (isNext) {
+      badge = `<span style="background:rgba(255,179,71,0.15);color:#FFB347;border:1px solid rgba(255,179,71,0.35);border-radius:10px;padding:2px 7px;font-size:8px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
+    } else {
+      badge = `<span style="color:rgba(255,255,255,0.25);font-size:8px;">${wp.threshold === 0 ? 'Start' : wp.threshold.toLocaleString()}</span>`;
+    }
+
+    // Progress bar for current segment
     const progressSeg = isCur && nextWP ? (() => {
-      const pct = Math.round(((famPts - wp.threshold) / (nextWP.threshold - wp.threshold)) * 100);
-      return `<div style="margin-top:5px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:2px;"></div>
-      </div>`;
+      const pct = Math.min(100, Math.round(((famPts - wp.threshold) / (nextWP.threshold - wp.threshold)) * 100));
+      return `<div style="margin-top:6px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:2px;transition:width .5s;"></div>
+      </div>
+      <div style="color:rgba(255,255,255,0.35);font-size:9px;margin-top:3px;">${pct}% to ${nextWP.label}</div>`;
     })() : '';
 
-    const connector = i < JOURNEY_WAYPOINTS.length - 1
-      ? `<div style="width:2px;height:12px;background:${reached ? 'rgba(78,205,196,0.5)' : 'rgba(255,255,255,0.1)'};
-           margin:2px auto;border-radius:1px;"></div>`
+    // Phase tag pill
+    const phaseTag = detail.phase
+      ? `<span style="background:${phaseCol}22;color:${phaseCol};border-radius:6px;padding:1px 5px;font-size:8px;font-weight:600;letter-spacing:.3px;">${detail.phase}</span>`
       : '';
 
     return `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 10px;
-        border-radius:12px;background:${isCur ? 'rgba(255,230,60,0.08)' : reached ? 'rgba(78,205,196,0.05)' : 'rgba(255,255,255,0.04)'};
-        border:1px solid ${isCur ? 'rgba(255,230,60,0.2)' : reached ? 'rgba(78,205,196,0.15)' : 'rgba(255,255,255,0.06)'};">
-        <div style="font-size:11px;padding-top:1px;flex-shrink:0;opacity:${reached||isCur?1:0.4};">${wp.emoji}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <div style="color:${isCur?'#FFE66D':reached?'white':'rgba(255,255,255,0.45)'};
-              font-size:12px;font-weight:700;">${wp.label}</div>
-            ${ptsPill}
+      <div style="display:flex;align-items:stretch;gap:0;">
+        <!-- Timeline column -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:24px;flex-shrink:0;">
+          <div style="width:14px;height:14px;border-radius:50%;background:${nodeBg};border:2px solid ${nodeBorder};
+            box-shadow:${nodeShadow};flex-shrink:0;margin-top:9px;${isCur?'animation:pulse 2s ease-in-out infinite;':''}"></div>
+          ${!isLast ? `<div style="width:2px;flex:1;min-height:8px;background:${lineColor};border-radius:1px;margin-top:2px;"></div>` : ''}
+        </div>
+        <!-- Content column -->
+        <div style="flex:1;padding:6px 8px 10px 8px;${isCur?'background:rgba(255,230,60,0.06);border-radius:10px;':''}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;">
+              <span style="font-size:13px;line-height:1;opacity:${reached||isCur?1:0.3};">${wp.emoji}</span>
+              <span style="color:${isCur?'#FFE66D':reached?'white':'rgba(255,255,255,0.35)'};
+                font-size:12px;font-weight:700;line-height:1.2;">${wp.label}</span>
+              ${phaseTag}
+            </div>
+            <div style="flex-shrink:0;">${badge}</div>
           </div>
-          <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-top:2px;line-height:1.3;">${detail.phase || ''} · ${detail.reward || wp.desc || ''}</div>
+          <div style="color:rgba(255,255,255,${reached||isCur?'0.5':'0.25'});font-size:10px;margin-top:3px;line-height:1.35;padding-left:18px;">
+            ${detail.reward || wp.desc || ''}
+          </div>
           ${progressSeg}
         </div>
-        <div style="font-size:14px;flex-shrink:0;">${statusIcon}</div>
-      </div>
-      ${connector}`;
+      </div>`;
   }).join('');
 
   panel.style.display = 'block';
   panel.innerHTML = `
-    <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,0.35);
-        margin-bottom:8px;">JOURNEY ROADMAP · ${famPts.toLocaleString()} / 25,000 pts</div>
-      <div style="display:flex;flex-direction:column;gap:0;">${rows}</div>
+    <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,0.35);">JOURNEY ROADMAP</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:600;">${famPts.toLocaleString()} <span style="color:rgba(255,255,255,0.25);">/ 25,000 pts</span></div>
+      </div>
+      <div>${rows}</div>
     </div>`;
 }
 
