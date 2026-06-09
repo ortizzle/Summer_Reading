@@ -3,24 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roadmap — C+D Combined Prototype</title>
+<title>Roadmap — Glass Border Options</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'DM Sans', sans-serif;
     background: #111827;
-    padding: 24px 16px 40px;
-    min-height: 100vh;
+    padding: 24px 16px 48px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 32px;
   }
+  h1  { color: white; font-size: 17px; font-weight: 800; text-align: center; }
+  .sub { color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; margin-top: 4px; margin-bottom: 4px; }
 
-  h1 { color: white; font-size: 17px; font-weight: 800; margin-bottom: 4px; text-align: center; }
-  .subtitle { color: rgba(255,255,255,0.4); font-size: 12px; margin-bottom: 24px; text-align: center; }
-
-  /* Simulate the real journey card */
   .journey-card {
     background: linear-gradient(135deg, #0D47A1, #1565C0, #0277BD);
     border-radius: 20px;
@@ -28,161 +26,70 @@
     width: 100%;
     max-width: 420px;
   }
-
   .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255,255,255,0.15);
     margin-bottom: 14px;
   }
-  .card-header-label {
-    font-size: 10px; font-weight: 800;
-    letter-spacing: .8px; color: rgba(255,255,255,0.7);
-  }
-  .card-header-pts {
-    font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85);
-  }
+  .card-header-label { font-size: 10px; font-weight: 800; letter-spacing:.8px; color: rgba(255,255,255,0.7); }
+  .card-header-pts   { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85); }
   .card-header-pts span { color: rgba(255,255,255,0.4); }
-
-  /* ─── Timeline container ─── */
-  .timeline {
-    position: relative;
-    padding-left: 0;
-  }
-
-  /* ─── Phase chapter marker ─── */
-  .phase-chapter {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 2px;
-    position: relative;
-  }
-  /* The vertical line segment above the chapter chip */
-  .phase-chapter .line-above {
-    width: 2px;
-    flex-shrink: 0;
-    margin-left: 14px; /* centers on 30px dot column */
-    border-radius: 2px;
-  }
-  .phase-chapter .chapter-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 20px;
-    padding: 4px 11px 4px 8px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .3px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin-left: 8px;
-  }
-  .phase-chapter .chapter-chip .chip-dot {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  }
-  /* Spacer line to the right of chip — fills remaining width */
-  .phase-chapter .line-right {
-    flex: 1;
-    height: 2px;
-    border-radius: 2px;
-    margin-left: 6px;
-  }
-
-  /* ─── Stop row ─── */
-  .stop-row {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-  }
-  .stop-row .dot-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 30px;
-    flex-shrink: 0;
-  }
-  .stop-row .dot-col .dot {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 4px;
-  }
-  .stop-row .dot-col .dot.current {
-    width: 18px; height: 18px;
-    margin-top: 2px;
-    animation: pulse 2s ease-in-out infinite;
-  }
-  .stop-row .dot-col .dot.small {
-    width: 10px; height: 10px;
-    margin-top: 6px;
-  }
-  .stop-row .dot-col .seg-line {
-    width: 2px;
-    flex: 1;
-    min-height: 8px;
-    border-radius: 1px;
-    margin-top: 3px;
-  }
-  .stop-row .text-col {
-    flex: 1;
-    padding: 2px 4px 12px 6px;
-    min-width: 0;
-  }
-  .stop-row .text-col .row-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
-  .stop-row .text-col .stop-name {
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.25;
-  }
-  .stop-row .text-col .stop-desc {
-    font-size: 10px;
-    margin-top: 2px;
-    line-height: 1.4;
-  }
-  .stop-row .text-col .progress-wrap {
-    margin-top: 6px;
-  }
-  .stop-row .text-col .progress-track {
-    height: 4px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .stop-row .text-col .progress-fill {
-    height: 100%;
-    border-radius: 2px;
-  }
-  .stop-row .text-col .progress-label {
-    font-size: 9px;
-    margin-top: 3px;
-    color: rgba(255,255,255,0.45);
-  }
 
   @keyframes pulse {
     0%,100% { box-shadow: 0 0 0 3px rgba(255,230,60,0.2), 0 0 8px 2px rgba(255,230,60,0.5); }
-    50%      { box-shadow: 0 0 0 5px rgba(255,230,60,0.12), 0 0 16px 5px rgba(255,230,60,0.8); }
+    50%      { box-shadow: 0 0 0 5px rgba(255,230,60,0.1), 0 0 16px 5px rgba(255,230,60,0.8); }
+  }
+
+  .design-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.55);
+    font-size: 9px; font-weight: 700; letter-spacing: .4px;
+    border-radius: 20px; padding: 2px 9px;
+    margin-bottom: 10px;
   }
 </style>
 </head>
 <body>
 
-<h1>📍 Combined C + D Prototype</h1>
-<p class="subtitle">Phase chapter markers · Vertical timeline · Gradient progress bar</p>
+<div style="text-align:center;">
+  <h1>📍 Roadmap — Glass Border Options</h1>
+  <p class="sub">C+D base · Two takes on making locked sections readable</p>
+</div>
 
+<!-- ══════════════════════════════════════
+     OPTION E  —  Glass section panels
+     Locked phase groups wrapped in a
+     frosted glass bordered container
+════════════════════════════════════════ -->
 <div class="journey-card">
+  <div style="margin-bottom:2px;">
+    <span class="design-tag">E — GLASS SECTION PANELS</span>
+    <div style="color:rgba(255,255,255,0.45);font-size:10px;margin-bottom:10px;">Locked phases wrapped in a frosted border box</div>
+  </div>
   <div class="card-header">
     <div class="card-header-label">JOURNEY ROADMAP</div>
     <div class="card-header-pts">2,450 <span>/ 25,000 pts</span></div>
   </div>
-  <div class="timeline" id="roadmap"></div>
+  <div id="roadmap-e"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     OPTION F  —  Glass stop rows
+     Each individual locked stop gets
+     its own glass border pill
+════════════════════════════════════════ -->
+<div class="journey-card">
+  <div style="margin-bottom:2px;">
+    <span class="design-tag">F — GLASS STOP ROWS</span>
+    <div style="color:rgba(255,255,255,0.45);font-size:10px;margin-bottom:10px;">Each locked stop gets its own glass-border pill</div>
+  </div>
+  <div class="card-header">
+    <div class="card-header-label">JOURNEY ROADMAP</div>
+    <div class="card-header-pts">2,450 <span>/ 25,000 pts</span></div>
+  </div>
+  <div id="roadmap-f"></div>
 </div>
 
 <script>
@@ -190,49 +97,36 @@ const FAM_PTS = 2450;
 
 const PHASES = [
   {
-    id: 'pretrip',
-    label: 'Pre-Trip & Flight',
-    emoji: '✈️',
-    col: '#29B6F6',
-    stops: [
-      { id:'phoenix',   emoji:'🌵', label:'Phoenix',      threshold:0,     desc:'The summer adventure begins!' },
-      { id:'off',       emoji:'✈️', label:"We're Off!",   threshold:6500,  desc:'Wheels up — the Ortiz family is on the move!' },
+    id:'pretrip', label:'Pre-Trip & Flight', emoji:'✈️', col:'#29B6F6',
+    stops:[
+      {id:'phoenix',   emoji:'🌵', label:'Phoenix',        threshold:0,     desc:'The summer adventure begins!'},
+      {id:'off',       emoji:'✈️', label:"We're Off!",     threshold:6500,  desc:'Wheels up — the Ortiz family is on the move!'},
     ]
   },
   {
-    id: 'vancouver',
-    label: 'Vancouver & Boarding',
-    emoji: '🏙️',
-    col: '#4ECDC4',
-    stops: [
-      { id:'vancouver', emoji:'🏔️', label:'Vancouver',    threshold:8500,  desc:'4 days exploring Vancouver before boarding.' },
-      { id:'aboard',    emoji:'🚢', label:'All Aboard!',  threshold:10000, desc:"Welcome to the Disney Wonder — let's sail!" },
+    id:'vancouver', label:'Vancouver & Boarding', emoji:'🏙️', col:'#4ECDC4',
+    stops:[
+      {id:'vancouver', emoji:'🏔️', label:'Vancouver',      threshold:8500,  desc:'4 days exploring Vancouver before boarding.'},
+      {id:'aboard',    emoji:'🚢', label:'All Aboard!',    threshold:10000, desc:"Welcome to the Disney Wonder — let's sail!"},
     ]
   },
   {
-    id: 'cruise',
-    label: 'Alaska Cruise',
-    emoji: '⚓',
-    col: '#00BCD4',
-    stops: [
-      { id:'skagway',   emoji:'⚓', label:'Skagway',      threshold:10500, desc:'Lynn Canal & gold rush country — just 500 pts from boarding!' },
-      { id:'juneau',    emoji:'🦅', label:'Juneau',       threshold:11000, desc:"Alaska's capital — bald eagles, glaciers, 500 more pts!" },
-      { id:'ketchikan', emoji:'🐟', label:'Ketchikan',    threshold:11500, desc:'Salmon capital — last Alaskan port, 500 pts from Juneau!' },
+    id:'cruise', label:'Alaska Cruise', emoji:'⚓', col:'#00BCD4',
+    stops:[
+      {id:'skagway',   emoji:'⚓', label:'Skagway',        threshold:10500, desc:'Lynn Canal & gold rush country — 500 pts from boarding!'},
+      {id:'juneau',    emoji:'🦅', label:'Juneau',         threshold:11000, desc:"Alaska's capital — bald eagles & glaciers, 500 more pts!"},
+      {id:'ketchikan', emoji:'🐟', label:'Ketchikan',      threshold:11500, desc:'Salmon capital — last port, 500 pts from Juneau!'},
     ]
   },
   {
-    id: 'home',
-    label: 'Homeward Bound',
-    emoji: '🏠',
-    col: '#FFA726',
-    stops: [
-      { id:'home',      emoji:'🏠', label:'Back to Phoenix', threshold:12500, desc:'Cruise complete — flying back to Phoenix!' },
-      { id:'school',    emoji:'🎒', label:'Back to School',  threshold:25000, desc:'12,500 pts to go — the big home-stretch push! 🏆' },
+    id:'home', label:'Homeward Bound', emoji:'🏠', col:'#FFA726',
+    stops:[
+      {id:'home',      emoji:'🏠', label:'Back to Phoenix',threshold:12500, desc:'Cruise complete — flying back to Phoenix!'},
+      {id:'school',    emoji:'🎒', label:'Back to School', threshold:25000, desc:'12,500 pts to go — the big home-stretch push! 🏆'},
     ]
   },
 ];
 
-// Flatten stops to find current/next
 const ALL_STOPS = PHASES.flatMap(p => p.stops);
 const curStop   = [...ALL_STOPS].reverse().find(s => FAM_PTS >= s.threshold) || ALL_STOPS[0];
 const nextStop  = ALL_STOPS.find(s => FAM_PTS < s.threshold);
@@ -243,127 +137,190 @@ function stopState(stop) {
   const isNext  = nextStop && stop.id === nextStop.id;
   const ptsLeft = Math.max(0, stop.threshold - FAM_PTS);
   const pct     = isCur && nextStop
-    ? Math.min(100, Math.round(((FAM_PTS - stop.threshold) / (nextStop.threshold - stop.threshold)) * 100))
+    ? Math.min(100, Math.round(((FAM_PTS - stop.threshold)/(nextStop.threshold - stop.threshold))*100))
     : 0;
   return { reached, isCur, isNext, ptsLeft, pct };
 }
 
 function phaseStatus(phase) {
   const allReached = phase.stops.every(s => FAM_PTS >= s.threshold);
-  const hasActive  = phase.stops.some(s => {
-    const st = stopState(s);
-    return st.isCur || st.isNext;
-  });
-  return { allReached, hasActive };
+  const hasActive  = phase.stops.some(s => { const st=stopState(s); return st.isCur||st.isNext; });
+  const allLocked  = phase.stops.every(s => { const st=stopState(s); return !st.reached&&!st.isCur&&!st.isNext; });
+  return { allReached, hasActive, allLocked };
 }
 
-// ── Build HTML ──────────────────────────────────────
-let html = '';
+// ─── Shared stop row builder ────────────────────────────────
+// glassRow: if true, individual locked stops get glass border
+function buildStopRow(stop, si, phaseLen, phaseIdx, phaseCount, pc, glassRow) {
+  const { reached, isCur, isNext, ptsLeft, pct } = stopState(stop);
+  const isVeryLast = phaseIdx===phaseCount-1 && si===phaseLen-1;
 
-PHASES.forEach((phase, pi) => {
-  const { allReached, hasActive } = phaseStatus(phase);
-  const pc = phase.col;
+  let dotBg, dotBorder, dotSize, dotAnim;
+  if (isCur) {
+    dotBg='#FFE66D'; dotBorder='2px solid #FFE66D'; dotSize=18; dotAnim='animation:pulse 2s ease-in-out infinite;';
+  } else if (reached) {
+    dotBg=pc; dotBorder=`2px solid ${pc}`; dotSize=14; dotAnim='';
+  } else if (isNext) {
+    dotBg='transparent'; dotBorder=`2px dashed ${pc}`; dotSize=14; dotAnim='';
+  } else {
+    dotBg='transparent'; dotBorder='1px solid rgba(255,255,255,0.25)'; dotSize=10; dotAnim='';
+  }
 
-  // Chapter chip color logic
-  let chipBg, chipText, lineCol;
-  if (allReached)    { chipBg = pc;                        chipText = '#fff';                  lineCol = pc; }
-  else if (hasActive){ chipBg = pc;                        chipText = '#fff';                  lineCol = `${pc}66`; }
-  else               { chipBg = 'rgba(255,255,255,0.1)';   chipText = 'rgba(255,255,255,0.4)'; lineCol = 'rgba(255,255,255,0.1)'; }
+  const dotTopMargin = dotSize===18 ? 2 : dotSize===14 ? 4 : 6;
+  const segLineCol   = (reached||isCur) && !isVeryLast ? `${pc}BB` : 'rgba(255,255,255,0.12)';
 
-  // Line above the chapter chip (connecting from previous section)
-  const lineAboveCol = pi === 0 ? 'transparent' : lineCol;
-  const lineAboveH   = pi === 0 ? '0' : '10px';
+  const nameCol = isCur ? '#FFE66D' : reached ? 'white' : isNext ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)';
+  const descCol = isCur ? 'rgba(255,230,60,0.65)' : reached ? 'rgba(255,255,255,0.5)' : isNext ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.45)';
 
-  html += `
-    <div style="display:flex;flex-direction:column;">
-      <!-- Chapter marker -->
-      <div style="display:flex;align-items:center;margin-bottom:4px;">
-        <div style="width:2px;height:${lineAboveH};background:${lineAboveCol};margin-left:14px;border-radius:1px;flex-shrink:0;"></div>
+  let badge;
+  if (isCur) {
+    badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(255,230,60,0.45);">📍 HERE</span>`;
+  } else if (reached) {
+    badge = `<span style="background:${pc};color:#fff;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:800;">✓</span>`;
+  } else if (isNext) {
+    badge = `<span style="background:rgba(255,179,71,0.2);color:#FFB347;border:1px solid rgba(255,179,71,0.5);border-radius:20px;padding:2px 8px;font-size:8px;font-weight:700;white-space:nowrap;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
+  } else {
+    badge = `<span style="color:rgba(255,255,255,0.45);font-size:9px;font-weight:600;">${stop.threshold===0?'—':stop.threshold.toLocaleString()}</span>`;
+  }
+
+  const barHTML = isCur && nextStop ? `
+    <div style="margin-top:6px;">
+      <div style="height:4px;background:rgba(255,255,255,0.12);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${pc},#FFE66D);box-shadow:0 0 6px ${pc}88;border-radius:2px;"></div>
       </div>
-      <div style="display:flex;align-items:center;margin-bottom:6px;">
-        <div style="width:30px;flex-shrink:0;display:flex;justify-content:center;">
-          <div style="width:8px;height:8px;border-radius:50%;background:${chipBg};box-shadow:${allReached||hasActive?`0 0 0 3px ${pc}33`:'none'};"></div>
+      <div style="font-size:9px;margin-top:3px;color:rgba(255,255,255,0.45);">${pct}% of the way to ${nextStop.label}</div>
+    </div>` : '';
+
+  // Option F: individual glass border on each locked row
+  const isLocked = !reached && !isCur && !isNext;
+  const rowWrapStart = glassRow && isLocked
+    ? `<div style="border:1px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(255,255,255,0.04);padding:5px 6px 5px 2px;margin-bottom:4px;">`
+    : `<div style="margin-bottom:0;">`;
+
+  return `
+    ${rowWrapStart}
+    <div style="display:flex;align-items:stretch;gap:0;">
+      <!-- dot + line -->
+      <div style="display:flex;flex-direction:column;align-items:center;width:30px;flex-shrink:0;">
+        <div style="width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${dotBg};border:${dotBorder};margin-top:${dotTopMargin}px;flex-shrink:0;${dotAnim}${reached&&!isCur?`box-shadow:0 0 0 3px ${pc}33;`:''}"></div>
+        ${!isVeryLast&&!glassRow ? `<div style="width:2px;flex:1;min-height:8px;margin-top:3px;background:${segLineCol};border-radius:1px;"></div>` : ''}
+        ${!isVeryLast&&glassRow&&!(isLocked) ? `<div style="width:2px;flex:1;min-height:8px;margin-top:3px;background:${segLineCol};border-radius:1px;"></div>` : ''}
+      </div>
+      <!-- text -->
+      <div style="flex:1;padding:2px 4px ${!glassRow&&!isVeryLast?'12px':'4px'} 5px;min-width:0;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
+          <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;">
+            <span style="font-size:15px;line-height:1.3;flex-shrink:0;">${stop.emoji}</span>
+            <span style="color:${nameCol};font-size:13px;font-weight:700;line-height:1.25;">${stop.label}</span>
+          </div>
+          <div style="flex-shrink:0;">${badge}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:5px;background:${chipBg};border-radius:20px;padding:4px 12px 4px 8px;flex-shrink:0;">
+        <div style="color:${descCol};font-size:10px;margin-top:2px;line-height:1.4;padding-left:20px;">${stop.desc}</div>
+        ${barHTML}
+      </div>
+    </div>
+    </div>`;
+}
+
+// ─── Build a chapter chip row ────────────────────────────────
+function buildChapterChip(phase, pi, chipBg, chipText, lineCol) {
+  const lineAboveH = pi===0 ? '0px' : '10px';
+  const lineAboveCol = pi===0 ? 'transparent' : lineCol;
+  return `
+    <div>
+      ${pi>0?`<div style="width:2px;height:${lineAboveH};background:${lineAboveCol};margin-left:14px;border-radius:1px;"></div>`:''}
+      <div style="display:flex;align-items:center;margin-bottom:5px;">
+        <div style="width:30px;flex-shrink:0;display:flex;justify-content:center;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${chipBg};"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;background:${chipBg};border-radius:20px;padding:4px 12px 4px 9px;flex-shrink:0;">
           <span style="font-size:12px;line-height:1;">${phase.emoji}</span>
           <span style="color:${chipText};font-size:10px;font-weight:800;letter-spacing:.2px;">${phase.label}</span>
-          ${allReached ? `<span style="color:rgba(255,255,255,0.75);font-size:9px;margin-left:2px;">✓</span>` : ''}
+          ${phase.stops.every(s=>FAM_PTS>=s.threshold)?`<span style="color:rgba(255,255,255,0.75);font-size:9px;margin-left:2px;">✓</span>`:''}
         </div>
-        <div style="flex:1;height:2px;background:${lineCol};margin-left:8px;border-radius:1px;opacity:0.5;"></div>
-      </div>`;
+        <div style="flex:1;height:2px;background:${lineCol};margin-left:8px;border-radius:1px;opacity:0.4;"></div>
+      </div>
+    </div>`;
+}
 
-  // Stops within this phase
-  phase.stops.forEach((stop, si) => {
-    const { reached, isCur, isNext, ptsLeft, pct } = stopState(stop);
-    const isLastInPhase = si === phase.stops.length - 1;
-    const isVeryLast    = pi === PHASES.length - 1 && isLastInPhase;
+// ══════════════════════════════════════════════════════════════
+// OPTION E — glass wrapper around locked phase groups
+// ══════════════════════════════════════════════════════════════
+function renderE() {
+  let html = '';
+  PHASES.forEach((phase, pi) => {
+    const pc = phase.col;
+    const { allReached, hasActive, allLocked } = phaseStatus(phase);
 
-    // Dot style
-    let dotBg, dotBorder, dotClass, dotShadow;
-    if (isCur) {
-      dotBg = '#FFE66D'; dotBorder = '2px solid #FFE66D';
-      dotClass = 'dot current'; dotShadow = '';
-    } else if (reached) {
-      dotBg = pc; dotBorder = `2px solid ${pc}`;
-      dotClass = 'dot'; dotShadow = `box-shadow:0 0 0 3px ${pc}33;`;
-    } else if (isNext) {
-      dotBg = 'transparent'; dotBorder = `2px dashed ${pc}`;
-      dotClass = 'dot'; dotShadow = '';
+    let chipBg, chipText, lineCol;
+    if (allReached)    { chipBg=pc;                      chipText='#fff';                  lineCol=pc; }
+    else if (hasActive){ chipBg=pc;                      chipText='#fff';                  lineCol=`${pc}66`; }
+    else               { chipBg='rgba(255,255,255,0.14)'; chipText='rgba(255,255,255,0.65)'; lineCol='rgba(255,255,255,0.12)'; }
+
+    html += buildChapterChip(phase, pi, chipBg, chipText, lineCol);
+
+    const stopsHTML = phase.stops.map((stop, si) =>
+      buildStopRow(stop, si, phase.stops.length, pi, PHASES.length, pc, false)
+    ).join('');
+
+    if (allLocked) {
+      // Wrap entire locked section in a glass panel
+      html += `
+        <div style="
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 12px;
+          background: rgba(255,255,255,0.05);
+          padding: 6px 6px 4px 0;
+          margin-bottom: 4px;
+        ">
+          ${stopsHTML}
+        </div>`;
     } else {
-      dotBg = 'transparent'; dotBorder = '1px solid rgba(255,255,255,0.2)';
-      dotClass = 'dot small'; dotShadow = '';
+      html += stopsHTML;
     }
-
-    // Connector line below dot
-    const segLineCol = reached && !isVeryLast ? `${pc}BB` : 'rgba(255,255,255,0.1)';
-
-    // Text colors
-    const nameCol = isCur ? '#FFE66D' : reached ? 'white' : isNext ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)';
-    const descCol = isCur ? 'rgba(255,230,60,0.6)' : reached ? 'rgba(255,255,255,0.5)' : isNext ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)';
-
-    // Badge
-    let badge;
-    if (isCur) {
-      badge = `<span style="background:#FFE66D;color:#1a1a2e;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(255,230,60,0.45);">📍 HERE</span>`;
-    } else if (reached) {
-      badge = `<span style="background:${pc};color:#fff;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:800;">✓</span>`;
-    } else if (isNext) {
-      badge = `<span style="background:rgba(255,179,71,0.2);color:#FFB347;border:1px solid rgba(255,179,71,0.5);border-radius:20px;padding:2px 8px;font-size:8px;font-weight:700;white-space:nowrap;">🎯 ${ptsLeft.toLocaleString()} pts</span>`;
-    } else {
-      badge = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">${stop.threshold === 0 ? '—' : stop.threshold.toLocaleString()}</span>`;
-    }
-
-    // Gradient progress bar (only on current stop)
-    const barHTML = isCur && nextStop ? `
-      <div class="progress-wrap">
-        <div class="progress-track">
-          <div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg, ${pc}, #FFE66D);box-shadow:0 0 6px ${pc}88;"></div>
-        </div>
-        <div class="progress-label">${pct}% of the way to ${nextStop.label}</div>
-      </div>` : '';
-
-    html += `
-      <div class="stop-row" style="opacity:${reached||isCur||isNext?1:0.45};">
-        <div class="dot-col">
-          <div class="${dotClass}" style="background:${dotBg};border:${dotBorder};${dotShadow}"></div>
-          ${!isVeryLast ? `<div class="seg-line" style="background:${segLineCol};"></div>` : ''}
-        </div>
-        <div class="text-col">
-          <div class="row-top">
-            <span style="font-size:15px;line-height:1.3;margin-right:4px;flex-shrink:0;">${stop.emoji}</span>
-            <span class="stop-name" style="color:${nameCol};flex:1;">${stop.label}</span>
-            <div style="flex-shrink:0;">${badge}</div>
-          </div>
-          <div class="stop-desc" style="color:${descCol};">${stop.desc}</div>
-          ${barHTML}
-        </div>
-      </div>`;
   });
+  return html;
+}
 
-  html += `</div>`; // close phase group
-});
+// ══════════════════════════════════════════════════════════════
+// OPTION F — glass border on each individual locked stop row
+// ══════════════════════════════════════════════════════════════
+function renderF() {
+  let html = '';
+  PHASES.forEach((phase, pi) => {
+    const pc = phase.col;
+    const { allReached, hasActive, allLocked } = phaseStatus(phase);
 
-document.getElementById('roadmap').innerHTML = html;
+    let chipBg, chipText, lineCol;
+    if (allReached)    { chipBg=pc;                      chipText='#fff';                   lineCol=pc; }
+    else if (hasActive){ chipBg=pc;                      chipText='#fff';                   lineCol=`${pc}66`; }
+    else               { chipBg='rgba(255,255,255,0.14)'; chipText='rgba(255,255,255,0.65)'; lineCol='rgba(255,255,255,0.12)'; }
+
+    html += buildChapterChip(phase, pi, chipBg, chipText, lineCol);
+
+    // For F: connector lines between glass pill rows need to be
+    // rendered separately outside the pill divs
+    phase.stops.forEach((stop, si) => {
+      const { reached, isCur, isNext } = stopState(stop);
+      const isLocked   = !reached && !isCur && !isNext;
+      const isVeryLast = pi===PHASES.length-1 && si===phase.stops.length-1;
+      const isLastInPhase = si===phase.stops.length-1;
+      const pc2 = phase.col;
+      const segLineCol = (reached||isCur)&&!isVeryLast ? `${pc2}BB` : 'rgba(255,255,255,0.12)';
+
+      html += buildStopRow(stop, si, phase.stops.length, pi, PHASES.length, pc, true);
+
+      // Draw connector line between pills (outside the pill box)
+      if (!isVeryLast && isLocked) {
+        html += `<div style="width:2px;height:8px;margin-left:14px;background:${segLineCol};border-radius:1px;margin-bottom:0;"></div>`;
+      }
+    });
+  });
+  return html;
+}
+
+document.getElementById('roadmap-e').innerHTML = renderE();
+document.getElementById('roadmap-f').innerHTML = renderF();
 </script>
 </body>
 </html>
