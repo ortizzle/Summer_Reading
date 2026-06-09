@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journey Map Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a1628;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    padding: 20px;
+  }
+
+  .card {
+    background: linear-gradient(160deg, #0D2137 0%, #0a1a30 100%);
+    border-radius: 24px;
+    padding: 20px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+  }
+  .pts-badge {
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+  }
+  .card-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  /* Points slider for demo */
+  .demo-controls {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .demo-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    font-weight: 700;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: #4ECDC4;
+    cursor: pointer;
+  }
+  .demo-pts {
+    text-align: center;
+    color: #FFE66D;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  /* Progress to next stop */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    gap: 8px;
+  }
+  .progress-stop {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    min-width: 70px;
+  }
+  .progress-stop:last-child { text-align: right; }
+  .progress-bar-wrap {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ECDC4, #FFE66D);
+    border-radius: 3px;
+    transition: width 0.4s;
+  }
+  .pts-to-next {
+    text-align: center;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🗺️ Alaska Journey</div>
+    <div class="pts-badge" id="pts-display">5,000 pts</div>
+  </div>
+  <div class="card-sub">Family reading powers the trip ✈️🚢</div>
+
+  <!-- THE MAP SVG -->
+  <svg id="journey-svg" viewBox="0 0 300 380" style="width:100%;border-radius:16px;display:block;">
+    <defs>
+      <!-- Ocean gradient -->
+      <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#0a2744"/>
+        <stop offset="100%" stop-color="#0d3561"/>
+      </linearGradient>
+      <!-- Land gradient -->
+      <linearGradient id="landGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#1a4a2e"/>
+        <stop offset="100%" stop-color="#1e3d28"/>
+      </linearGradient>
+      <!-- Alaska tint (darker green) -->
+      <linearGradient id="akGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stop-color="#162e20"/>
+        <stop offset="100%" stop-color="#1a3a24"/>
+      </linearGradient>
+      <!-- Route glow filter -->
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="1.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <!-- City glow -->
+      <filter id="cityGlow" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <!-- Clip for map area -->
+      <clipPath id="mapClip">
+        <rect width="300" height="380" rx="12"/>
+      </clipPath>
+
+      <!-- Route dash animation -->
+      <style>
+        .cruise-line {
+          stroke-dasharray: 6 4;
+          stroke-dashoffset: 0;
+          animation: dashMove 2s linear infinite;
+        }
+        .flight-line {
+          stroke-dasharray: 5 5;
+          stroke-dashoffset: 0;
+          animation: dashMove 3s linear infinite;
+        }
+        @keyframes dashMove {
+          to { stroke-dashoffset: -20; }
+        }
+        .city-pulse {
+          animation: cityPulse 2s ease-in-out infinite;
+        }
+        @keyframes cityPulse {
+          0%,100% { r: 4; opacity: 0.9; }
+          50%      { r: 6; opacity: 1; }
+        }
+        .ship-bounce {
+          animation: shipBounce 2s ease-in-out infinite;
+        }
+        @keyframes shipBounce {
+          0%,100% { transform: translateY(0); }
+          50%      { transform: translateY(-2px); }
+        }
+      </style>
+    </defs>
+
+    <!-- Ocean background -->
+    <rect width="300" height="380" fill="url(#oceanGrad)" clip-path="url(#mapClip)"/>
+
+    <!-- Ocean shimmer lines (latitude lines, subtle) -->
+    <g clip-path="url(#mapClip)" opacity="0.06" stroke="white" stroke-width="0.5">
+      <line x1="0" y1="80"  x2="300" y2="80"/>
+      <line x1="0" y1="150" x2="300" y2="150"/>
+      <line x1="0" y1="220" x2="300" y2="220"/>
+      <line x1="0" y1="295" x2="300" y2="295"/>
+    </g>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  LAND MASS  (Pacific coast of NA)     -->
+    <!-- ══════════════════════════════════════ -->
+    <!--
+      Projection:
+        x = (lon + 140) / 35 * 300   lon: -140W→0  -105W→300
+        y = (63 - lat) / 33 * 380    lat: 63N→0    30N→380
+      Key cities:
+        Phoenix    (33.45, -112.07)  → (238, 352)
+        Vancouver  (49.25, -123.12)  → (144, 161)
+        Skagway    (59.47, -135.31)  →  (40,  47)
+        Juneau     (58.30, -134.42)  →  (48,  60)
+        Ketchikan  (55.34, -131.65)  →  (72,  91)
+    -->
+
+    <!-- Main land polygon (Pacific coast → inland) -->
+    <path clip-path="url(#mapClip)"
+      d="
+        M 40,47
+        L 28,0
+        L 300,0
+        L 300,380
+        L 185,380
+        L 158,358
+        L 148,318
+        L 146,272
+        L 145,238
+        L 145,210
+        L 148,193
+        L 148,180
+        L 144,161
+        L 130,148
+        L 110,136
+        L 97,120
+        L 85,103
+        L 72,91
+        L 57,72
+        L 48,60
+        Z
+      "
+      fill="url(#landGrad)"
+      stroke="rgba(255,255,255,0.08)"
+      stroke-width="0.8"
+    />
+
+    <!-- Arizona / desert highlight (subtle warm tint) -->
+    <path clip-path="url(#mapClip)"
+      d="M 185,380 L 300,380 L 300,290 L 238,295 L 235,320 L 210,352 Z"
+      fill="rgba(180,120,60,0.15)"
+    />
+
+    <!-- Northern mountains / Alaska interior (slightly darker) -->
+    <path clip-path="url(#mapClip)"
+      d="M 40,47 L 28,0 L 140,0 L 110,40 L 75,58 L 55,52 Z"
+      fill="rgba(0,0,0,0.2)"
+    />
+
+    <!-- Mountain ridges (decorative, Pacific Ranges) -->
+    <g clip-path="url(#mapClip)" opacity="0.2" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.6">
+      <!-- Sierra Nevada / Cascades rough line -->
+      <polyline points="165,345 160,310 158,270 162,230 165,195 163,165"/>
+      <!-- Coast Range -->
+      <polyline points="155,350 148,315 145,270 144,235 145,205 148,180 144,161"/>
+    </g>
+
+    <!-- Water body: Puget Sound / Georgia Strait area -->
+    <path clip-path="url(#mapClip)"
+      d="M 144,161 Q 140,152 136,145 Q 130,140 128,133 L 130,135 Q 133,143 138,152 L 144,161 Z"
+      fill="#0a2744" opacity="0.6"
+    />
+
+    <!-- Baja peninsula hint at bottom -->
+    <path clip-path="url(#mapClip)"
+      d="M 155,380 L 145,380 L 143,365 L 148,358 L 155,365 Z"
+      fill="rgba(180,150,80,0.1)"
+    />
+
+    <!-- Ocean label -->
+    <text x="30" y="290" fill="rgba(255,255,255,0.12)" font-size="9" font-family="DM Sans" font-style="italic" font-weight="600" transform="rotate(-70,30,290)">PACIFIC OCEAN</text>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  FLIGHT PATHS (arced dashed lines)    -->
+    <!-- ══════════════════════════════════════ -->
+
+    <!-- Phoenix → Vancouver flight (outbound) -->
+    <path id="flight-out"
+      d="M 238,352 Q 175,290 144,161"
+      fill="none"
+      stroke="rgba(255,255,255,0.35)"
+      stroke-width="1.5"
+      class="flight-line"
+      filter="url(#glow)"
+    />
+    <!-- small plane icon midway -->
+    <g id="plane-out" opacity="0.7">
+      <text x="178" y="250" font-size="11" text-anchor="middle" fill="white" transform="rotate(-45, 178, 250)">✈</text>
+    </g>
+
+    <!-- Vancouver → Phoenix return flight (dashed, more faint) -->
+    <path id="flight-return"
+      d="M 144,161 Q 175,290 238,352"
+      fill="none"
+      stroke="rgba(255,255,255,0.18)"
+      stroke-width="1.2"
+      stroke-dasharray="3 6"
+    />
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  CRUISE ROUTE                         -->
+    <!-- ══════════════════════════════════════ -->
+
+    <!-- Vancouver → Skagway (outbound cruise north, bright teal) -->
+    <path id="cruise-north"
+      d="M 144,161 L 112,138 L 96,120 L 82,100 L 65,78 L 48,60 L 40,47"
+      fill="none"
+      stroke="#4ECDC4"
+      stroke-width="2.2"
+      class="cruise-line"
+      filter="url(#glow)"
+    />
+
+    <!-- Skagway → Juneau → Ketchikan → Vancouver (southbound return) -->
+    <path id="cruise-south"
+      d="M 40,47 L 48,60 L 72,91 L 96,120 L 112,138 L 144,161"
+      fill="none"
+      stroke="rgba(255,230,80,0.7)"
+      stroke-width="1.8"
+      stroke-dasharray="4 4"
+      filter="url(#glow)"
+    />
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  CITY MARKERS                         -->
+    <!-- ══════════════════════════════════════ -->
+
+    <!-- City aura (glow behind dot) -->
+    <circle cx="238" cy="352" r="8" fill="#FF6B35" opacity="0.2" filter="url(#cityGlow)"/>
+    <circle cx="144" cy="161" r="8" fill="#4ECDC4" opacity="0.2" filter="url(#cityGlow)"/>
+    <circle cx="40"  cy="47"  r="7" fill="#FFE66D" opacity="0.2" filter="url(#cityGlow)"/>
+    <circle cx="48"  cy="60"  r="7" fill="#FFE66D" opacity="0.2" filter="url(#cityGlow)"/>
+    <circle cx="72"  cy="91"  r="7" fill="#FFE66D" opacity="0.2" filter="url(#cityGlow)"/>
+
+    <!-- Phoenix -->
+    <circle id="dot-phoenix" cx="238" cy="352" r="5" fill="#FF6B35" stroke="white" stroke-width="1.5"/>
+    <!-- Vancouver -->
+    <circle id="dot-vancouver" cx="144" cy="161" r="5" fill="#4ECDC4" stroke="white" stroke-width="1.5"/>
+    <!-- Skagway -->
+    <circle id="dot-skagway" cx="40" cy="47" r="4.5" fill="#FFE66D" stroke="white" stroke-width="1.5"/>
+    <!-- Juneau -->
+    <circle id="dot-juneau" cx="48" cy="60" r="4.5" fill="#FFE66D" stroke="white" stroke-width="1.5"/>
+    <!-- Ketchikan -->
+    <circle id="dot-ketchikan" cx="72" cy="91" r="4.5" fill="#FFE66D" stroke="white" stroke-width="1.5"/>
+
+    <!-- Current position pulse (changes with points) -->
+    <circle id="current-pulse" cx="238" cy="352" r="9" fill="none" stroke="white" stroke-width="1.5" opacity="0" class="city-pulse"/>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  CITY LABELS                          -->
+    <!-- ══════════════════════════════════════ -->
+    <g font-family="DM Sans" font-weight="700" text-anchor="middle">
+
+      <!-- Phoenix label -->
+      <rect x="198" y="358" width="56" height="16" rx="6" fill="rgba(10,20,45,0.75)"/>
+      <text x="226" y="370" font-size="9" fill="#FF8C5A">🌵 Phoenix</text>
+
+      <!-- Vancouver label -->
+      <rect x="108" y="146" width="68" height="16" rx="6" fill="rgba(10,20,45,0.75)"/>
+      <text x="142" y="158" font-size="9" fill="#4ECDC4">🏔️ Vancouver</text>
+
+      <!-- Skagway label (right side to avoid edge) -->
+      <rect x="46" y="33" width="54" height="16" rx="6" fill="rgba(10,20,45,0.75)"/>
+      <text x="73" y="45" font-size="9" fill="#FFE66D">⚓ Skagway</text>
+
+      <!-- Juneau label -->
+      <rect x="55" y="61" width="46" height="15" rx="6" fill="rgba(10,20,45,0.75)"/>
+      <text x="78" y="72" font-size="9" fill="#FFE66D">🦅 Juneau</text>
+
+      <!-- Ketchikan label -->
+      <rect x="78" y="91" width="58" height="15" rx="6" fill="rgba(10,20,45,0.75)"/>
+      <text x="107" y="102" font-size="9" fill="#FFE66D">🐟 Ketchikan</text>
+
+    </g>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  SHIP POSITION INDICATOR              -->
+    <!-- ══════════════════════════════════════ -->
+    <g id="ship-marker">
+      <circle id="ship-bg" cx="238" cy="352" r="12" fill="white" opacity="0.15"/>
+      <text id="ship-emoji" x="238" y="357" font-size="13" text-anchor="middle" class="ship-bounce">🌵</text>
+    </g>
+
+    <!-- Compass rose (bottom-left corner) -->
+    <g transform="translate(22, 348)" opacity="0.35">
+      <circle r="11" fill="none" stroke="white" stroke-width="0.8"/>
+      <text x="0" y="-3" font-size="8" fill="white" text-anchor="middle" font-weight="700">N</text>
+      <line x1="0" y1="0" x2="0" y2="-8" stroke="white" stroke-width="1"/>
+      <line x1="0" y1="0" x2="0"  y2="8" stroke="white" stroke-width="0.5" opacity="0.5"/>
+      <line x1="0" y1="0" x2="-8" y2="0" stroke="white" stroke-width="0.5" opacity="0.5"/>
+      <line x1="0" y1="0" x2="8"  y2="0" stroke="white" stroke-width="0.5" opacity="0.5"/>
+    </g>
+
+    <!-- Map border frame -->
+    <rect width="300" height="380" rx="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+  </svg>
+
+  <!-- Progress row -->
+  <div class="progress-row" id="progress-row">
+    <div class="progress-stop" id="prev-stop">🌵 Phoenix</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-stop" id="next-stop">✈️ We're Off!</div>
+  </div>
+  <div class="pts-to-next" id="pts-to-next">7,500 pts to We're Off!</div>
+
+  <!-- Demo controls -->
+  <div class="demo-controls">
+    <div class="demo-label">🎮 Drag to simulate family points</div>
+    <input type="range" id="pts-slider" min="0" max="25000" value="5000" step="100">
+    <div class="demo-pts" id="slider-pts">5,000 pts</div>
+  </div>
+</div>
+
+<script>
+const WAYPOINTS = [
+  { id:'phoenix',   label:'Phoenix',         emoji:'🌵', threshold:0,     cx:238, cy:352 },
+  { id:'off',       label:"We're Off!",      emoji:'✈️', threshold:7500,  cx:200, cy:260 },
+  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:10500, cx:144, cy:161 },
+  { id:'aboard',    label:'All Aboard!',     emoji:'🚢', threshold:12000, cx:128, cy:148 },
+  { id:'skagway',   label:'Skagway',         emoji:'⚓', threshold:13500, cx:40,  cy:47  },
+  { id:'juneau',    label:'Juneau',          emoji:'🦅', threshold:15000, cx:48,  cy:60  },
+  { id:'ketchikan', label:'Ketchikan',       emoji:'🐟', threshold:16500, cx:72,  cy:91  },
+  { id:'home',      label:'Back to Phoenix', emoji:'🏠', threshold:19000, cx:144, cy:161 },
+  { id:'school',    label:'Back to School',  emoji:'🎒', threshold:25000, cx:238, cy:352 },
+];
+
+function updateMap(pts) {
+  // Update pts display
+  document.getElementById('pts-display').textContent = pts.toLocaleString() + ' pts';
+  document.getElementById('slider-pts').textContent = pts.toLocaleString() + ' pts';
+
+  // Find current and next waypoint
+  let currentWP = WAYPOINTS[0];
+  for (const w of WAYPOINTS) { if (pts >= w.threshold) currentWP = w; }
+  const nextWP = WAYPOINTS.find(w => w.threshold > pts) || null;
+
+  // Update city dot styles
+  WAYPOINTS.forEach(w => {
+    const dot = document.getElementById('dot-' + w.id);
+    if (!dot) return;
+    if (pts >= w.threshold) {
+      dot.setAttribute('opacity', '1');
+      dot.setAttribute('r', '5.5');
+    } else {
+      dot.setAttribute('opacity', '0.35');
+      dot.setAttribute('r', '4');
+    }
+  });
+
+  // Ship position
+  const ship = document.getElementById('ship-emoji');
+  const shipBg = document.getElementById('ship-bg');
+  const pulse = document.getElementById('current-pulse');
+  if (currentWP.cx && currentWP.cy) {
+    document.getElementById('ship-marker').setAttribute('transform',
+      `translate(${currentWP.cx - 238}, ${currentWP.cy - 352})`);
+    pulse.setAttribute('cx', currentWP.cx);
+    pulse.setAttribute('cy', currentWP.cy);
+    pulse.setAttribute('opacity', '1');
+  }
+  ship.textContent = currentWP.emoji;
+
+  // Route segments highlighting
+  const cruise = document.getElementById('cruise-north');
+  const cruiseRet = document.getElementById('cruise-south');
+  const flightOut = document.getElementById('flight-out');
+  const planeOut = document.getElementById('plane-out');
+
+  // Dim/brighten based on progress
+  flightOut.setAttribute('opacity',  pts >= 7500  ? '1'   : '0.25');
+  planeOut.setAttribute('opacity',   pts >= 7500  ? '0.9' : '0.3');
+  cruise.setAttribute('opacity',     pts >= 10500 ? '1'   : '0.25');
+  cruiseRet.setAttribute('opacity',  pts >= 16500 ? '0.9' : '0.2');
+
+  // Progress bar
+  if (nextWP) {
+    const pct = Math.round(((pts - currentWP.threshold) / (nextWP.threshold - currentWP.threshold)) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('prev-stop').textContent = currentWP.emoji + ' ' + currentWP.label;
+    document.getElementById('next-stop').textContent = nextWP.emoji + ' ' + nextWP.label;
+    document.getElementById('pts-to-next').textContent =
+      (nextWP.threshold - pts).toLocaleString() + ' pts to ' + nextWP.label;
+  } else {
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('prev-stop').textContent = '🎒 Back to School';
+    document.getElementById('next-stop').textContent = '🏆';
+    document.getElementById('pts-to-next').textContent = '🎉 Journey Complete! Summer Reading Legends!';
+  }
+}
+
+const slider = document.getElementById('pts-slider');
+slider.addEventListener('input', () => updateMap(parseInt(slider.value)));
+updateMap(5000);
+</script>
+
+</body>
+</html>

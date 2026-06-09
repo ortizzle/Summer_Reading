@@ -905,12 +905,13 @@ body.timer-focus #timer-focus-exit-btn { display: flex !important; }
 .rank-badge { display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,0.18); border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; color:white; }
 
 /* ── ACHIEVEMENT BADGES ── */
-.badge-chip { display:inline-flex; flex-direction:column; align-items:center; gap:2px; padding:8px 6px; border-radius:12px; background:rgba(255,255,255,0.08); min-width:52px; }
-.badge-chip.earned { background:rgba(255,255,255,0.18); }
-.badge-chip-emoji { font-size:22px; line-height:1; filter:grayscale(1) opacity(0.3); }
-.badge-chip.earned .badge-chip-emoji { filter:none; }
-.badge-chip-label { font-size:9px; font-weight:600; color:rgba(255,255,255,0.4); text-align:center; line-height:1.2; }
-.badge-chip.earned .badge-chip-label { color:rgba(255,255,255,0.85); }
+.badge-chip { display:inline-flex; flex-direction:column; align-items:center; gap:2px; padding:8px 6px; border-radius:12px; background:rgba(255,255,255,0.08); min-width:52px; cursor:default; }
+.badge-chip.earned { background:rgba(255,255,255,0.18); box-shadow:0 0 10px rgba(255,235,59,0.25); }
+.badge-chip-emoji { font-size:22px; line-height:1; filter:grayscale(1) opacity(0.2); transition:filter 0.3s; }
+.badge-chip.earned .badge-chip-emoji { filter:none; animation:badgeShimmer 3.5s ease-in-out infinite; }
+@keyframes badgeShimmer { 0%,100%{filter:none;} 50%{filter:brightness(1.25) saturate(1.3) drop-shadow(0 0 4px rgba(255,230,100,0.7));} }
+.badge-chip-label { font-size:9px; font-weight:600; color:rgba(255,255,255,0.35); text-align:center; line-height:1.2; }
+.badge-chip.earned .badge-chip-label { color:rgba(255,255,255,0.9); }
 
 /* ── SIBLING DUEL ── */
 .duel-card { background:linear-gradient(135deg,#4A148C,#6A1B9A); border-radius:20px; padding:14px 16px; margin-bottom:10px; }
@@ -4270,7 +4271,7 @@ function getMemberRank(memberId) {
 // ═══════════════════════════════════════════════════════════════════
 //  ACHIEVEMENT BADGES
 // ═══════════════════════════════════════════════════════════════════
-function checkAndAwardBadges(memberId) {
+function checkAndAwardBadges(memberId, silent = false) {
   if (!state.earnedBadges) state.earnedBadges = {};
   if (!state.earnedBadges[memberId]) state.earnedBadges[memberId] = [];
   const earned = state.earnedBadges[memberId];
@@ -4315,16 +4316,19 @@ function checkAndAwardBadges(memberId) {
   });
 
   if (newBadges.length) {
-    newBadges.forEach(badge => {
-      showToast(`🏅 Badge unlocked: ${badge.emoji} ${badge.label}!`);
-      // Auto-shoutout to Exchange for kids' badges
-      const member = MEMBERS.find(m=>m.id===memberId);
-      if (member && member.adult === false) {
-        addActivity('🏅', `${member.name} earned the ${badge.emoji} ${badge.label} badge! ${badge.desc}`, memberId);
-      }
-    });
-    saveToGist();
-    renderHome();
+    if (!silent) {
+      newBadges.forEach(badge => {
+        showToast(`🏅 Badge unlocked: ${badge.emoji} ${badge.label}!`);
+        // Auto-shoutout to Exchange for kids' badges
+        const member = MEMBERS.find(m=>m.id===memberId);
+        if (member && member.adult === false) {
+          addActivity('🏅', `${member.name} earned the ${badge.emoji} ${badge.label} badge! ${badge.desc}`, memberId);
+        }
+      });
+      saveToGist();
+      renderHome();
+    }
+    // Silent mode: data was already mutated; caller is responsible for save/render
   }
 }
 
@@ -4334,64 +4338,285 @@ function checkAndAwardBadges(memberId) {
 function renderJourneyMap() {
   const el = document.getElementById('journey-map-card');
   if (!el) return;
-  const famPts = getFamilyTotalPts();
+  const famPts  = getFamilyTotalPts();
   const activeBoost = getActiveBoost();
-  const currentWP = getCurrentWaypoint();
-  const nextWP = getNextWaypoint();
+  const currentWP   = getCurrentWaypoint();
+  const nextWP      = getNextWaypoint();
 
-  const stops = JOURNEY_WAYPOINTS.map((wp, i) => {
-    const reached = famPts >= wp.threshold;
-    const isCurrent = wp.id === currentWP.id;
-    const dotClass = isCurrent ? 'current' : reached ? 'reached' : '';
-    const labelClass = isCurrent ? 'current' : reached ? 'reached' : '';
-    const line = i < JOURNEY_WAYPOINTS.length - 1
-      ? `<div class="journey-line${famPts > wp.threshold ? ' reached' : ''}"></div>`
-      : '';
+  // ── Route spine: ship interpolates along these coast-following points ──
+  // phase: 'flight' | 'cruise-n' | 'port-hop' | 'return'
+  const SPINE = [
+    {pts:0,     cx:238, cy:352, phase:'flight'},
+    {pts:7500,  cx:195, cy:274, phase:'flight'},
+    {pts:10500, cx:144, cy:161, phase:'cruise-n'},
+    {pts:10900, cx:132, cy:150, phase:'cruise-n'},
+    {pts:11300, cx:118, cy:138, phase:'cruise-n'},
+    {pts:11700, cx:104, cy:124, phase:'cruise-n'},
+    {pts:12000, cx:90,  cy:108, phase:'cruise-n'},   // All Aboard milestone
+    {pts:12350, cx:76,  cy:92,  phase:'cruise-n'},
+    {pts:12700, cx:62,  cy:74,  phase:'cruise-n'},
+    {pts:13100, cx:50,  cy:57,  phase:'cruise-n'},
+    {pts:13500, cx:40,  cy:47,  phase:'port-hop'},   // Skagway
+    {pts:15000, cx:48,  cy:60,  phase:'port-hop'},   // Juneau
+    {pts:16500, cx:72,  cy:91,  phase:'return'},     // Ketchikan
+    {pts:17100, cx:84,  cy:108, phase:'return'},
+    {pts:17600, cx:98,  cy:126, phase:'return'},
+    {pts:18100, cx:112, cy:142, phase:'return'},
+    {pts:19000, cx:144, cy:161, phase:'return'},     // Back to Vancouver
+    {pts:21000, cx:183, cy:233, phase:'return'},
+    {pts:25000, cx:238, cy:352, phase:'return'},     // Back to School / Phoenix
+  ];
+
+  // Interpolate ship XY position along the spine
+  let shipX = 238, shipY = 352;
+  for (let i = 0; i < SPINE.length - 1; i++) {
+    const a = SPINE[i], b = SPINE[i + 1];
+    if (famPts >= a.pts && famPts <= b.pts) {
+      const t = (famPts - a.pts) / (b.pts - a.pts);
+      shipX = Math.round(a.cx + (b.cx - a.cx) * t);
+      shipY = Math.round(a.cy + (b.cy - a.cy) * t);
+      break;
+    }
+  }
+  if (famPts >= SPINE[SPINE.length - 1].pts) {
+    shipX = SPINE[SPINE.length - 1].cx;
+    shipY = SPINE[SPINE.length - 1].cy;
+  }
+
+  // ── Build route trail segments ──
+  // Colors per phase
+  const PHASE_COLOR = {
+    'flight':   'rgba(255,255,255,0.85)',
+    'cruise-n': '#4ECDC4',
+    'port-hop': '#FFE66D',
+    'return':   '#FFB347',
+  };
+
+  let segLines = '';
+  for (let i = 0; i < SPINE.length - 1; i++) {
+    const a = SPINE[i], b = SPINE[i + 1];
+    const col   = PHASE_COLOR[b.phase] || '#4ECDC4';
+    const width = b.phase === 'flight' ? '1.6' : '2.4';
+
+    if (famPts >= b.pts) {
+      // Fully traveled — solid bright line with glow
+      segLines += `<line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}"
+        stroke="${col}" stroke-width="${width}" opacity="1" filter="url(#segGlow)"
+        stroke-linecap="round"/>`;
+    } else if (famPts > a.pts && famPts < b.pts) {
+      // Partially traveled — split at ship position
+      const traveledFrac = (famPts - a.pts) / (b.pts - a.pts);
+      const midX = Math.round(a.cx + (b.cx - a.cx) * traveledFrac);
+      const midY = Math.round(a.cy + (b.cy - a.cy) * traveledFrac);
+      if (midX !== a.cx || midY !== a.cy) {
+        segLines += `<line x1="${a.cx}" y1="${a.cy}" x2="${midX}" y2="${midY}"
+          stroke="${col}" stroke-width="${width}" opacity="1" filter="url(#segGlow)"
+          stroke-linecap="round"/>`;
+      }
+      segLines += `<line x1="${midX}" y1="${midY}" x2="${b.cx}" y2="${b.cy}"
+        stroke="${col}" stroke-width="${b.phase === 'flight' ? '1.2' : '1.8'}"
+        opacity="0.22" stroke-dasharray="4 4" stroke-linecap="round"/>`;
+    } else {
+      // Future — dim dashed
+      const dashPat = b.phase === 'flight' ? '4 5' : '4 4';
+      segLines += `<line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}"
+        stroke="${col}" stroke-width="${b.phase === 'flight' ? '1.2' : '1.8'}"
+        opacity="0.22" stroke-dasharray="${dashPat}" stroke-linecap="round"/>`;
+    }
+  }
+
+  // ── City dots (interactive) ──
+  const CITY_DOTS = [
+    {id:'phoenix',   cx:238, cy:352, label:'🌵 Phoenix',    threshold:0,     labelAnchor:'end',   labelDx:-8,  labelDy:-4},
+    {id:'vancouver', cx:144, cy:161, label:'🏔️ Vancouver',  threshold:10500, labelAnchor:'start', labelDx:7,   labelDy:-3},
+    {id:'skagway',   cx:40,  cy:47,  label:'⚓ Skagway',    threshold:13500, labelAnchor:'start', labelDx:8,   labelDy:-3},
+    {id:'juneau',    cx:48,  cy:60,  label:'🦅 Juneau',     threshold:15000, labelAnchor:'start', labelDx:8,   labelDy:3},
+    {id:'ketchikan', cx:72,  cy:91,  label:'🐟 Ketchikan',  threshold:16500, labelAnchor:'start', labelDx:8,   labelDy:3},
+  ];
+
+  const cityDotsSVG = CITY_DOTS.map(c => {
+    const reached = famPts >= c.threshold;
+    const col   = reached ? '#FFE66D' : 'rgba(255,255,255,0.45)';
+    const sc    = reached ? 'white'   : 'rgba(255,255,255,0.3)';
+    const r     = reached ? 5.5 : 4;
+    const op    = reached ? 1 : 0.5;
+    const textCol = reached ? '#FFE66D' : 'rgba(255,255,255,0.3)';
     return `
-      <div class="journey-stop">
-        <div class="journey-stop-dot ${dotClass}">${wp.emoji}</div>
-        <div class="journey-stop-label ${labelClass}">${wp.label}</div>
-      </div>${line}`;
+      <circle cx="${c.cx}" cy="${c.cy}" r="${r}" fill="${col}" stroke="${sc}" stroke-width="1.5"
+        opacity="${op}" onclick="journeyMapCityClick('${c.id}')" style="cursor:pointer;"/>
+      <text x="${c.cx + c.labelDx}" y="${c.cy + c.labelDy}" font-size="7.5"
+        fill="${textCol}" font-family="DM Sans" font-weight="700"
+        text-anchor="${c.labelAnchor}" style="pointer-events:none;">${c.label}</text>`;
   }).join('');
 
-  const progressToNext = nextWP
-    ? Math.min(100, Math.round(((famPts - currentWP.threshold) / (nextWP.threshold - currentWP.threshold)) * 100))
-    : 100;
-  const ptsToNext = nextWP ? (nextWP.threshold - famPts).toLocaleString() : 0;
+  // ── Legend row ──
+  const legend = `
+    <g transform="translate(6, 367)">
+      <line x1="0" y1="4" x2="12" y2="4" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="15" y="7" font-size="7" fill="rgba(255,255,255,0.45)" font-family="DM Sans" font-weight="600">Flight</text>
+      <line x1="40" y1="4" x2="52" y2="4" stroke="#4ECDC4" stroke-width="2"/>
+      <text x="55" y="7" font-size="7" fill="rgba(255,255,255,0.45)" font-family="DM Sans" font-weight="600">Cruise N</text>
+      <line x1="93" y1="4" x2="105" y2="4" stroke="#FFB347" stroke-width="2"/>
+      <text x="108" y="7" font-size="7" fill="rgba(255,255,255,0.45)" font-family="DM Sans" font-weight="600">Return</text>
+    </g>`;
 
+  // ── Boost banner ──
   const boostBanner = activeBoost
     ? `<div class="journey-boost-badge">⚡ ${activeBoost.label} active! ${activeBoost.desc}</div>`
     : '';
 
+  // ── Progress bar ──
+  const progressToNext = nextWP
+    ? Math.min(100, Math.round(((famPts - currentWP.threshold) / (nextWP.threshold - currentWP.threshold)) * 100))
+    : 100;
+  const ptsToNext = nextWP ? (nextWP.threshold - famPts).toLocaleString() : 0;
   const progressBar = nextWP ? `
-    <div style="margin-top:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
-        <span style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">${currentWP.emoji} ${currentWP.label}</span>
-        <span style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">${nextWP.emoji} ${nextWP.label}</span>
+    <div style="margin-top:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">
+        <span style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;">${currentWP.emoji} ${currentWP.label}</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;">${nextWP.emoji} ${nextWP.label}</span>
       </div>
-      <div style="height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:${progressToNext}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:3px;transition:width 0.5s;"></div>
+      <div style="height:5px;background:rgba(255,255,255,0.13);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${progressToNext}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:3px;transition:width 0.6s;"></div>
       </div>
-      <div style="text-align:center;margin-top:4px;font-size:11px;color:rgba(255,255,255,0.55);">${ptsToNext} pts to ${nextWP.label}</div>
-    </div>` : `<div style="text-align:center;margin-top:8px;font-size:13px;font-weight:700;color:#FFE66D;">🎒 Journey Complete! Summer Reading Legends! 🏆</div>`;
+      <div style="text-align:center;margin-top:3px;font-size:10px;color:rgba(255,255,255,0.45);">${ptsToNext} pts to ${nextWP.label}</div>
+    </div>
+  ` : `<div style="text-align:center;margin-top:8px;font-size:13px;font-weight:700;color:#FFE66D;">🎒 Journey Complete! Summer Reading Legends! 🏆</div>`;
 
   el.innerHTML = `
-    <div class="journey-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+    <div class="journey-card" style="padding-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
         <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:white;">🗺️ Alaska Reading Journey</div>
         <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.8);">${famPts.toLocaleString()} pts</div>
       </div>
       ${boostBanner}
-      <div class="journey-scroll">${stops}</div>
+
+      <svg viewBox="0 0 300 380" style="width:100%;border-radius:14px;display:block;margin:6px 0;">
+        <defs>
+          <linearGradient id="jOcean" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0a2744"/>
+            <stop offset="100%" stop-color="#0d3561"/>
+          </linearGradient>
+          <linearGradient id="jLand" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1a4a2e"/>
+            <stop offset="100%" stop-color="#1e3d28"/>
+          </linearGradient>
+          <filter id="segGlow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="shipGlow" x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Ocean -->
+        <rect width="300" height="380" fill="url(#jOcean)" rx="14"/>
+
+        <!-- Subtle latitude grid -->
+        <g opacity="0.04" stroke="white" stroke-width="0.5">
+          <line x1="0" y1="90"  x2="300" y2="90"/>
+          <line x1="0" y1="165" x2="300" y2="165"/>
+          <line x1="0" y1="240" x2="300" y2="240"/>
+          <line x1="0" y1="315" x2="300" y2="315"/>
+        </g>
+
+        <!-- Land mass -->
+        <path d="M 40,47 L 28,0 L 300,0 L 300,380 L 185,380 L 158,358 L 148,318 L 146,272
+                 L 145,238 L 145,210 L 148,193 L 148,180 L 144,161 L 130,148 L 110,136
+                 L 97,120 L 85,103 L 72,91 L 57,72 L 48,60 Z"
+          fill="url(#jLand)" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
+
+        <!-- Desert/AZ tint -->
+        <path d="M 185,380 L 300,380 L 300,280 L 234,296 L 228,328 L 210,356 Z"
+          fill="rgba(180,120,60,0.12)"/>
+
+        <!-- Mountain ridge (Cascades) -->
+        <polyline points="162,345 159,308 158,268 161,228 162,193 160,162"
+          fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.7"/>
+
+        <!-- Pacific Ocean label -->
+        <text x="28" y="290" fill="rgba(255,255,255,0.09)" font-size="8" font-family="DM Sans"
+          font-style="italic" font-weight="600" transform="rotate(-70,28,290)">PACIFIC OCEAN</text>
+
+        <!-- ROUTE TRAIL (glow on traveled, dim dashed on future) -->
+        ${segLines}
+
+        <!-- City labels + dots (interactive) -->
+        ${cityDotsSVG}
+
+        <!-- Ship position indicator -->
+        <circle cx="${shipX}" cy="${shipY}" r="12" fill="rgba(255,255,255,0.12)" filter="url(#shipGlow)"/>
+        <text x="${shipX}" y="${shipY + 6}" font-size="15" text-anchor="middle"
+          style="filter:drop-shadow(0 0 5px rgba(255,255,255,0.9));">${currentWP.emoji}</text>
+
+        <!-- Route legend -->
+        ${legend}
+
+        <!-- Compass rose -->
+        <g transform="translate(20,348)" opacity="0.28">
+          <circle r="10" fill="none" stroke="white" stroke-width="0.7"/>
+          <text x="0" y="-3" font-size="7" fill="white" text-anchor="middle" font-weight="700">N</text>
+          <line x1="0" y1="0" x2="0" y2="-7" stroke="white" stroke-width="1"/>
+          <line x1="0" y1="0" x2="0" y2="7"  stroke="white" stroke-width="0.5" opacity="0.5"/>
+          <line x1="-7" y1="0" x2="7" y2="0" stroke="white" stroke-width="0.5" opacity="0.5"/>
+        </g>
+
+        <!-- Map border -->
+        <rect width="300" height="380" rx="14" fill="none"
+          stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+      </svg>
+
+      <!-- Tap-a-city info panel -->
+      <div id="journey-city-panel" style="display:none;background:rgba(255,255,255,0.08);
+        border-radius:12px;padding:10px 14px;margin-bottom:6px;"></div>
+
       ${progressBar}
     </div>`;
+}
 
-  // Auto-scroll to current waypoint
-  requestAnimationFrame(() => {
-    const scroll = el.querySelector('.journey-scroll');
-    const idx = JOURNEY_WAYPOINTS.findIndex(w => w.id === currentWP.id);
-    if (scroll && idx > 0) scroll.scrollLeft = Math.max(0, idx * 68 - 40);
-  });
+// City tap handler — shows/hides info panel below map
+function journeyMapCityClick(cityId) {
+  const CITY_INFO = {
+    phoenix:   {emoji:'🌵', name:'Phoenix, AZ',   threshold:0,     desc:'Home sweet home — where the adventure begins and ends!'},
+    vancouver: {emoji:'🏔️', name:'Vancouver, BC', threshold:10500, desc:'Arriving June 11 — 4 days exploring the Pacific Northwest before boarding.'},
+    skagway:   {emoji:'⚓', name:'Skagway, AK',   threshold:13500, desc:'Gold rush country at the tip of the Lynn Canal. First Alaskan port!'},
+    juneau:    {emoji:'🦅', name:'Juneau, AK',    threshold:15000, desc:"Alaska's capital — bald eagles, the Mendenhall Glacier, and incredible views."},
+    ketchikan: {emoji:'🐟', name:'Ketchikan, AK', threshold:16500, desc:'Salmon capital of the world. Last port before the voyage home!'},
+  };
+  const info = CITY_INFO[cityId];
+  const panel = document.getElementById('journey-city-panel');
+  if (!panel || !info) return;
+
+  // Toggle off if already open
+  if (panel.dataset.open === cityId) {
+    panel.style.display = 'none';
+    panel.dataset.open = '';
+    return;
+  }
+
+  const famPts  = getFamilyTotalPts();
+  const reached = famPts >= info.threshold;
+  const ptsAway = Math.max(0, info.threshold - famPts);
+
+  panel.dataset.open = cityId;
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:28px;">${info.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="color:white;font-weight:700;font-size:13px;font-family:'Fraunces',serif;">${info.name}</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-top:2px;line-height:1.4;">${info.desc}</div>
+        ${reached
+          ? `<div style="color:#4ECDC4;font-size:11px;font-weight:700;margin-top:4px;">✅ Unlocked!</div>`
+          : `<div style="color:#FFE66D;font-size:11px;font-weight:700;margin-top:4px;">🔒 ${ptsAway.toLocaleString()} pts away</div>`
+        }
+      </div>
+      <div onclick="document.getElementById('journey-city-panel').style.display='none';
+          document.getElementById('journey-city-panel').dataset.open='';"
+        style="color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;">✕</div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4522,16 +4747,36 @@ function renderHome() {
   // Reading rank
   const rankEl = document.getElementById('my-stat-rank');
   if (rankEl) rankEl.innerHTML = `<span class="rank-badge">${getMemberRank(currentMember).label}</span>`;
-  // Badges panel
+  // Badges panel — show earned prominently, just a count for the rest
   const badgesEl = document.getElementById('my-stats-badges');
   if (badgesEl) {
     const earned = new Set(state.earnedBadges?.[currentMember] || []);
-    badgesEl.innerHTML = ACHIEVEMENT_BADGES.map(b =>
-      `<div class="badge-chip${earned.has(b.id)?' earned':''}" title="${b.desc}">
-        <span class="badge-chip-emoji">${b.emoji}</span>
-        <span class="badge-chip-label">${b.label}</span>
-      </div>`
-    ).join('');
+    const earnedList = ACHIEVEMENT_BADGES.filter(b => earned.has(b.id));
+    const remaining = ACHIEVEMENT_BADGES.length - earnedList.length;
+    if (earnedList.length === 0) {
+      badgesEl.innerHTML = `
+        <div style="width:100%;text-align:center;padding:6px 0;">
+          <div style="font-size:22px;margin-bottom:4px;">🏅</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;">Keep reading to earn your first badge!</div>
+          <div style="color:rgba(255,255,255,0.3);font-size:10px;margin-top:3px;">${ACHIEVEMENT_BADGES.length} badges to discover</div>
+        </div>`;
+    } else {
+      badgesEl.innerHTML =
+        earnedList.map(b =>
+          `<div class="badge-chip earned" title="${b.desc}">
+            <span class="badge-chip-emoji">${b.emoji}</span>
+            <span class="badge-chip-label">${b.label}</span>
+          </div>`
+        ).join('') +
+        (remaining > 0
+          ? `<div style="display:flex;align-items:center;width:100%;margin-top:4px;">
+               <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+               <div onclick="switchTab('bingo')" style="color:rgba(255,255,255,0.35);font-size:10px;font-weight:700;padding:0 8px;cursor:pointer;white-space:nowrap;">+ ${remaining} more to discover →</div>
+               <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+             </div>`
+          : `<div style="color:#FFE66D;font-size:11px;font-weight:700;width:100%;text-align:center;margin-top:4px;">🏆 All ${ACHIEVEMENT_BADGES.length} badges earned!</div>`
+        );
+    }
   }
   const streak = getReadingStreak(currentMember);
   const streakValEl = document.getElementById('my-stat-streak-val');
@@ -9599,6 +9844,8 @@ async function init() {
   repairBingoFromSessions();
   // Retroactively award streak bonus points for milestones earned before the bonus system existed
   migrateStreakBonuses();
+  // Silently award any achievement badges earned from historical sessions (no toasts on startup)
+  MEMBERS.forEach(m => checkAndAwardBadges(m.id, true));
 
   if (!state.pins) state.pins = {};
   if (!state.themes) state.themes = {};
