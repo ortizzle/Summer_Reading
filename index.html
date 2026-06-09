@@ -1728,7 +1728,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   <div class="member-select-bar" id="home-member-bar"></div>
 
   <!-- My Stats player card (flip) -->
-  <div style="perspective:1000px;margin-bottom:10px;height:265px;" onclick="toggleStatsCard()">
+  <div style="perspective:1000px;margin-bottom:10px;height:310px;" onclick="toggleStatsCard()">
     <div id="my-stats-card-inner" style="position:relative;width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;">
 
       <!-- FRONT -->
@@ -3455,6 +3455,7 @@ function doSelectMember(id) {
 //  POINTS AUDIT / STATS FLIP CARD
 // ═══════════════════════════════════════
 let _statsFlipped = false;
+let _mapRoadmapOpen = false;
 
 function toggleStatsCard() {
   const inner = document.getElementById('my-stats-card-inner');
@@ -3467,32 +3468,81 @@ function toggleStatsCard() {
 function buildPointsAudit(memberId) {
   const el = document.getElementById('my-stats-audit');
   if (!el) return;
-  const sessions = (state.sessions[memberId] || []).slice().sort((a,b) => (b.ts||0) - (a.ts||0));
+  const sessions = state.sessions[memberId] || [];
   if (!sessions.length) {
     el.innerHTML = `<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;padding:20px 0;">No points yet — start reading!</div>`;
     return;
   }
-  el.innerHTML = sessions.map(s => {
-    const pts = s.minutes || 0;
-    let icon = '📖', label = s.bookTitle || 'Reading session';
-    if (s.bookId === 'library') { icon = '🏛️'; label = s.bookTitle || 'Library visit'; }
-    else if (s.bookId === 'journal') { icon = '📝'; label = 'Journal entry'; }
-    else if (s.bookId === 'bingo') { icon = '🎯'; label = 'Bingo square'; }
-    else if (s.bookId === 'bingo_bonus') { icon = '🎲'; label = 'Bingo line bonus'; }
-    else if (s.bookId === 'bingo_corners') { icon = '🔲'; label = 'Four Corners bonus'; }
-    else if (s.bookId === 'bingo_x') { icon = '✖️'; label = 'X Pattern bonus'; }
-    else if (s.bookId === 'bingo_full') { icon = '🃏'; label = 'Blackout bonus'; }
-    else if ((s.bookTitle || '').includes('finish bonus')) { icon = '✅'; label = (s.bookTitle || '').replace('(finish bonus)', '').trim() + ' — finish bonus'; }
-    const dateStr = s.ts ? new Date(s.ts).toLocaleDateString(undefined, {month:'short',day:'numeric'}) : (s.date || '');
-    return `<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.07);border-radius:10px;padding:8px 10px;">
-      <div style="font-size:18px;flex-shrink:0;">${icon}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="color:white;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
-        <div style="color:rgba(255,255,255,0.45);font-size:10px;">${dateStr}</div>
-      </div>
-      <div style="color:var(--sun);font-weight:800;font-size:14px;flex-shrink:0;">+${pts}</div>
-    </div>`;
+
+  // ── Categorize all sessions ──
+  const cats = {
+    reading: { icon:'📖', label:'Reading',        pts:0, count:0 },
+    bingo:   { icon:'🎯', label:'Bingo',           pts:0, count:0 },
+    extras:  { icon:'📝', label:'Journal & Library',pts:0,count:0 },
+    finish:  { icon:'✅', label:'Book finishes',   pts:0, count:0 },
+    streak:  { icon:'🔥', label:'Streak bonuses',  pts:0, count:0 },
+    boost:   { icon:'⚡', label:'Journey boosts',  pts:0, count:0 },
+  };
+  sessions.forEach(s => {
+    const p = s.minutes || 0, bid = s.bookId || '', title = s.bookTitle || '';
+    if (bid === 'journey_boost')                               { cats.boost.pts += p;   cats.boost.count++;   }
+    else if (bid === 'streak_bonus')                           { cats.streak.pts += p;  cats.streak.count++;  }
+    else if (bid === 'finish_bonus' || title.includes('finish bonus')) { cats.finish.pts += p; cats.finish.count++; }
+    else if (['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(bid))
+                                                               { cats.bingo.pts += p;   cats.bingo.count++;   }
+    else if (['library','journal'].includes(bid))              { cats.extras.pts += p;  cats.extras.count++;  }
+    else                                                       { cats.reading.pts += p; cats.reading.count++; }
+  });
+
+  const totalPts  = sessions.reduce((s, x) => s + (x.minutes || 0), 0);
+  const maxPts    = Math.max(...Object.values(cats).map(c => c.pts), 1);
+  const activeCats = Object.values(cats).filter(c => c.pts > 0).sort((a, b) => b.pts - a.pts);
+
+  const catBars = activeCats.map(c => {
+    const barW  = Math.round((c.pts / maxPts) * 100);
+    const share = Math.round((c.pts / totalPts) * 100);
+    return `
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.82);font-weight:700;">${c.icon} ${c.label}</div>
+          <div style="font-size:11px;font-weight:800;color:#FFE66D;">+${c.pts.toLocaleString()}
+            <span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.38);">${share}%</span></div>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${barW}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:3px;"></div>
+        </div>
+      </div>`;
   }).join('');
+
+  // ── Last 5 sessions ──
+  const recent = sessions.slice().sort((a,b) => (b.ts||0)-(a.ts||0)).slice(0, 5);
+  const recentRows = recent.map(s => {
+    const p = s.minutes || 0, bid = s.bookId || '', title = s.bookTitle || '';
+    let icon = '📖', label = title || 'Reading session';
+    if (bid === 'journey_boost')                                    { icon = '⚡'; label = title || 'Journey boost'; }
+    else if (bid === 'streak_bonus')                                { icon = '🔥'; label = 'Streak bonus'; }
+    else if (bid === 'library')                                     { icon = '🏛️'; }
+    else if (bid === 'journal')                                     { icon = '📝'; label = 'Journal entry'; }
+    else if (['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full'].includes(bid)) { icon = '🎯'; label = 'Bingo'; }
+    else if (bid === 'finish_bonus' || title.includes('finish bonus')) { icon = '✅'; label = title.replace('(finish bonus)','').trim() + ' — finish'; }
+    const dateStr = s.ts
+      ? new Date(s.ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})
+      : (s.date || '');
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="font-size:14px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;min-width:0;font-size:10px;color:rgba(255,255,255,0.72);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        <div style="color:rgba(255,255,255,0.35);font-size:9px;flex-shrink:0;">${dateStr}</div>
+        <div style="color:#FFE66D;font-weight:800;font-size:11px;flex-shrink:0;">+${p}</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:6px;">${catBars}</div>
+    <div style="font-size:9px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,0.3);
+      margin:4px 0 4px;">RECENT</div>
+    ${recentRows}`;
 }
 
 // ═══════════════════════════════════════
@@ -4338,6 +4388,7 @@ function checkAndAwardBadges(memberId, silent = false) {
 function renderJourneyMap() {
   const el = document.getElementById('journey-map-card');
   if (!el) return;
+  _mapRoadmapOpen = false; // reset toggle on re-render
   const famPts  = getFamilyTotalPts();
   const activeBoost = getActiveBoost();
   const currentWP   = getCurrentWaypoint();
@@ -4573,6 +4624,18 @@ function renderJourneyMap() {
         border-radius:12px;padding:10px 14px;margin-bottom:6px;"></div>
 
       ${progressBar}
+
+      <!-- Roadmap toggle button -->
+      <button onclick="event.stopPropagation();toggleMapRoadmap();"
+        style="width:100%;margin-top:10px;padding:7px 0;background:rgba(255,255,255,0.1);
+          border:none;border-radius:10px;color:rgba(255,255,255,0.7);font-size:11px;
+          font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.3px;"
+        id="map-roadmap-btn">
+        📍 Full Roadmap ▾
+      </button>
+
+      <!-- Roadmap panel (hidden by default) -->
+      <div id="map-roadmap-panel" style="display:none;margin-top:8px;"></div>
     </div>`;
 }
 
@@ -4616,6 +4679,98 @@ function journeyMapCityClick(cityId) {
       <div onclick="document.getElementById('journey-city-panel').style.display='none';
           document.getElementById('journey-city-panel').dataset.open='';"
         style="color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;">✕</div>
+    </div>`;
+}
+
+function toggleMapRoadmap() {
+  _mapRoadmapOpen = !_mapRoadmapOpen;
+  const panel = document.getElementById('map-roadmap-panel');
+  const btn   = document.getElementById('map-roadmap-btn');
+  if (!panel) return;
+
+  if (!_mapRoadmapOpen) {
+    panel.style.display = 'none';
+    if (btn) btn.textContent = '📍 Full Roadmap ▾';
+    return;
+  }
+
+  if (btn) btn.textContent = '📍 Full Roadmap ▴';
+  const famPts     = getFamilyTotalPts();
+  const currentWP  = getCurrentWaypoint();
+  const nextWP     = getNextWaypoint();
+
+  // Phase labels for each waypoint
+  const WP_DETAIL = {
+    phoenix:   { phase:'🛫 Pre-Trip',   reward:'The summer adventure begins!' },
+    off:       { phase:'✈️ In Flight',  reward:'Wheels up — the Ortiz family is officially on the move!' },
+    vancouver: { phase:'🏙️ Vancouver',  reward:'4 days exploring before boarding the ship.' },
+    aboard:    { phase:'🚢 Boarding',   reward:"Welcome to the Disney Wonder — let's sail!" },
+    skagway:   { phase:'⚓ Alaska',     reward:'Gold rush country at the tip of the Lynn Canal.' },
+    juneau:    { phase:'🦅 Alaska',     reward:"Alaska's capital — bald eagles and Mendenhall Glacier!" },
+    ketchikan: { phase:'🐟 Alaska',     reward:'Salmon capital of the world. Last Alaskan port!' },
+    home:      { phase:'✈️ Homebound',  reward:'Cruise complete — flying back to the Valley of the Sun.' },
+    school:    { phase:'🎒 Finish Line', reward:'Summer Reading Legends! 25,000 pts — Championship Readers! 🏆' },
+  };
+
+  const rows = JOURNEY_WAYPOINTS.map((wp, i) => {
+    const reached  = famPts >= wp.threshold;
+    const isCur    = wp.id === currentWP.id;
+    const isNext   = nextWP && wp.id === nextWP.id;
+    const detail   = WP_DETAIL[wp.id] || {};
+    const ptsLeft  = Math.max(0, wp.threshold - famPts);
+
+    let statusIcon, statusColor;
+    if (isCur)      { statusIcon = '📍'; statusColor = '#FFE66D'; }
+    else if (reached){ statusIcon = '✅'; statusColor = '#4ECDC4'; }
+    else            { statusIcon = '🔒'; statusColor = 'rgba(255,255,255,0.25)'; }
+
+    const thresholdLabel = wp.threshold === 0 ? 'Start' : wp.threshold.toLocaleString() + ' pts';
+    const ptsPill = isCur
+      ? `<span style="background:rgba(255,230,60,0.2);color:#FFE66D;border-radius:8px;padding:2px 7px;font-size:9px;font-weight:700;">YOU ARE HERE</span>`
+      : reached
+        ? `<span style="color:#4ECDC4;font-size:9px;font-weight:700;">✅ ${thresholdLabel}</span>`
+        : isNext
+          ? `<span style="color:#FFB347;font-size:9px;font-weight:700;">🎯 ${ptsLeft.toLocaleString()} pts away</span>`
+          : `<span style="color:rgba(255,255,255,0.3);font-size:9px;">${thresholdLabel}</span>`;
+
+    // Progress bar for current waypoint
+    const progressSeg = isCur && nextWP ? (() => {
+      const pct = Math.round(((famPts - wp.threshold) / (nextWP.threshold - wp.threshold)) * 100);
+      return `<div style="margin-top:5px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:2px;"></div>
+      </div>`;
+    })() : '';
+
+    const connector = i < JOURNEY_WAYPOINTS.length - 1
+      ? `<div style="width:2px;height:12px;background:${reached ? 'rgba(78,205,196,0.5)' : 'rgba(255,255,255,0.1)'};
+           margin:2px auto;border-radius:1px;"></div>`
+      : '';
+
+    return `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 10px;
+        border-radius:12px;background:${isCur ? 'rgba(255,230,60,0.08)' : reached ? 'rgba(78,205,196,0.05)' : 'rgba(255,255,255,0.04)'};
+        border:1px solid ${isCur ? 'rgba(255,230,60,0.2)' : reached ? 'rgba(78,205,196,0.15)' : 'rgba(255,255,255,0.06)'};">
+        <div style="font-size:11px;padding-top:1px;flex-shrink:0;opacity:${reached||isCur?1:0.4};">${wp.emoji}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="color:${isCur?'#FFE66D':reached?'white':'rgba(255,255,255,0.45)'};
+              font-size:12px;font-weight:700;">${wp.label}</div>
+            ${ptsPill}
+          </div>
+          <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-top:2px;line-height:1.3;">${detail.phase || ''} · ${detail.reward || wp.desc || ''}</div>
+          ${progressSeg}
+        </div>
+        <div style="font-size:14px;flex-shrink:0;">${statusIcon}</div>
+      </div>
+      ${connector}`;
+  }).join('');
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,0.35);
+        margin-bottom:8px;">JOURNEY ROADMAP · ${famPts.toLocaleString()} / 25,000 pts</div>
+      <div style="display:flex;flex-direction:column;gap:0;">${rows}</div>
     </div>`;
 }
 
