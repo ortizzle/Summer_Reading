@@ -4055,28 +4055,22 @@ function renderDailyWrapup() {
         </div>`).join('')}
     </div>` : '';
 
-  // Day rows: checked = collapsed (header only); unchecked = expanded with per-book detail
-  const rows = dates.map(d => {
+  // Build a rendered row for any date (checked or unchecked)
+  function buildDayRow(d) {
     const { mins, bookMins } = byDate[d];
     const isLogged = logged.has(d);
     const dateObj  = new Date(d + 'T12:00:00');
     const dateLabel = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short' });
-
     const checkbox = `<div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">${isLogged?'<span style="color:white;font-size:13px;line-height:1;">✓</span>':''}</div>`;
-
     const headerRow = `
-      <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:9px 4px ${isLogged?'9px':'4px'};">
+      <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:9px 4px;">
         ${checkbox}
         <div style="flex:1;display:flex;justify-content:space-between;align-items:baseline;">
           <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'var(--text)'};${isLogged?'text-decoration:line-through;':''}">${dateLabel}</span>
           <span style="font-size:13px;margin-left:8px;">${fmtMaricopaTime(mins, isLogged)}</span>
         </div>
       </div>`;
-
-    // Checked days: collapsed — no book rows
     if (isLogged) return `<div style="border-bottom:1px solid var(--sand);">${headerRow}</div>`;
-
-    // Unchecked days: show per-book breakdown
     const bookRows = Object.entries(bookMins)
       .sort((a, b) => b[1] - a[1])
       .map(([title, m]) =>
@@ -4085,20 +4079,41 @@ function renderDailyWrapup() {
           <span style="font-size:12px;white-space:nowrap;">${fmtMaricopaTime(m, false)}</span>
         </div>`
       ).join('');
-
     return `
       <div style="border-bottom:1px solid var(--sand);">
         ${headerRow}
         <div style="margin:0 4px 8px 34px;">${bookRows}</div>
       </div>`;
-  }).join('');
+  }
+
+  const uncheckedDates = dates.filter(d => !logged.has(d));
+  const checkedDates   = dates.filter(d =>  logged.has(d));
+
+  const uncheckedRows = uncheckedDates.map(buildDayRow).join('');
+  const checkedRows   = checkedDates.map(buildDayRow).join('');
+
+  const submittedToggle = checkedDates.length ? `
+    <div style="padding:0 16px 10px;">
+      <button onclick="
+        const sec=document.getElementById('maricopa-submitted-list');
+        const lbl=document.getElementById('maricopa-submitted-label');
+        const open=sec.style.display==='none';
+        sec.style.display=open?'block':'none';
+        lbl.textContent=open?'▾ Hide submitted days':'▸ Show ${checkedDates.length} submitted day${checkedDates.length!==1?'s':''}';
+      " style="background:none;border:none;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;padding:4px 0;letter-spacing:.3px;">
+        <span id="maricopa-submitted-label">▸ Show ${checkedDates.length} submitted day${checkedDates.length!==1?'s':''}</span>
+      </button>
+      <div id="maricopa-submitted-list" style="display:none;">${checkedRows}</div>
+    </div>` : '';
 
   const bodyContent = dates.length
     ? `${summaryStrip}${pendingBooks}
        <div style="padding:4px 16px 8px;">
-         <div style="font-size:10px;color:var(--muted);padding:8px 4px 4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Tap a day to mark as submitted</div>
-         ${rows}
-       </div>`
+         ${uncheckedDates.length
+           ? `<div style="font-size:10px;color:var(--muted);padding:8px 4px 4px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Tap a day to mark as submitted</div>${uncheckedRows}`
+           : `<div style="padding:12px 4px;text-align:center;font-size:13px;color:#16A34A;font-weight:700;">🎉 All days submitted!</div>`}
+       </div>
+       ${submittedToggle}`
     : `<div style="padding:16px;text-align:center;font-size:13px;color:var(--muted);">No reading sessions yet — log some time above!</div>`;
 
   el.style.display = 'block';
