@@ -3995,9 +3995,11 @@ function renderDailyWrapup() {
   const byDate = {};
   allSessions.forEach(s => {
     if (!s.date || s.date < PROGRAM_START || s.date > PROGRAM_END) return;
-    if (!byDate[s.date]) byDate[s.date] = { mins: 0, books: new Set() };
-    byDate[s.date].mins += s.minutes || 0;
-    if (s.bookTitle) byDate[s.date].books.add(s.bookTitle);
+    if (!byDate[s.date]) byDate[s.date] = { mins: 0, bookMins: {} };
+    const mins = s.minutes || 0;
+    byDate[s.date].mins += mins;
+    const title = s.bookTitle || 'Unknown book';
+    byDate[s.date].bookMins[title] = (byDate[s.date].bookMins[title] || 0) + mins;
   });
 
   const dates = Object.keys(byDate).sort().reverse(); // newest first
@@ -4006,25 +4008,37 @@ function renderDailyWrapup() {
   const doneCount = dates.filter(d => logged.has(d)).length;
 
   const rows = dates.map(d => {
-    const { mins, books } = byDate[d];
+    const { mins, bookMins } = byDate[d];
     const h = Math.floor(mins/60), m = mins%60;
-    const timeStr = h > 0 ? `${h}h ${m}m` : `${mins}m`;
+    const totalStr = h > 0 ? `${h}h ${m}m` : `${mins} min`;
     const isLogged = logged.has(d);
     const dateObj = new Date(d + 'T12:00:00');
     const dateLabel = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short' });
-    const booksStr = [...books].join(', ');
+    const mutedColor = isLogged ? 'var(--muted)' : 'var(--text)';
+    const strikeStyle = isLogged ? 'text-decoration:line-through;' : '';
+
+    // Per-book breakdown rows
+    const bookRows = Object.entries(bookMins)
+      .sort((a, b) => b[1] - a[1])
+      .map(([title, m]) =>
+        `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 2px 4px;">
+          <span style="font-size:12px;color:${isLogged?'var(--muted)':'#374151'};${strikeStyle}flex:1;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📖 ${title}</span>
+          <span style="font-size:12px;font-weight:600;color:${isLogged?'var(--muted)':'#1565C0'};white-space:nowrap;">${m} min</span>
+        </div>`
+      ).join('');
+
     return `
-      <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--sand);cursor:pointer;">
-        <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">
-          ${isLogged ? '<span style="color:white;font-size:13px;line-height:1;">✓</span>' : ''}
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;">
-            <span style="font-size:13px;font-weight:${isLogged?'600':'700'};color:${isLogged?'var(--muted)':'var(--text)'};${isLogged?'text-decoration:line-through;':''}">${dateLabel}</span>
-            <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'#1565C0'};margin-left:8px;">${timeStr}</span>
+      <div style="border-bottom:1px solid var(--sand);padding:9px 4px;">
+        <div onclick="toggleMaricopaDay('${d}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+          <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isLogged?'#16A34A':'#CBD5E1'};background:${isLogged?'#16A34A':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">
+            ${isLogged ? '<span style="color:white;font-size:13px;line-height:1;">✓</span>' : ''}
           </div>
-          ${booksStr ? `<div style="font-size:11px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${booksStr}</div>` : ''}
+          <div style="flex:1;display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:13px;font-weight:700;color:${mutedColor};${strikeStyle}">${dateLabel}</span>
+            <span style="font-size:13px;font-weight:700;color:${isLogged?'var(--muted)':'#1565C0'};margin-left:8px;">${totalStr} total</span>
+          </div>
         </div>
+        ${Object.keys(bookMins).length ? `<div style="margin-top:5px;margin-left:34px;">${bookRows}</div>` : ''}
       </div>`;
   }).join('');
 
