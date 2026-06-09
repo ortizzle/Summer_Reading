@@ -884,6 +884,37 @@ body.timer-focus #timer-focus-exit-btn { display: flex !important; }
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
+/* ── JOURNEY MAP ── */
+.journey-card { background:linear-gradient(135deg,#0D47A1,#1565C0,#0277BD); border-radius:20px; padding:16px; margin-bottom:10px; overflow:hidden; position:relative; }
+.journey-scroll { display:flex; gap:0; overflow-x:auto; padding:8px 0 4px; scrollbar-width:none; -ms-overflow-style:none; }
+.journey-scroll::-webkit-scrollbar { display:none; }
+.journey-stop { display:flex; flex-direction:column; align-items:center; flex-shrink:0; min-width:56px; position:relative; }
+.journey-stop-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:2px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.1); transition:all .3s; }
+.journey-stop-dot.reached { background:rgba(255,255,255,0.25); border-color:rgba(255,255,255,0.8); }
+.journey-stop-dot.current { background:white; border-color:white; box-shadow:0 0 0 4px rgba(255,255,255,0.25); animation:journeyPulse 2s infinite; }
+@keyframes journeyPulse { 0%,100%{box-shadow:0 0 0 4px rgba(255,255,255,0.25);} 50%{box-shadow:0 0 0 8px rgba(255,255,255,0.1);} }
+.journey-stop-label { font-size:9px; font-weight:700; color:rgba(255,255,255,0.6); text-align:center; margin-top:4px; max-width:52px; line-height:1.2; }
+.journey-stop-label.reached { color:rgba(255,255,255,0.85); }
+.journey-stop-label.current { color:white; }
+.journey-line { flex:1; height:2px; background:rgba(255,255,255,0.15); align-self:center; margin-bottom:20px; min-width:12px; }
+.journey-line.reached { background:rgba(255,255,255,0.6); }
+.journey-boost-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(255,235,59,0.2); border:1px solid rgba(255,235,59,0.5); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700; color:#FFF9C4; margin-top:6px; animation:boostGlow 1.5s ease-in-out infinite alternate; }
+@keyframes boostGlow { from{box-shadow:0 0 4px rgba(255,235,59,0.3);} to{box-shadow:0 0 12px rgba(255,235,59,0.6);} }
+
+/* ── READING RANK ── */
+.rank-badge { display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,0.18); border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; color:white; }
+
+/* ── ACHIEVEMENT BADGES ── */
+.badge-chip { display:inline-flex; flex-direction:column; align-items:center; gap:2px; padding:8px 6px; border-radius:12px; background:rgba(255,255,255,0.08); min-width:52px; }
+.badge-chip.earned { background:rgba(255,255,255,0.18); }
+.badge-chip-emoji { font-size:22px; line-height:1; filter:grayscale(1) opacity(0.3); }
+.badge-chip.earned .badge-chip-emoji { filter:none; }
+.badge-chip-label { font-size:9px; font-weight:600; color:rgba(255,255,255,0.4); text-align:center; line-height:1.2; }
+.badge-chip.earned .badge-chip-label { color:rgba(255,255,255,0.85); }
+
+/* ── SIBLING DUEL ── */
+.duel-card { background:linear-gradient(135deg,#4A148C,#6A1B9A); border-radius:20px; padding:14px 16px; margin-bottom:10px; }
+
 /* ── BOTTOM NAV ── */
 .bottom-nav {
   position: fixed;
@@ -1712,6 +1743,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
         <div style="text-align:center;margin-bottom:12px;">
           <div style="font-family:'Fraunces',serif;font-size:56px;font-weight:900;color:white;line-height:1;" id="my-stat-pts">0</div>
           <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:1px;">POINTS</div>
+          <div id="my-stat-rank" style="margin-top:6px;"></div>
           <div id="my-stat-next-milestone" style="margin-top:5px;font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;min-height:16px;"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
@@ -1731,6 +1763,10 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="color:rgba(255,255,255,0.45);font-size:11px;">TAP TO CLOSE ↩</div>
         </div>
         <div id="my-stats-audit" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+        <div style="border-top:1px solid rgba(255,255,255,0.12);margin-top:10px;padding-top:10px;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:8px;">BADGES</div>
+          <div id="my-stats-badges" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
       </div>
 
     </div>
@@ -1741,6 +1777,12 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div id="personal-goal-content" style="flex:1;min-width:0;"></div>
     <button id="personal-goal-btn" onclick="openGoalModal()" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--sky);background:white;color:var(--sky);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;"></button>
   </div>
+
+  <!-- Alaska Reading Journey Map -->
+  <div id="journey-map-card"></div>
+
+  <!-- Sibling Duel (Sedona vs River) -->
+  <div id="sibling-duel-card"></div>
 
   <!-- Group milestone / Family Goal -->
   <div class="group-progress-card" onclick="toggleGoalBreakdown()" style="cursor:pointer;">
@@ -2983,6 +3025,55 @@ const GROUP_MILESTONES = [
   { id:'gm_15000', threshold:25000, name:'Championship Readers',  desc:'Earn 25,000 points — ULTIMATE GOAL! 🏆',  icon:'🍽️', reward:'Kids pick the restaurant — fancy dinner, everyone dresses up 🍽️✨' }
 ];
 
+// ─── Alaska Reading Journey ───────────────────────────────────────────────────
+const JOURNEY_WAYPOINTS = [
+  { id:'phoenix',   label:'Phoenix',         emoji:'🌵', threshold:0,     desc:'The adventure begins!' },
+  { id:'off',       label:"We're Off!",      emoji:'✈️', threshold:7500,  desc:'The Ortiz family has left the building! 🎉' },
+  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:10500, desc:'Exploring Vancouver — 4 days in the city!' },
+  { id:'aboard',    label:'All Aboard!',     emoji:'🚢', threshold:12000, desc:'Boarding the Disney Wonder! Welcome to the ship!' },
+  { id:'skagway',   label:'Skagway',         emoji:'⚓', threshold:13500, desc:'Welcome to Skagway, Alaska! Gold rush country!' },
+  { id:'juneau',    label:'Juneau',          emoji:'🦅', threshold:15000, desc:'Welcome to Juneau — bald eagles and glaciers!' },
+  { id:'ketchikan', label:'Ketchikan',       emoji:'🐟', threshold:16500, desc:"Welcome to Ketchikan — salmon capital of the world!" },
+  { id:'home',      label:'Back to Phoenix', emoji:'🏠', threshold:19000, desc:'Home sweet home! What an incredible trip!' },
+  { id:'school',    label:'Back to School',  emoji:'🎒', threshold:25000, desc:'Summer Reading Legends! Championship Readers achieved! 🏆' },
+];
+
+// Date windows where reading earns bonus points
+const JOURNEY_BOOSTS = [
+  { start:'2026-06-12', end:'2026-06-14', multiplier:1.25, label:'🏔️ Vancouver Boost',  desc:'+25% while exploring Vancouver' },
+  { start:'2026-06-15', end:'2026-06-22', multiplier:1.50, label:'🚢 Cruise Boost',      desc:'+50% while sailing Alaska!' },
+  { start:'2026-07-19', end:'2026-08-02', multiplier:1.25, label:'🎒 Final Push Boost',  desc:'+25% for the last stretch!' },
+];
+
+// ─── Reading Ranks ────────────────────────────────────────────────────────────
+const READING_RANKS = [
+  { label:'🌱 Seedling',               threshold:0     },
+  { label:'📖 Bookworm',               threshold:500   },
+  { label:'⭐ Page Turner',             threshold:1500  },
+  { label:'📚 Chapter Champion',        threshold:3000  },
+  { label:'🔥 Avid Reader',             threshold:5000  },
+  { label:'🏆 Summer Scholar',          threshold:8000  },
+  { label:'✨ Summer Reading Legend',   threshold:12000 },
+];
+
+// ─── Achievement Badges ───────────────────────────────────────────────────────
+const ACHIEVEMENT_BADGES = [
+  { id:'first_book',     label:'First Chapter',    emoji:'📖', desc:'Finish your first book' },
+  { id:'bookworm_3',     label:'Bookworm',          emoji:'📚', desc:'Finish 3 books' },
+  { id:'library_legend', label:'Library Legend',    emoji:'🏆', desc:'Finish 5 books' },
+  { id:'century_club',   label:'Century Club',      emoji:'💯', desc:'Read 100+ minutes in one day' },
+  { id:'marathon',       label:'Reading Marathon',  emoji:'⏱️', desc:'Read 200+ minutes in one day' },
+  { id:'night_owl',      label:'Night Owl',         emoji:'🌙', desc:'Log reading after 9pm' },
+  { id:'early_bird',     label:'Early Bird',        emoji:'☀️', desc:'Log reading before 8am' },
+  { id:'streak_7',       label:'On Fire',           emoji:'🔥', desc:'Reach a 7-day reading streak' },
+  { id:'storyteller',    label:'Storyteller',       emoji:'✍️', desc:'Write 5 journal entries' },
+  { id:'duo',            label:'Reading Duo',       emoji:'👫', desc:'Sedona & River both log the same day' },
+  { id:'rocket_start',   label:'Rocket Start',      emoji:'🚀', desc:'Log reading in the first 3 days of the challenge' },
+  { id:'explorer',       label:'Explorer',          emoji:'🗺️', desc:'Read while in Vancouver' },
+  { id:'cruise_reader',  label:'Cruise Reader',     emoji:'🛳️', desc:'Read while sailing Alaska' },
+  { id:'boost_reader',   label:'Boost Reader',      emoji:'⚡', desc:'Log reading during a bonus boost window' },
+];
+
 // ═══════════════════════════════════════
 //  STATE (Gist-backed)
 // ═══════════════════════════════════════
@@ -3709,7 +3800,7 @@ function toggleFamTotal(view) {
 function renderFamTotalBreakdown() {
   const el = document.getElementById('fam-total-breakdown-content');
   if (!el) return;
-  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
   const view = _famTotalView;
 
   if (view === 'reading') {
@@ -3886,7 +3977,7 @@ function lbWeekStart() {
 
 function buildLbMembers() {
   const weekStart = _lbPeriod === 'week' ? lbWeekStart() : null;
-  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
   return [...MEMBERS].map(m => {
     let sess = state.sessions[m.id] || [];
     if (weekStart) sess = sess.filter(s => (s.date || '') >= weekStart);
@@ -3991,7 +4082,7 @@ function renderDailyWrapup() {
   const el = document.getElementById('daily-wrapup-card');
   if (!el) return;
 
-  const NON_READ = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READ = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
   const allSessions = (state.sessions[currentMember] || []).filter(s =>
     !NON_READ.includes(s.bookId) &&
     !(s.bookTitle||'').includes('(finish bonus)') &&
@@ -4135,6 +4226,240 @@ function renderDailyWrapup() {
     </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  JOURNEY & BOOST HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function getFamilyTotalPts() {
+  return MEMBERS.reduce((sum,m) => sum + getMemberPoints(m.id), 0);
+}
+function getActiveBoost(dateStr) {
+  const d = dateStr || todayStr();
+  return JOURNEY_BOOSTS.find(b => d >= b.start && d <= b.end) || null;
+}
+function getCurrentWaypoint() {
+  const pts = getFamilyTotalPts();
+  return [...JOURNEY_WAYPOINTS].reverse().find(w => pts >= w.threshold) || JOURNEY_WAYPOINTS[0];
+}
+function getNextWaypoint() {
+  const pts = getFamilyTotalPts();
+  return JOURNEY_WAYPOINTS.find(w => w.threshold > pts) || null;
+}
+// Called after every session log — awards bonus pts if a boost is active
+function maybeAddBoostSession(memberId, actualMins, dateStr) {
+  const boost = getActiveBoost(dateStr);
+  if (!boost) return;
+  const bonus = Math.round(actualMins * (boost.multiplier - 1));
+  if (bonus <= 0) return;
+  if (!state.sessions[memberId]) state.sessions[memberId] = [];
+  state.sessions[memberId].push({
+    id: uid(), bookId: 'journey_boost',
+    bookTitle: `${boost.label} (+${Math.round((boost.multiplier-1)*100)}% bonus)`,
+    minutes: bonus, date: dateStr || todayStr(), ts: Date.now()
+  });
+  showToast(`${boost.label} active! +${bonus} bonus pts ⚡`);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  READING RANKS
+// ═══════════════════════════════════════════════════════════════════
+function getMemberRank(memberId) {
+  const pts = getMemberPoints(memberId);
+  return [...READING_RANKS].reverse().find(r => pts >= r.threshold) || READING_RANKS[0];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ACHIEVEMENT BADGES
+// ═══════════════════════════════════════════════════════════════════
+function checkAndAwardBadges(memberId) {
+  if (!state.earnedBadges) state.earnedBadges = {};
+  if (!state.earnedBadges[memberId]) state.earnedBadges[memberId] = [];
+  const earned = state.earnedBadges[memberId];
+  const sessions = (state.sessions[memberId]||[]).filter(s =>
+    !['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full',
+      'library','journal','finish_bonus','streak_bonus','journey_boost'].includes(s.bookId) &&
+    !(s.bookTitle||'').includes('(finish bonus)') && (s.bookTitle||'') !== 'Bingo Square'
+  );
+  const books = state.books[memberId] || [];
+  const newBadges = [];
+
+  const byDay = {};
+  sessions.forEach(s => { byDay[s.date] = (byDay[s.date]||0) + (s.minutes||0); });
+
+  ACHIEVEMENT_BADGES.forEach(badge => {
+    if (earned.includes(badge.id)) return;
+    let met = false;
+    if (badge.id === 'first_book')     met = books.filter(b=>b.status==='finished').length >= 1;
+    if (badge.id === 'bookworm_3')     met = books.filter(b=>b.status==='finished').length >= 3;
+    if (badge.id === 'library_legend') met = books.filter(b=>b.status==='finished').length >= 5;
+    if (badge.id === 'century_club')   met = Object.values(byDay).some(v=>v>=100);
+    if (badge.id === 'marathon')       met = Object.values(byDay).some(v=>v>=200);
+    if (badge.id === 'night_owl')      met = sessions.some(s => { const h=new Date(s.ts||0).getHours(); return h>=21; });
+    if (badge.id === 'early_bird')     met = sessions.some(s => { const h=new Date(s.ts||0).getHours(); return h<8; });
+    if (badge.id === 'streak_7')       met = getReadingStreak(memberId) >= 7 || (state.streakMilestones?.[memberId]||[]).includes(7);
+    if (badge.id === 'storyteller')    met = (state.journal?.[memberId]||[]).length >= 5;
+    if (badge.id === 'rocket_start')   met = sessions.some(s => s.date >= '2026-06-01' && s.date <= '2026-06-03');
+    if (badge.id === 'explorer')       met = sessions.some(s => s.date >= '2026-06-11' && s.date <= '2026-06-14');
+    if (badge.id === 'cruise_reader')  met = sessions.some(s => s.date >= '2026-06-15' && s.date <= '2026-06-22');
+    if (badge.id === 'boost_reader')   met = (state.sessions[memberId]||[]).some(s => s.bookId === 'journey_boost');
+    if (badge.id === 'duo') {
+      if (['sedona','river'].includes(memberId)) {
+        const other = memberId === 'sedona' ? 'river' : 'sedona';
+        const myDays = new Set(sessions.map(s=>s.date));
+        const otherSess = (state.sessions[other]||[]).filter(s =>
+          !['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full',
+            'library','journal','finish_bonus','streak_bonus','journey_boost'].includes(s.bookId));
+        met = otherSess.some(s => myDays.has(s.date));
+      }
+    }
+    if (met) { earned.push(badge.id); newBadges.push(badge); }
+  });
+
+  if (newBadges.length) {
+    newBadges.forEach(badge => {
+      showToast(`🏅 Badge unlocked: ${badge.emoji} ${badge.label}!`);
+      // Auto-shoutout to Exchange for kids' badges
+      const member = MEMBERS.find(m=>m.id===memberId);
+      if (member && member.adult === false) {
+        addActivity('🏅', `${member.name} earned the ${badge.emoji} ${badge.label} badge! ${badge.desc}`, memberId);
+      }
+    });
+    saveToGist();
+    renderHome();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  JOURNEY MAP RENDER
+// ═══════════════════════════════════════════════════════════════════
+function renderJourneyMap() {
+  const el = document.getElementById('journey-map-card');
+  if (!el) return;
+  const famPts = getFamilyTotalPts();
+  const activeBoost = getActiveBoost();
+  const currentWP = getCurrentWaypoint();
+  const nextWP = getNextWaypoint();
+
+  const stops = JOURNEY_WAYPOINTS.map((wp, i) => {
+    const reached = famPts >= wp.threshold;
+    const isCurrent = wp.id === currentWP.id;
+    const dotClass = isCurrent ? 'current' : reached ? 'reached' : '';
+    const labelClass = isCurrent ? 'current' : reached ? 'reached' : '';
+    const line = i < JOURNEY_WAYPOINTS.length - 1
+      ? `<div class="journey-line${famPts > wp.threshold ? ' reached' : ''}"></div>`
+      : '';
+    return `
+      <div class="journey-stop">
+        <div class="journey-stop-dot ${dotClass}">${wp.emoji}</div>
+        <div class="journey-stop-label ${labelClass}">${wp.label}</div>
+      </div>${line}`;
+  }).join('');
+
+  const progressToNext = nextWP
+    ? Math.min(100, Math.round(((famPts - currentWP.threshold) / (nextWP.threshold - currentWP.threshold)) * 100))
+    : 100;
+  const ptsToNext = nextWP ? (nextWP.threshold - famPts).toLocaleString() : 0;
+
+  const boostBanner = activeBoost
+    ? `<div class="journey-boost-badge">⚡ ${activeBoost.label} active! ${activeBoost.desc}</div>`
+    : '';
+
+  const progressBar = nextWP ? `
+    <div style="margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+        <span style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">${currentWP.emoji} ${currentWP.label}</span>
+        <span style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">${nextWP.emoji} ${nextWP.label}</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${progressToNext}%;background:linear-gradient(90deg,#4ECDC4,#FFE66D);border-radius:3px;transition:width 0.5s;"></div>
+      </div>
+      <div style="text-align:center;margin-top:4px;font-size:11px;color:rgba(255,255,255,0.55);">${ptsToNext} pts to ${nextWP.label}</div>
+    </div>` : `<div style="text-align:center;margin-top:8px;font-size:13px;font-weight:700;color:#FFE66D;">🎒 Journey Complete! Summer Reading Legends! 🏆</div>`;
+
+  el.innerHTML = `
+    <div class="journey-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:white;">🗺️ Alaska Reading Journey</div>
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.8);">${famPts.toLocaleString()} pts</div>
+      </div>
+      ${boostBanner}
+      <div class="journey-scroll">${stops}</div>
+      ${progressBar}
+    </div>`;
+
+  // Auto-scroll to current waypoint
+  requestAnimationFrame(() => {
+    const scroll = el.querySelector('.journey-scroll');
+    const idx = JOURNEY_WAYPOINTS.findIndex(w => w.id === currentWP.id);
+    if (scroll && idx > 0) scroll.scrollLeft = Math.max(0, idx * 68 - 40);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SIBLING DUEL
+// ═══════════════════════════════════════════════════════════════════
+function renderSiblingDuel() {
+  const el = document.getElementById('sibling-duel-card');
+  if (!el) return;
+
+  // Only show for the Ortiz family kids or parents
+  const sedona = MEMBERS.find(m=>m.id==='sedona');
+  const river  = MEMBERS.find(m=>m.id==='river');
+  if (!sedona || !river) { el.innerHTML=''; return; }
+
+  // This week's reading minutes (actual reading only)
+  const NON_READ = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full',
+                    'library','journal','finish_bonus','streak_bonus','journey_boost'];
+  const weekStart = (() => {
+    const now = new Date(Date.now() - 7*3600*1000);
+    const day = now.getUTCDay(); // 0=Sun
+    const diff = day; // days since Sunday
+    const sun = new Date(now.getTime() - diff*86400000);
+    return `${sun.getUTCFullYear()}-${String(sun.getUTCMonth()+1).padStart(2,'0')}-${String(sun.getUTCDate()).padStart(2,'0')}`;
+  })();
+
+  const weekMins = (memberId) => (state.sessions[memberId]||[])
+    .filter(s => !NON_READ.includes(s.bookId) && !(s.bookTitle||'').includes('(finish bonus)')
+      && (s.bookTitle||'') !== 'Bingo Square' && (s.date||'') >= weekStart)
+    .reduce((sum,s) => sum+(s.minutes||0), 0);
+
+  const sMin = weekMins('sedona');
+  const rMin = weekMins('river');
+  const total = sMin + rMin || 1;
+  const sPct = Math.round((sMin/total)*100);
+  const rPct = 100 - sPct;
+  const leader = sMin > rMin ? sedona : rMin > sMin ? river : null;
+  const tied = sMin === rMin;
+
+  const fmtMins = m => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
+
+  el.innerHTML = `
+    <div class="duel-card">
+      <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:white;margin-bottom:10px;">⚔️ Weekly Sibling Duel</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="text-align:center;min-width:44px;">
+          <div style="font-size:24px;">${getMemberEmoji('sedona')}</div>
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);">Sedona</div>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex;height:20px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.1);">
+            <div style="width:${sPct}%;background:linear-gradient(90deg,#CE93D8,#AB47BC);transition:width 0.5s;"></div>
+            <div style="width:${rPct}%;background:linear-gradient(90deg,#80DEEA,#26C6DA);transition:width 0.5s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:3px;">
+            <span style="font-size:11px;font-weight:700;color:#CE93D8;">${fmtMins(sMin)}</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.4);">${tied?'🤝 Tied!':`${leader?.name} leads`}</span>
+            <span style="font-size:11px;font-weight:700;color:#80DEEA;">${fmtMins(rMin)}</span>
+          </div>
+        </div>
+        <div style="text-align:center;min-width:44px;">
+          <div style="font-size:24px;">${getMemberEmoji('river')}</div>
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);">River</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;">This week · resets Sunday</div>
+    </div>`;
+}
+
 function renderHome() {
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
@@ -4194,6 +4519,20 @@ function renderHome() {
   document.getElementById('my-stat-avatar').textContent = getMemberEmoji(currentMember);
   document.getElementById('my-stat-name').textContent = myName;
   document.getElementById('my-stat-bg-emoji').textContent = myFinished >= 3 ? '🏆' : myReading > 0 ? '📖' : '📚';
+  // Reading rank
+  const rankEl = document.getElementById('my-stat-rank');
+  if (rankEl) rankEl.innerHTML = `<span class="rank-badge">${getMemberRank(currentMember).label}</span>`;
+  // Badges panel
+  const badgesEl = document.getElementById('my-stats-badges');
+  if (badgesEl) {
+    const earned = new Set(state.earnedBadges?.[currentMember] || []);
+    badgesEl.innerHTML = ACHIEVEMENT_BADGES.map(b =>
+      `<div class="badge-chip${earned.has(b.id)?' earned':''}" title="${b.desc}">
+        <span class="badge-chip-emoji">${b.emoji}</span>
+        <span class="badge-chip-label">${b.label}</span>
+      </div>`
+    ).join('');
+  }
   const streak = getReadingStreak(currentMember);
   const streakValEl = document.getElementById('my-stat-streak-val');
   if (streakValEl) streakValEl.textContent = streak > 0 ? streak + (streak === 1 ? ' day' : ' days') : '—';
@@ -4204,7 +4543,7 @@ function renderHome() {
 
   // Family totals
   let famReading = 0, famBooks = 0, famMins = 0, famPts = 0;
-  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
   MEMBERS.forEach(m => {
     ensureMember(m.id);
     const books = state.books[m.id] || [];
@@ -4313,6 +4652,8 @@ function renderHome() {
   if (_famTotalView) renderFamTotalBreakdown();
   renderPersonalGoal();
   renderNowReading();
+  renderJourneyMap();
+  renderSiblingDuel();
 }
 
 function renderActivityList(containerId, limit) {
@@ -5344,11 +5685,12 @@ function timerLogSession(mins) {
     };
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push(session);
+    maybeAddBoostSession(currentMember, mins, session.date);
     addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
-      checkGroupMilestones();
+      checkGroupMilestones(); checkAndAwardBadges(currentMember);
       showToast(`+${mins} pts! Great reading! 📚`);
       if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
       if (mins >= 30) celebrateThemed();
@@ -5593,13 +5935,14 @@ function logCalcSession() {
   };
   if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
   state.sessions[currentMember].push(session);
+  maybeAddBoostSession(currentMember, mins, session.date);
   addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
   clearCalcStart();
   setLogBusy(true);
   saveToGist().then(() => {
     setLogBusy(false);
     checkBadges(currentMember); checkStreakMilestone(currentMember);
-    checkGroupMilestones();
+    checkGroupMilestones(); checkAndAwardBadges(currentMember);
     showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
     if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
     renderTimer();
@@ -5678,12 +6021,13 @@ function logManualSession() {
     };
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push(session);
+    maybeAddBoostSession(currentMember, mins, session.date);
     const who = MEMBERS.find(m=>m.id===currentMember).name;
     addActivity('📖', `${who} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
-      checkGroupMilestones();
+      checkGroupMilestones(); checkAndAwardBadges(currentMember);
       showToast(`+${mins} pts logged! 📖`);
       if (mins >= 30) celebrateThemed();
       else if (mins >= 10) celebrateSmall();
@@ -6218,6 +6562,17 @@ function checkGroupMilestones() {
       showFamilyGoalCelebration(gm);
     }
   }
+  // Journey waypoint unlocks
+  if (!state.unlockedWaypoints) state.unlockedWaypoints = [];
+  for (const wp of JOURNEY_WAYPOINTS) {
+    if (wp.threshold === 0) continue;
+    if (allPts >= wp.threshold && !state.unlockedWaypoints.includes(wp.id)) {
+      state.unlockedWaypoints.push(wp.id);
+      addActivity(wp.emoji, `🗺️ Journey milestone: ${wp.label} reached! ${wp.desc}`, 'family');
+      showToast(`${wp.emoji} ${wp.label} unlocked! ${wp.desc}`);
+      celebrate(); celebrateThemed();
+    }
+  }
 }
 
 function showFamilyGoalCelebration(gm) {
@@ -6701,7 +7056,7 @@ function saveBook() {
 }
 
 // ── Reading pace & finish estimate ───────────────────────────────────────────
-const NON_READING_PACE = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+const NON_READING_PACE = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
 
 function getMemberDailyPace(memberId) {
   // Average reading minutes/day based on last 28 days of real reading sessions
@@ -6810,6 +7165,25 @@ function showBookFinished(book) {
   ).join('');
   splash.style.display = 'flex';
   celebrate(); celebrateThemed();
+  // Triumphant 5-note fanfare
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[523,0],[659,0.2],[784,0.4],[1047,0.6],[1319,0.85]].forEach(([freq,t]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const start = ctx.currentTime + t;
+      g.gain.setValueAtTime(0, start);
+      g.gain.linearRampToValueAtTime(0.4, start+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, start+0.6);
+      osc.start(start); osc.stop(start+0.65);
+    });
+  } catch(e) {}
+  // Auto-shoutout to Exchange
+  const finMember = MEMBERS.find(m=>m.id===currentMember);
+  if (finMember) addActivity('🎉', `${finMember.name} just finished reading "${book.title}"! 📚🏅`, currentMember);
+  // Check badges (book count badges)
+  checkAndAwardBadges(currentMember);
   // Auto-dismiss after 6 seconds
   splash._autoTimer = setTimeout(dismissBookSplash, 6000);
 }
@@ -8425,7 +8799,7 @@ function showTzDiag() {
   const weekStart  = lbWeekStart();
   const deviceTz   = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus'];
+  const NON_READING = ['bingo','bingo_line','bingo_bonus','bingo_corners','bingo_x','bingo_full','library','journal','finish_bonus','streak_bonus','journey_boost'];
   let lines = [];
   lines.push(`Device timezone : ${deviceTz}`);
   lines.push(`Current AZ time : ${azTimeStr}`);
