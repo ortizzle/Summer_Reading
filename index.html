@@ -3032,7 +3032,7 @@ const JOURNEY_WAYPOINTS = [
   // Pre-trip & Vancouver (wider gaps — lots of time before the cruise)
   { id:'phoenix',   label:'Phoenix',         emoji:'🌵', threshold:0,     desc:'The adventure begins!' },
   { id:'off',       label:"We're Off!",      emoji:'✈️', threshold:6500,  desc:'The Ortiz family has left the building! 🎉' },
-  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:8500,  desc:'Exploring Vancouver — 4 days in the city!' },
+  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:7000,  desc:'Exploring Vancouver — 4 days in the city!' },
   { id:'aboard',    label:'All Aboard!',     emoji:'🚢', threshold:10000, desc:'Boarding the Disney Wonder! Welcome to the ship!' },
   // Alaska cruise stops (tight gaps — 7 days, lighter reading on vacation)
   { id:'skagway',   label:'Skagway',         emoji:'⚓', threshold:10500, desc:'Welcome to Skagway, Alaska! Gold rush country!' },
@@ -4406,7 +4406,7 @@ function renderJourneyMap() {
   const SPINE = [
     {pts:0,     cx:238, cy:352, phase:'flight'},    // Phoenix
     {pts:6500,  cx:195, cy:274, phase:'flight'},    // We're Off! (mid-flight)
-    {pts:8500,  cx:144, cy:161, phase:'cruise-n'},  // Vancouver
+    {pts:7000,  cx:144, cy:161, phase:'cruise-n'},  // Vancouver (arrive Thu, same day as flight)
     {pts:8900,  cx:132, cy:150, phase:'cruise-n'},  // coast intermediate
     {pts:9300,  cx:118, cy:138, phase:'cruise-n'},  // coast intermediate
     {pts:9700,  cx:104, cy:124, phase:'cruise-n'},  // coast intermediate
@@ -4485,7 +4485,7 @@ function renderJourneyMap() {
   // ── City dots (interactive) ──
   const CITY_DOTS = [
     {id:'phoenix',   cx:238, cy:352, label:'🌵 Phoenix',    threshold:0,     labelAnchor:'end',   labelDx:-8,  labelDy:-4},
-    {id:'vancouver', cx:144, cy:161, label:'🏔️ Vancouver',  threshold:8500,  labelAnchor:'start', labelDx:7,   labelDy:-3},
+    {id:'vancouver', cx:144, cy:161, label:'🏔️ Vancouver',  threshold:7000,  labelAnchor:'start', labelDx:7,   labelDy:-3},
     {id:'skagway',   cx:40,  cy:47,  label:'⚓ Skagway',    threshold:10500, labelAnchor:'start', labelDx:8,   labelDy:-3},
     {id:'juneau',    cx:48,  cy:60,  label:'🦅 Juneau',     threshold:11000, labelAnchor:'start', labelDx:8,   labelDy:3},
     {id:'ketchikan', cx:72,  cy:91,  label:'🐟 Ketchikan',  threshold:11500, labelAnchor:'start', labelDx:8,   labelDy:3},
@@ -4649,7 +4649,7 @@ function renderJourneyMap() {
 function journeyMapCityClick(cityId) {
   const CITY_INFO = {
     phoenix:   {emoji:'🌵', name:'Phoenix, AZ',   threshold:0,     desc:'Home sweet home — where the adventure begins and ends!'},
-    vancouver: {emoji:'🏔️', name:'Vancouver, BC', threshold:8500,  desc:'Arriving June 11 — 4 days exploring the Pacific Northwest before boarding.'},
+    vancouver: {emoji:'🏔️', name:'Vancouver, BC', threshold:7000,  desc:'Arriving June 11 — 4 days exploring the Pacific Northwest before boarding.'},
     skagway:   {emoji:'⚓', name:'Skagway, AK',   threshold:10500, desc:'Gold rush country at the tip of the Lynn Canal. First Alaskan port!'},
     juneau:    {emoji:'🦅', name:'Juneau, AK',    threshold:11000, desc:"Alaska's capital — bald eagles, the Mendenhall Glacier, and incredible views."},
     ketchikan: {emoji:'🐟', name:'Ketchikan, AK', threshold:11500, desc:'Salmon capital of the world. Last port before the voyage home!'},
