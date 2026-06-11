@@ -3076,14 +3076,14 @@ const GROUP_MILESTONES = [
 const JOURNEY_WAYPOINTS = [
   // Pre-trip & Vancouver (wider gaps — lots of time before the cruise)
   { id:'phoenix',   label:'Phoenix',         emoji:'🌵', threshold:0,     desc:'The adventure begins!' },
-  { id:'off',       label:"We're Off!",      emoji:'✈️', threshold:6500,  desc:'The Ortiz family has left the building! 🎉' },
-  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:7000,  desc:'Exploring Vancouver — 4 days in the city!' },
-  { id:'aboard',    label:'All Aboard!',     emoji:'🚢', threshold:10000, desc:'Boarding the Disney Wonder! Welcome to the ship!' },
+  { id:'off',       label:"We're Off!",      emoji:'✈️', threshold:5850,  desc:'The Ortiz family has left the building! 🎉' },
+  { id:'vancouver', label:'Vancouver',        emoji:'🏔️', threshold:6000,  desc:'Exploring Vancouver — 4 days in the city!' },
+  { id:'aboard',    label:'All Aboard!',     emoji:'🚢', threshold:6500,  desc:'Boarding the Disney Wonder! Welcome to the ship!' },
   // Alaska cruise stops (tight gaps — 7 days, lighter reading on vacation)
-  { id:'skagway',   label:'Skagway',         emoji:'⚓', threshold:10500, desc:'Welcome to Skagway, Alaska! Gold rush country!' },
-  { id:'juneau',    label:'Juneau',          emoji:'🦅', threshold:11000, desc:'Welcome to Juneau — bald eagles and glaciers!' },
-  { id:'ketchikan', label:'Ketchikan',       emoji:'🐟', threshold:11500, desc:"Welcome to Ketchikan — salmon capital of the world!" },
-  { id:'home',      label:'Back to Phoenix', emoji:'🏠', threshold:12500, desc:'Home sweet home! What an incredible trip!' },
+  { id:'skagway',   label:'Skagway',         emoji:'⚓', threshold:6700,  desc:'Welcome to Skagway, Alaska! Gold rush country!' },
+  { id:'juneau',    label:'Juneau',          emoji:'🦅', threshold:6900,  desc:'Welcome to Juneau — bald eagles and glaciers!' },
+  { id:'ketchikan', label:'Ketchikan',       emoji:'🐟', threshold:7100,  desc:"Welcome to Ketchikan — salmon capital of the world!" },
+  { id:'home',      label:'Back to Phoenix', emoji:'🏠', threshold:7500,  desc:'Home sweet home! What an incredible trip!' },
   // Home stretch — 5+ weeks to push to the finish line
   { id:'school',    label:'Back to School',  emoji:'🎒', threshold:25000, desc:'Summer Reading Legends! Championship Readers achieved! 🏆' },
 ];
@@ -4450,22 +4450,22 @@ function renderJourneyMap() {
   // Home stretch 12,500 → 25,000 is the big push.
   const SPINE = [
     {pts:0,     cx:238, cy:352, phase:'flight'},    // Phoenix
-    {pts:6500,  cx:195, cy:274, phase:'flight'},    // We're Off! (mid-flight)
-    {pts:7000,  cx:144, cy:161, phase:'cruise-n'},  // Vancouver (arrive Thu, same day as flight)
-    {pts:8900,  cx:132, cy:150, phase:'cruise-n'},  // coast intermediate
-    {pts:9300,  cx:118, cy:138, phase:'cruise-n'},  // coast intermediate
-    {pts:9700,  cx:104, cy:124, phase:'cruise-n'},  // coast intermediate
-    {pts:10000, cx:90,  cy:108, phase:'cruise-n'},  // All Aboard
-    {pts:10200, cx:76,  cy:92,  phase:'cruise-n'},  // coast intermediate
-    {pts:10400, cx:62,  cy:74,  phase:'cruise-n'},  // coast intermediate
-    {pts:10500, cx:40,  cy:47,  phase:'port-hop'},  // Skagway
-    {pts:11000, cx:48,  cy:60,  phase:'port-hop'},  // Juneau
-    {pts:11500, cx:72,  cy:91,  phase:'return'},    // Ketchikan
-    {pts:11800, cx:84,  cy:108, phase:'return'},    // return coast intermediate
-    {pts:12100, cx:98,  cy:126, phase:'return'},    // return coast intermediate
-    {pts:12300, cx:112, cy:142, phase:'return'},    // return coast intermediate
-    {pts:12500, cx:144, cy:161, phase:'return'},    // Back to Phoenix / Vancouver
-    {pts:18500, cx:183, cy:233, phase:'return'},    // mid-flight home
+    {pts:5850,  cx:195, cy:274, phase:'flight'},    // We're Off! (mid-flight)
+    {pts:6000,  cx:144, cy:161, phase:'cruise-n'},  // Vancouver (arrive Thu, same day as flight)
+    {pts:6125,  cx:132, cy:150, phase:'cruise-n'},  // coast intermediate
+    {pts:6250,  cx:118, cy:138, phase:'cruise-n'},  // coast intermediate
+    {pts:6375,  cx:104, cy:124, phase:'cruise-n'},  // coast intermediate
+    {pts:6500,  cx:90,  cy:108, phase:'cruise-n'},  // All Aboard
+    {pts:6575,  cx:76,  cy:92,  phase:'cruise-n'},  // coast intermediate
+    {pts:6650,  cx:62,  cy:74,  phase:'cruise-n'},  // coast intermediate
+    {pts:6700,  cx:40,  cy:47,  phase:'port-hop'},  // Skagway
+    {pts:6900,  cx:48,  cy:60,  phase:'port-hop'},  // Juneau
+    {pts:7100,  cx:72,  cy:91,  phase:'return'},    // Ketchikan
+    {pts:7200,  cx:84,  cy:108, phase:'return'},    // return coast intermediate
+    {pts:7300,  cx:98,  cy:126, phase:'return'},    // return coast intermediate
+    {pts:7400,  cx:112, cy:142, phase:'return'},    // return coast intermediate
+    {pts:7500,  cx:144, cy:161, phase:'return'},    // Back to Phoenix / Vancouver
+    {pts:16000, cx:183, cy:233, phase:'return'},    // mid-flight home
     {pts:25000, cx:238, cy:352, phase:'return'},    // Back to School / Phoenix
   ];
 
@@ -4530,10 +4530,10 @@ function renderJourneyMap() {
   // ── City dots (interactive) ──
   const CITY_DOTS = [
     {id:'phoenix',   cx:238, cy:352, label:'🌵 Phoenix',    threshold:0,     labelAnchor:'end',   labelDx:-8,  labelDy:-4},
-    {id:'vancouver', cx:144, cy:161, label:'🏔️ Vancouver',  threshold:7000,  labelAnchor:'start', labelDx:7,   labelDy:-3},
-    {id:'skagway',   cx:40,  cy:47,  label:'⚓ Skagway',    threshold:10500, labelAnchor:'start', labelDx:8,   labelDy:-3},
-    {id:'juneau',    cx:48,  cy:60,  label:'🦅 Juneau',     threshold:11000, labelAnchor:'start', labelDx:8,   labelDy:3},
-    {id:'ketchikan', cx:72,  cy:91,  label:'🐟 Ketchikan',  threshold:11500, labelAnchor:'start', labelDx:8,   labelDy:3},
+    {id:'vancouver', cx:144, cy:161, label:'🏔️ Vancouver',  threshold:6000,  labelAnchor:'start', labelDx:7,   labelDy:-3},
+    {id:'skagway',   cx:40,  cy:47,  label:'⚓ Skagway',    threshold:6700,  labelAnchor:'start', labelDx:8,   labelDy:-3},
+    {id:'juneau',    cx:48,  cy:60,  label:'🦅 Juneau',     threshold:6900,  labelAnchor:'start', labelDx:8,   labelDy:3},
+    {id:'ketchikan', cx:72,  cy:91,  label:'🐟 Ketchikan',  threshold:7100,  labelAnchor:'start', labelDx:8,   labelDy:3},
   ];
 
   const cityDotsSVG = CITY_DOTS.map(c => {
@@ -4773,10 +4773,10 @@ function renderJourneyMap() {
 function journeyMapCityClick(cityId) {
   const CITY_INFO = {
     phoenix:   {emoji:'🌵', name:'Phoenix, AZ',   threshold:0,     desc:'Home sweet home — where the adventure begins and ends!'},
-    vancouver: {emoji:'🏔️', name:'Vancouver, BC', threshold:7000,  desc:'Arriving June 11 — 4 days exploring the Pacific Northwest before boarding.'},
-    skagway:   {emoji:'⚓', name:'Skagway, AK',   threshold:10500, desc:'Gold rush country at the tip of the Lynn Canal. First Alaskan port!'},
-    juneau:    {emoji:'🦅', name:'Juneau, AK',    threshold:11000, desc:"Alaska's capital — bald eagles, the Mendenhall Glacier, and incredible views."},
-    ketchikan: {emoji:'🐟', name:'Ketchikan, AK', threshold:11500, desc:'Salmon capital of the world. Last port before the voyage home!'},
+    vancouver: {emoji:'🏔️', name:'Vancouver, BC', threshold:6000,  desc:'Arriving June 11 — 4 days exploring the Pacific Northwest before boarding.'},
+    skagway:   {emoji:'⚓', name:'Skagway, AK',   threshold:6700,  desc:'Gold rush country at the tip of the Lynn Canal. First Alaskan port!'},
+    juneau:    {emoji:'🦅', name:'Juneau, AK',    threshold:6900,  desc:"Alaska's capital — bald eagles, the Mendenhall Glacier, and incredible views."},
+    ketchikan: {emoji:'🐟', name:'Ketchikan, AK', threshold:7100,  desc:'Salmon capital of the world. Last port before the voyage home!'},
   };
   const info = CITY_INFO[cityId];
   const panel = document.getElementById('journey-city-panel');
@@ -4846,11 +4846,11 @@ function toggleMapRoadmap() {
     off:       'Wheels up — the Ortiz family is officially on the move!',
     vancouver: '4 days exploring Vancouver before boarding.',
     aboard:    "Welcome to the Disney Wonder — let's sail!",
-    skagway:   'Lynn Canal & gold rush country — only 500 pts from boarding!',
-    juneau:    "Alaska's capital — bald eagles, glaciers, and 500 more pts!",
-    ketchikan: 'Salmon capital — last Alaskan port, just 500 pts from Juneau!',
+    skagway:   'Lynn Canal & gold rush country — only 200 pts from boarding!',
+    juneau:    "Alaska's capital — bald eagles, glaciers, and 200 more pts!",
+    ketchikan: 'Salmon capital — last Alaskan port, just 200 pts from Juneau!',
     home:      'Cruise complete — flying back to Phoenix!',
-    school:    '12,500 pts to go — the big home-stretch push! 🏆',
+    school:    '17,500 pts to go — the big home-stretch push! 🏆',
   };
 
   // Build a single stop row (used inside both active and locked sections)
