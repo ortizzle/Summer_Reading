@@ -1635,7 +1635,8 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div style="width:36px;height:4px;border-radius:2px;background:#e0e0e0;margin:0 auto 20px;"></div>
     <div style="font-size:36px;text-align:center;margin-bottom:10px;">📓</div>
     <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#1A1A2E;text-align:center;margin-bottom:6px;">Write about it?</div>
-    <div style="font-size:14px;color:#607D8B;text-align:center;margin-bottom:24px;" id="journal-prompt-book-text">Capture your thoughts while they're fresh.</div>
+    <div style="font-size:14px;color:#607D8B;text-align:center;margin-bottom:16px;" id="journal-prompt-book-text">Capture your thoughts while they're fresh.</div>
+    <div id="journal-prompt-bonus" style="display:none;background:linear-gradient(90deg,#FFF7E0,#FFEFC2);border:1.5px solid #F4C95D;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#7A5800;font-weight:600;text-align:center;line-height:1.4;">⚡ <b>Trip Bonus:</b> write 3+ sentences and earn <b>+15 pts</b> — through June 22!</div>
     <button onclick="openJournalFromLog()" style="width:100%;background:#16A34A;color:white;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">✏️ Write a Journal Entry</button>
     <button onclick="dismissJournalLogPrompt()" style="width:100%;background:none;border:none;color:#90A4AE;font-size:15px;cursor:pointer;padding:8px;font-family:'DM Sans',sans-serif;">Not right now</button>
   </div>
@@ -2525,6 +2526,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
     <div class="modal-handle"></div>
     <div class="modal-title" id="journal-modal-title">✏️ Journal Entry</div>
     <input type="hidden" id="journal-edit-id" value="">
+    <div id="journal-modal-bonus" style="display:none;background:linear-gradient(90deg,#FFF7E0,#FFEFC2);border:1.5px solid #F4C95D;border-radius:12px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#7A5800;font-weight:600;text-align:center;line-height:1.4;">⚡ <b>Trip Bonus:</b> 3+ sentences = <b>+15 pts</b> (through June 22)</div>
     <div class="form-group">
       <label class="form-label">Book</label>
       <select class="form-select" id="journal-book-select">
@@ -6258,6 +6260,9 @@ function timerLogSession(mins) {
     state.sessions[currentMember].push(session);
     maybeAddBoostSession(currentMember, mins, session.date);
     addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
+    // Show journal prompt immediately — don't wait on the network save
+    const book2 = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
+    showJournalLogPrompt(timerBookId, book2 ? book2.title : '');
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
@@ -6266,8 +6271,6 @@ function timerLogSession(mins) {
       if (mins >= 120) showToast('🎉 2+ hour session! Bingo square unlocked!');
       if (mins >= 30) celebrateThemed();
       else if (mins >= 10) celebrateSmall();
-      const book2 = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
-      showJournalLogPrompt(timerBookId, book2 ? book2.title : '');
     }).catch(() => setLogBusy(false));
   });
 }
@@ -6510,6 +6513,8 @@ function logCalcSession() {
   addActivity('⏱', `${MEMBERS.find(m=>m.id===currentMember).name} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
   clearCalcStart();
   setLogBusy(true);
+  // Show journal prompt immediately — don't wait on the network save
+  showJournalLogPrompt(bookId, book ? book.title : '');
   saveToGist().then(() => {
     setLogBusy(false);
     checkBadges(currentMember); checkStreakMilestone(currentMember);
@@ -6517,7 +6522,6 @@ function logCalcSession() {
     showToast(`+${mins} pts! ${formatMins(mins)} logged 📚`);
     if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
     renderTimer();
-    showJournalLogPrompt(bookId, book ? book.title : '');
   }).catch(() => setLogBusy(false));
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -6595,6 +6599,8 @@ function logManualSession() {
     maybeAddBoostSession(currentMember, mins, session.date);
     const who = MEMBERS.find(m=>m.id===currentMember).name;
     addActivity('📖', `${who} read ${formatMins(mins)}${book ? ` · ${book.title}` : ''}`, currentMember);
+    // Show journal prompt immediately — don't wait on the network save
+    showJournalLogPrompt(bookId, book ? book.title : '');
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
@@ -6605,7 +6611,6 @@ function logManualSession() {
       document.getElementById('manual-minutes').value = '';
       document.getElementById('manual-date').value = todayStr();
       renderTimer();
-      showJournalLogPrompt(bookId, book ? book.title : '');
     }).catch(() => setLogBusy(false));
   });
 }
@@ -7423,6 +7428,7 @@ function saveJournalEntry() {
   if (!state.journal[currentMember]) state.journal[currentMember] = [];
 
   const editId = document.getElementById('journal-edit-id').value;
+  let tripBonus = false;
   if (editId) {
     // Edit existing entry
     const entry = state.journal[currentMember].find(e => e.id === editId);
@@ -7442,7 +7448,12 @@ function saveJournalEntry() {
     // Award 5 pts for writing a journal entry
     if (!state.sessions[currentMember]) state.sessions[currentMember] = [];
     state.sessions[currentMember].push({ id:uid(), bookId:'journal', bookTitle:'Journal Entry', minutes:5, date:todayStr(), ts:Date.now() });
-    addActivity('📝', `${MEMBERS.find(m=>m.id===currentMember).name} wrote a journal entry about ${bookTitle}`, currentMember);
+    // Trip bonus: +15 pts for a 3+ sentence entry, through June 22
+    if (isJournalTripBonusActive() && countSentences(text) >= 3) {
+      tripBonus = true;
+      state.sessions[currentMember].push({ id:uid(), bookId:'journal', bookTitle:'Trip Journal Bonus', minutes:JOURNAL_TRIP_BONUS_PTS, date:todayStr(), ts:Date.now() });
+    }
+    addActivity('📝', `${MEMBERS.find(m=>m.id===currentMember).name} wrote a journal entry about ${bookTitle}${tripBonus ? ' (+15 trip bonus! ⚡)' : ''}`, currentMember);
   }
 
   // Save rating to linked book if present
@@ -7458,7 +7469,7 @@ function saveJournalEntry() {
   journalStarRating = 0;
   resetJournalStars();
   closeModal('journal-modal');
-  showToast(wasEdit ? 'Entry updated! ✏️' : 'Journal entry saved! 📝');
+  showToast(wasEdit ? 'Entry updated! ✏️' : tripBonus ? '+20 pts! Trip bonus earned! ⚡📝' : 'Journal entry saved! +5 pts 📝');
   renderJournal();
   // Save in background
   saveToGist().then(() => {
@@ -7951,6 +7962,8 @@ function logFromSheet(bookId, memberId) {
     state.sessions[mid].push(session);
     const who = MEMBERS.find(m => m.id === mid)?.name || mid;
     addActivity('📖', `${who} logged ${formatMins(mins)} reading ${book.title}`, mid);
+    // Show journal prompt immediately — don't wait on the network save
+    showJournalLogPrompt(bookId, book.title);
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(mid); checkStreakMilestone(mid); checkGroupMilestones();
@@ -7958,7 +7971,6 @@ function logFromSheet(bookId, memberId) {
       showToast(`+${mins} pts logged for "${book.title}"! 📖`);
       if (mins >= 30) celebrateThemed(); else if (mins >= 10) celebrateSmall();
       renderHome();
-      showJournalLogPrompt(bookId, book.title);
     }).catch(() => setLogBusy(false));
   });
 }
@@ -8434,6 +8446,14 @@ let _journalPromptBookId = null;
 let _journalPromptTitle  = null;
 let _journalPromptTimer  = null;
 
+// Trip journal bonus: +15 pts for 3+ sentence entries, through end of trip
+const JOURNAL_TRIP_BONUS_END = '2026-06-22';
+const JOURNAL_TRIP_BONUS_PTS = 15;
+function isJournalTripBonusActive() { return todayStr() <= JOURNAL_TRIP_BONUS_END; }
+function countSentences(text) {
+  return text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 1).length;
+}
+
 function showJournalLogPrompt(bookId, bookTitle) {
   // Only prompt for real book sessions
   if (!bookId || bookId === 'finish_bonus' || bookId === 'bingo' || bookId === 'library' || bookId === 'journal') return;
@@ -8443,9 +8463,11 @@ function showJournalLogPrompt(bookId, bookTitle) {
   const textEl = document.getElementById('journal-prompt-book-text');
   if (!el) return;
   if (textEl) textEl.textContent = `Write about "${bookTitle}"?`;
+  const bonusEl = document.getElementById('journal-prompt-bonus');
+  if (bonusEl) bonusEl.style.display = isJournalTripBonusActive() ? 'block' : 'none';
   el.style.display = 'block';
   clearTimeout(_journalPromptTimer);
-  _journalPromptTimer = setTimeout(dismissJournalLogPrompt, 12000);
+  _journalPromptTimer = setTimeout(dismissJournalLogPrompt, 30000);
 }
 
 function dismissJournalLogPrompt() {
@@ -8859,7 +8881,15 @@ function clearBookForm() {
   document.querySelector('#status-chips .radio-chip').classList.add('selected');
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'journal-modal') {
+    const bonusEl = document.getElementById('journal-modal-bonus');
+    // Only show the trip-bonus banner for new entries (not edits)
+    const isEdit = !!document.getElementById('journal-edit-id').value;
+    if (bonusEl) bonusEl.style.display = (!isEdit && isJournalTripBonusActive()) ? 'block' : 'none';
+  }
+}
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'add-book-modal') { stopScanner(); hideTitleSearchResults(); }
