@@ -911,6 +911,38 @@ body.timer-focus #timer-focus-exit-btn { display: flex !important; }
 .badge-chip.earned .badge-chip-emoji { filter:none; animation:badgeShimmer 3.5s ease-in-out infinite; }
 @keyframes badgeShimmer { 0%,100%{filter:none;} 50%{filter:brightness(1.25) saturate(1.3) drop-shadow(0 0 4px rgba(255,230,100,0.7));} }
 @keyframes pulse { 0%,100%{box-shadow:0 0 6px 1px rgba(255,230,60,0.5);} 50%{box-shadow:0 0 12px 4px rgba(255,230,60,0.85);} }
+
+/* ─── Trip bonus banner: shimmer + glitter ─── */
+.trip-bonus-banner {
+  position: relative; overflow: hidden;
+  background: linear-gradient(90deg, #FFF7E0, #FFEFC2, #FFE389, #FFEFC2, #FFF7E0);
+  background-size: 200% 100%;
+  animation: tripBonusBg 4s linear infinite;
+  border: 1.5px solid #F4C95D; border-radius: 12px;
+  padding: 10px 14px; margin-bottom: 16px;
+  font-size: 13px; color: #7A5800; font-weight: 600;
+  text-align: center; line-height: 1.4;
+  box-shadow: 0 0 10px rgba(244,201,93,0.35);
+}
+.trip-bonus-banner.compact { font-size: 12px; padding: 9px 12px; margin-bottom: 12px; }
+.trip-bonus-banner::after {
+  content: ''; position: absolute; top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.9), transparent);
+  transform: skewX(-20deg);
+  animation: tripBonusSweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.trip-bonus-banner .tb-sparkle {
+  position: absolute; font-size: 9px; pointer-events: none;
+  opacity: 0; animation: tbTwinkle 1.9s ease-in-out infinite;
+}
+@keyframes tripBonusBg { 0%{background-position:0% 0;} 100%{background-position:200% 0;} }
+@keyframes tripBonusSweep { 0%{left:-75%;} 55%{left:125%;} 100%{left:125%;} }
+@keyframes tbTwinkle {
+  0%,100% { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+  50%     { opacity: 1; transform: scale(1.2) rotate(15deg); }
+}
 .badge-chip-label { font-size:9px; font-weight:600; color:rgba(255,255,255,0.35); text-align:center; line-height:1.2; }
 .badge-chip.earned .badge-chip-label { color:rgba(255,255,255,0.9); }
 
