@@ -54,7 +54,7 @@ A family reading tracker built as a single-file Progressive Web App (PWA), synce
 - **Now Reading strip** — shows what everyone's currently reading
 
 ### 🔥 Streaks & Bonuses
-- **Streak milestones:** 5-day (50 pts), 10-day (100 pts), 14-day (140 pts), 21-day (210 pts), 30-day (300 pts)
+- **Streak milestones:** 3, 5, 7, 10, 14, 20, 25, 30, 40, 50, 60, and 72 days — each worth `days × 10` bonus points (e.g. 7-day = 70 pts, 72-day "Perfect Summer" = 720 pts)
 - **One-time per milestone** — bonus awarded once and tracked in `state.streakMilestones`
 - **Retroactive migration** — `migrateStreakBonuses()` runs on init to award any bonuses earned before the feature existed
 
@@ -102,9 +102,9 @@ Arizona is always **UTC−7** (no DST). All date strings use `azDateStr()` which
 - **Bingo merge safety:** `preMergeBingo` is captured before the Gist overwrite so local completions survive a sync
 - **Auto-sync on foreground:** `visibilitychange` event triggers a Gist reload whenever the app comes back into view
 
-### Service Worker (`sw.js` — v2)
-- **`index.html`** → network-first (ensures code updates land immediately)
-- **GitHub API / Google Books API** → network-only (live data, never cached)
+### Service Worker (`sw.js` — v3)
+- **`index.html`** → network-first (ensures code updates land immediately; only 2xx responses overwrite the cached copy)
+- **GitHub API / Google Books API** → network-only (live data, never cached; failures reject so the app can show a real error instead of a fake success)
 - **Icons, manifest** → cache-first (fast offline load)
 
 ### PWA Install
@@ -132,8 +132,9 @@ Summer_Reading/
 ## Development Notes
 
 - **Never use `git push` in terminal** — terminal is not authenticated. Push via **GitHub Desktop** only.
-- The Gist token is embedded in `index.html` — do not share the file publicly with the token intact.
-- To force all devices to reload a new version, bump the cache name in `sw.js` (e.g., `ortizzle-v2` → `ortizzle-v3`).
+- The Gist token is **not** stored in the repo — it lives in each device's `localStorage` (entered via Settings). Keep it that way: never hardcode a token into `index.html`, since this repo is public.
+- The Settings "share link" embeds the token in a URL query param — only send it over private channels (the app strips it from the address bar on load, but it remains in the message thread it was shared through).
+- To force all devices to reload a new version, bump the cache name in `sw.js` (e.g., `ortizzle-v3` → `ortizzle-v4`).
 - Google Books API is used without a key: `https://www.googleapis.com/books/v1/volumes?q=...`
 
 ---

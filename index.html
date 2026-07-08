@@ -205,17 +205,6 @@ body {
   border-bottom: 1px solid #f0f0f0;
 }
 .leaderboard-item:last-child { border-bottom: none; }
-.rank-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
 .rank-1 { background: var(--lemon); color: var(--navy); }
 .rank-2 { background: #E8E8E8; color: var(--navy); }
 .rank-3 { background: #F4D0A0; color: var(--navy); }
@@ -3332,11 +3321,15 @@ async function saveToGist() {
       }
     }
     updateSyncPill('syncing');
-    await fetch(`https://api.github.com/gists/${gistId}`, {
+    const patchRes = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: 'PATCH',
       headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ files: { 'ortizzle-reading.json': { content: JSON.stringify(state) } } })
     });
+    // A real Gist PATCH echoes the gist back with a `files` map; anything else
+    // (401/422, or an offline fallback response) means the write did not land
+    const patchBody = await patchRes.json();
+    if (!patchRes.ok || !patchBody.files) throw new Error(`Gist save failed (${patchRes.status})`);
     localStorage.setItem('ortizzle_local', JSON.stringify(state));
     updateSyncPill('ok');
   } catch(e) { updateSyncPill('error'); }
@@ -6198,6 +6191,9 @@ async function timerRequestNotificationPermission() {
   }
 }
 function timerNotifyDone(bookTitle) {
+  // Without permission neither path can show anything (the SW's showNotification
+  // would reject silently) — the audible chime is the only signal in that case
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   // Prefer service worker notification (works with screen off on Android PWA)
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.postMessage({
@@ -6283,6 +6279,7 @@ document.addEventListener('visibilitychange', () => {
   // Re-fetch Gist data so the app is fresh when coming back from background
   loadFromGist().then(() => {
     renderHome();
+    const activeTab = document.querySelector('.section.active')?.id.replace('sec-','');
     if (activeTab === 'shelf')    renderShelf();
     if (activeTab === 'timer')    renderTimer();
     if (activeTab === 'feed')     renderFeed();
@@ -6290,8 +6287,10 @@ document.addEventListener('visibilitychange', () => {
   });
 });
 
-// Shared: build a session, save it, and run all the celebratory follow-ups
-function timerLogSession(mins) {
+// Shared: build a session, save it, and run all the celebratory follow-ups.
+// onValidated runs only once the user has confirmed the minutes — callers use
+// it to tear down the timer, so a cancelled confirm doesn't lose the session.
+function timerLogSession(mins, onValidated) {
   validateAndLog(mins, () => {
     setLogBusy(true, 'timer-stop-btn');
     const book = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
@@ -6306,6 +6305,7 @@ function timerLogSession(mins) {
     // Show journal prompt immediately — don't wait on the network save
     const book2 = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
     showJournalLogPrompt(timerBookId, book2 ? book2.title : '');
+    if (onValidated) onValidated();
     saveToGist().then(() => {
       setLogBusy(false);
       checkBadges(currentMember); checkStreakMilestone(currentMember);
@@ -6320,19 +6320,23 @@ function timerLogSession(mins) {
 
 function timerStop() {
   if (_logBusy) return;
-  clearInterval(timerInterval);
   hideTimerDonePrompt();
-  const elapsed = Math.ceil(timerSeconds / 60);
-  const mins = Math.max(1, elapsed);
+  const liveSecs = timerRunning
+    ? Math.floor((timerAccruedMs + (Date.now() - timerWallStart)) / 1000)
+    : timerSeconds;
+  const mins = Math.max(1, Math.ceil(liveSecs / 60));
   // Only chime/notify here if the countdown-complete handler hasn't already done so
   if (!timerCountdownReached) {
     const bookForNotify = (state.books[currentMember]||[]).find(b=>b.id===timerBookId);
     timerPlayAlarm();
     timerNotifyDone(bookForNotify ? bookForNotify.title : '');
   }
-  timerLogSession(mins);
-  resetTimer();
-  renderTimer();
+  // Timer is only torn down once the minutes are confirmed — cancelling the
+  // long-session confirm leaves it running so no reading time is lost
+  timerLogSession(mins, () => {
+    resetTimer();
+    renderTimer();
+  });
 }
 
 // ── "Time's up!" prompt (shown when a countdown reaches its target) ─────────
@@ -6378,10 +6382,10 @@ function timerDoneLogPlanned() {
   if (_logBusy) return;
   const plannedMins = Math.max(1, Math.round(timerCountdownTarget / 60));
   hideTimerDonePrompt();
-  clearInterval(timerInterval);
-  timerLogSession(plannedMins);
-  resetTimer();
-  renderTimer();
+  timerLogSession(plannedMins, () => {
+    resetTimer();
+    renderTimer();
+  });
 }
 function timerDoneKeepReading() {
   hideTimerDonePrompt();
@@ -6394,10 +6398,10 @@ function timerDoneLogCustom() {
   const val = parseInt(document.getElementById('timer-done-custom-input').value, 10);
   if (!val || val < 1) { showToast('Enter a valid number of minutes.'); return; }
   hideTimerDonePrompt();
-  clearInterval(timerInterval);
-  timerLogSession(val);
-  resetTimer();
-  renderTimer();
+  timerLogSession(val, () => {
+    resetTimer();
+    renderTimer();
+  });
 }
 function timerDoneCancel() {
   hideTimerDonePrompt();
@@ -6662,9 +6666,10 @@ function logManualSession() {
 //  CHALLENGES
 // ═══════════════════════════════════════
 function isJulyCard() {
-  // July–August challenge runs July 1 through early August (challenge ends ~Aug 8)
-  const t = todayStr();
-  return t >= '2026-07-01' && t <= '2026-08-08';
+  // July–August card activates July 1 and stays active after the challenge
+  // ends (~Aug 8) — without a floor-only check, the app would silently revert
+  // to the June card once the end date passed
+  return todayStr() >= '2026-07-01';
 }
 
 function getBingoSquares(card) {
@@ -8418,10 +8423,13 @@ function migrateStreakBonuses() {
     if (!milestones.length) return;
     const sessions = state.sessions[m.id] || [];
     milestones.forEach(days => {
-      // Check if a streak_bonus session for exactly this milestone already exists
+      // Check if a streak_bonus session for this milestone already exists.
+      // Older sessions were titled with the streak at award time (e.g. "8-Day"
+      // when crossing the 7-day milestone), so also match by point value —
+      // days*10 is unique per milestone.
       const alreadyAwarded = sessions.some(s =>
         s.bookId === 'streak_bonus' &&
-        s.bookTitle === `🔥 ${days}-Day Streak Bonus`
+        (s.bookTitle === `🔥 ${days}-Day Streak Bonus` || s.minutes === days * 10)
       );
       if (!alreadyAwarded) {
         const bonusPts = days * 10;
@@ -8451,9 +8459,11 @@ function checkStreakMilestone(memberId) {
   // Award streak bonus points (10 × streak days, one-time per milestone)
   const bonusPts = milestone.days * 10;
   if (!state.sessions[memberId]) state.sessions[memberId] = [];
+  // Title must use milestone.days (not the current streak) — migrateStreakBonuses
+  // matches on this exact title to detect already-awarded milestones
   state.sessions[memberId].push({
     id: uid(), bookId: 'streak_bonus',
-    bookTitle: `🔥 ${streak}-Day Streak Bonus`,
+    bookTitle: `🔥 ${milestone.days}-Day Streak Bonus`,
     minutes: bonusPts, date: todayStr(), ts: Date.now()
   });
   const streakMember = MEMBERS.find(m => m.id === memberId);
