@@ -15,7 +15,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Reading">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23FF6B35'/%3E%3Crect x='7' y='13' width='9' height='9' rx='1' fill='%23FFFAF0'/%3E%3Crect x='16' y='13' width='9' height='9' rx='1' fill='%23FFE66D'/%3E%3Crect x='15' y='13' width='2' height='9' fill='%231A1A2E'/%3E%3Cline x1='9' y1='17' x2='14' y2='17' stroke='%23ccc' stroke-width='1'/%3E%3Cline x1='9' y1='19' x2='14' y2='19' stroke='%23ccc' stroke-width='1'/%3E%3Cline x1='18' y1='17' x2='23' y2='17' stroke='%23bba' stroke-width='1'/%3E%3Cline x1='18' y1='19' x2='23' y2='19' stroke='%23bba' stroke-width='1'/%3E%3C/svg%3E">
+
+<!-- iOS launch splash screens (shown while the home-screen app opens) -->
+<link rel="apple-touch-startup-image" href="splash/splash-750x1334.png"  media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-828x1792.png"  media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="splash/splash-1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='0' y='0' width='32' height='32' rx='7' fill='%23FFCE7A'/%3E%3Cg stroke='%23FFE9A8' stroke-width='1' stroke-linecap='round'%3E%3Cline x1='16' y1='3' x2='16' y2='5.5'/%3E%3Cline x1='9' y1='5' x2='10.4' y2='7'/%3E%3Cline x1='23' y1='5' x2='21.6' y2='7'/%3E%3Cline x1='5' y1='10.5' x2='7.4' y2='11.4'/%3E%3Cline x1='27' y1='10.5' x2='24.6' y2='11.4'/%3E%3C/g%3E%3Ccircle cx='16' cy='14' r='7' fill='%23FFD84D' stroke='%23FFB100' stroke-width='0.5'/%3E%3Cpath d='M 15.5 20 C 12 18.5 8 18.5 5 20 L 5 28 C 8 26.5 12 26.5 15.5 28 Z' fill='%23FFFDF6' stroke='%233A2A16' stroke-width='1' stroke-linejoin='round'/%3E%3Cpath d='M 16.5 20 C 20 18.5 24 18.5 27 20 L 27 28 C 24 26.5 20 26.5 16.5 28 Z' fill='%23FBE9C7' stroke='%233A2A16' stroke-width='1' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1793,10 +1807,6 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
           <div style="color:rgba(255,255,255,0.45);font-size:11px;">TAP TO CLOSE ↩</div>
         </div>
         <div id="my-stats-audit" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-        <div style="border-top:1px solid rgba(255,255,255,0.12);margin-top:10px;padding-top:10px;flex-shrink:0;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:8px;">BADGES</div>
-          <div id="my-stats-badges" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-        </div>
       </div>
 
     </div>
@@ -3498,6 +3508,7 @@ function doSelectMember(id) {
 // ═══════════════════════════════════════
 let _statsFlipped = false;
 let _mapRoadmapOpen = false;
+let _mapDetailOpen = false; // Alaska map collapsed by default — the trip is over
 
 function toggleStatsCard() {
   const inner = document.getElementById('my-stats-card-inner');
@@ -3556,8 +3567,8 @@ function buildPointsAudit(memberId) {
       </div>`;
   }).join('');
 
-  // ── Last 5 sessions ──
-  const recent = sessions.slice().sort((a,b) => (b.ts||0)-(a.ts||0)).slice(0, 5);
+  // ── Recent sessions (badges no longer share this space, so show more) ──
+  const recent = sessions.slice().sort((a,b) => (b.ts||0)-(a.ts||0)).slice(0, 8);
   const recentRows = recent.map(s => {
     const p = s.minutes || 0, bid = s.bookId || '', title = s.bookTitle || '';
     let icon = '📖', label = title || 'Reading session';
@@ -4586,6 +4597,16 @@ function renderJourneyMap() {
       </div>
       ${boostBanner}
 
+      <!-- Show/hide the full map (collapsed by default — the Alaska leg is behind us) -->
+      <button onclick="event.stopPropagation();toggleMapDetail();"
+        style="width:100%;margin-top:6px;padding:7px 0;background:rgba(255,255,255,0.1);
+          border:none;border-radius:10px;color:rgba(255,255,255,0.7);font-size:11px;
+          font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.3px;"
+        id="map-detail-btn">
+        ${_mapDetailOpen ? '🗺️ Hide Map ▴' : '🗺️ Show Map ▾'}
+      </button>
+
+      <div id="journey-map-detail" style="display:${_mapDetailOpen ? 'block' : 'none'};">
       <svg viewBox="0 0 300 380" style="width:100%;border-radius:14px;display:block;margin:6px 0;">
         <defs>
           <linearGradient id="jOcean" x1="0" y1="0" x2="1" y2="1">
@@ -4746,9 +4767,7 @@ function renderJourneyMap() {
       <div id="journey-city-panel" style="display:none;background:rgba(255,255,255,0.08);
         border-radius:12px;padding:10px 14px;margin-bottom:6px;"></div>
 
-      ${progressBar}
-
-      <!-- Roadmap toggle button -->
+      <!-- Roadmap toggle button (lives inside the collapsible map area) -->
       <button onclick="event.stopPropagation();toggleMapRoadmap();"
         style="width:100%;margin-top:10px;padding:7px 0;background:rgba(255,255,255,0.1);
           border:none;border-radius:10px;color:rgba(255,255,255,0.7);font-size:11px;
@@ -4759,6 +4778,9 @@ function renderJourneyMap() {
 
       <!-- Roadmap panel (hidden by default) -->
       <div id="map-roadmap-panel" style="display:none;margin-top:8px;"></div>
+      </div><!-- /journey-map-detail -->
+
+      ${progressBar}
     </div>`;
 }
 
@@ -4803,6 +4825,16 @@ function journeyMapCityClick(cityId) {
           document.getElementById('journey-city-panel').dataset.open='';"
         style="color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;">✕</div>
     </div>`;
+}
+
+// Collapse/expand the full journey map. Alaska is behind us, so it starts
+// collapsed — this just reveals the detailed SVG on demand.
+function toggleMapDetail() {
+  _mapDetailOpen = !_mapDetailOpen;
+  const detail = document.getElementById('journey-map-detail');
+  const btn    = document.getElementById('map-detail-btn');
+  if (detail) detail.style.display = _mapDetailOpen ? 'block' : 'none';
+  if (btn) btn.textContent = _mapDetailOpen ? '🗺️ Hide Map ▴' : '🗺️ Show Map ▾';
 }
 
 function toggleMapRoadmap() {
@@ -5111,37 +5143,7 @@ function renderHome() {
   // Reading rank
   const rankEl = document.getElementById('my-stat-rank');
   if (rankEl) rankEl.innerHTML = `<span class="rank-badge">${getMemberRank(currentMember).label}</span>`;
-  // Badges panel — show earned prominently, just a count for the rest
-  const badgesEl = document.getElementById('my-stats-badges');
-  if (badgesEl) {
-    const earned = new Set(state.earnedBadges?.[currentMember] || []);
-    const earnedList = ACHIEVEMENT_BADGES.filter(b => earned.has(b.id));
-    const remaining = ACHIEVEMENT_BADGES.length - earnedList.length;
-    if (earnedList.length === 0) {
-      badgesEl.innerHTML = `
-        <div style="width:100%;text-align:center;padding:6px 0;">
-          <div style="font-size:22px;margin-bottom:4px;">🏅</div>
-          <div style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;">Keep reading to earn your first badge!</div>
-          <div style="color:rgba(255,255,255,0.3);font-size:10px;margin-top:3px;">${ACHIEVEMENT_BADGES.length} badges to discover</div>
-        </div>`;
-    } else {
-      badgesEl.innerHTML =
-        earnedList.map(b =>
-          `<div class="badge-chip earned" title="${b.desc}">
-            <span class="badge-chip-emoji">${b.emoji}</span>
-            <span class="badge-chip-label">${b.label}</span>
-          </div>`
-        ).join('') +
-        (remaining > 0
-          ? `<div style="display:flex;align-items:center;width:100%;margin-top:4px;">
-               <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
-               <div onclick="switchTab('bingo')" style="color:rgba(255,255,255,0.35);font-size:10px;font-weight:700;padding:0 8px;cursor:pointer;white-space:nowrap;">+ ${remaining} more to discover →</div>
-               <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
-             </div>`
-          : `<div style="color:#FFE66D;font-size:11px;font-weight:700;width:100%;text-align:center;margin-top:4px;">🏆 All ${ACHIEVEMENT_BADGES.length} badges earned!</div>`
-        );
-    }
-  }
+  // Badges live on their own "🎖 My Badges" card, so they're not duplicated here.
   const streak = getReadingStreak(currentMember);
   const streakValEl = document.getElementById('my-stat-streak-val');
   if (streakValEl) streakValEl.textContent = streak > 0 ? streak + (streak === 1 ? ' day' : ' days') : '—';

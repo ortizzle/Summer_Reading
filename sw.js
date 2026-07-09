@@ -1,4 +1,4 @@
-const CACHE = 'ortizzle-v3';
+const CACHE = 'ortizzle-v4';
 const APP_SHELL = [
   '/Summer_Reading/',
   '/Summer_Reading/index.html',
@@ -6,6 +6,17 @@ const APP_SHELL = [
   '/Summer_Reading/icon-192.png',
   '/Summer_Reading/icon-512.png',
   '/Summer_Reading/apple-touch-icon.png',
+  '/Summer_Reading/splash/splash-750x1334.png',
+  '/Summer_Reading/splash/splash-828x1792.png',
+  '/Summer_Reading/splash/splash-1125x2436.png',
+  '/Summer_Reading/splash/splash-1170x2532.png',
+  '/Summer_Reading/splash/splash-1179x2556.png',
+  '/Summer_Reading/splash/splash-1206x2622.png',
+  '/Summer_Reading/splash/splash-1242x2208.png',
+  '/Summer_Reading/splash/splash-1242x2688.png',
+  '/Summer_Reading/splash/splash-1284x2778.png',
+  '/Summer_Reading/splash/splash-1290x2796.png',
+  '/Summer_Reading/splash/splash-1320x2868.png',
 ];
 
 // Install: cache the app shell
