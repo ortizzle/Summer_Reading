@@ -1,7 +1,8 @@
-const CACHE = 'ortizzle-v4';
+const CACHE = 'ortizzle-v5';
 const APP_SHELL = [
   '/Summer_Reading/',
   '/Summer_Reading/index.html',
+  '/Summer_Reading/ortiz-drive.js',
   '/Summer_Reading/manifest.json',
   '/Summer_Reading/icon-192.png',
   '/Summer_Reading/icon-512.png',
