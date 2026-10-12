@@ -333,6 +333,9 @@ body.timer-focus #timer-focus-exit-btn { display: flex !important; }
 .btn-sky { background: var(--sky); color: white; }
 .btn-sm { padding: 8px 16px; font-size: 12px; }
 .btn-full { width: 100%; justify-content: center; display: flex; }
+.drive-btn { min-height: 48px; align-items: center; text-align: center; margin: 4px 0; }
+#drive-bar .drive-btn { margin: 0 0 10px; }
+.drive-hint { font-size: 12px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
 
 /* ── BOOK CARD ── */
 .book-card {
@@ -1769,6 +1772,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
 <!-- HOME SECTION -->
 <div class="section active" id="sec-home">
   <div class="member-select-bar" id="home-member-bar"></div>
+  <div id="drive-bar"></div>
 
   <!-- My Stats player card (flip) -->
   <div style="perspective:1000px;margin-bottom:10px;height:310px;" onclick="toggleStatsCard()">
@@ -2823,6 +2827,7 @@ body.theme-dark .card-title { color: var(--member-accent, #4ECDC4); }
   </div>
 </div>
 
+<script src="ortiz-drive.js"></script>
 <script>
 // ═══════════════════════════════════════
 //  DATA
@@ -3203,7 +3208,7 @@ function updateSyncPill(status) {
 async function loadFromGist() {
   const token = localStorage.getItem(GIST_TOKEN_KEY);
   const gistId = localStorage.getItem(GIST_ID_KEY);
-  if (!token || !gistId) { loadFromLocal(); updateSyncPill('local'); return; }
+  if (!token || !gistId) { loadFromLocal(); updateSyncPill('local'); _driveLoaded = true; return; }
   updateSyncPill('syncing');
   try {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -3287,6 +3292,7 @@ async function loadFromGist() {
       }
     }
     updateSyncPill('ok');
+    _driveLoaded = true;
   } catch(e) { loadFromLocal(); updateSyncPill('error'); }
 }
 
@@ -3342,6 +3348,7 @@ async function saveToGist() {
     if (!patchRes.ok || !patchBody.files) throw new Error(`Gist save failed (${patchRes.status})`);
     localStorage.setItem('ortizzle_local', JSON.stringify(state));
     updateSyncPill('ok');
+    OrtizDrive.check();
   } catch(e) { updateSyncPill('error'); }
 }
 
@@ -5082,6 +5089,7 @@ function renderSiblingDuel() {
 }
 
 function renderHome() {
+  OrtizDrive.mountBar(document.getElementById('drive-bar'), DRIVE_BAR);
   ensureMember(currentMember);
   buildMemberBar('home-member-bar');
   updateFeedBadge();
@@ -9641,6 +9649,7 @@ function renderSettings() {
         <input type="file" accept=".json" onchange="importBackup(event)" style="display:none;">
       </label>
     </div>
+    ${isAdmin ? '<div id="drive-settings-slot" style="margin-top:6px;"></div>' : ''}
   </div>`;
 
   // Admin tools
@@ -9662,6 +9671,8 @@ function renderSettings() {
   }
 
   el.innerHTML = html;
+  const driveSlot = document.getElementById('drive-settings-slot');
+  if (driveSlot) driveSlot.appendChild(OrtizDrive.settingsBlock({ labelClass: 'settings-label', buttonClass: 'btn btn-sky btn-full drive-btn', hintClass: 'drive-hint' }));
 }
 
 async function testGistConnection() {
@@ -9835,6 +9846,47 @@ function auditGrantPoints() {
     showToast(`+${pts} pts added to ${MEMBERS.find(m=>m.id===memberId)?.name}!`);
   });
 }
+
+// ─── GOOGLE DRIVE COPY ───
+// Chris's side only: kids share these phones. The Drive file is an Export Full
+// Backup file (Restore reads it) minus member PINs. exportedAt is pinned to the
+// newest timestamp in the data rather than "now", so unchanged data fingerprints
+// the same and isn't re-uploaded on every check.
+let _driveLoaded = false;
+const DRIVE_BAR = { className: 'btn btn-secondary btn-full drive-btn' };
+const DRIVE_SECRET_KEY = /^(pins?|.*_pin|pin_?hash|.*token|.*secret|anthropic_?key|api_?key|.*password|gist_?id)$/i;
+function driveScrub(v) {
+  if (Array.isArray(v)) return v.map(driveScrub);
+  if (!v || typeof v !== 'object') return v;
+  const out = {};
+  Object.keys(v).forEach(k => { if (!DRIVE_SECRET_KEY.test(k)) out[k] = driveScrub(v[k]); });
+  return out;
+}
+function driveNewestTs(v) {
+  let max = 0;
+  (function walk(x) {
+    if (Array.isArray(x)) { x.forEach(walk); return; }
+    if (!x || typeof x !== 'object') return;
+    for (const k in x) {
+      if ((k === 'ts' || k === 'addedTs') && typeof x[k] === 'number' && x[k] > max) max = x[k];
+      else if (x[k] && typeof x[k] === 'object') walk(x[k]);
+    }
+  })(v);
+  return max;
+}
+function driveData() {
+  if (!_driveLoaded) throw new Error('not loaded yet');
+  const clean = driveScrub(JSON.parse(JSON.stringify(state)));
+  const newest = driveNewestTs(clean);
+  return { exportedAt: new Date(newest).toISOString(), exportedBy: ADMIN_ID, appVersion: 'ortizzle-summer-2026', state: clean };
+}
+function driveAllowed() {
+  return currentMember === ADMIN_ID || localStorage.getItem(DEVICE_MEMBER_KEY) === ADMIN_ID;
+}
+OrtizDrive.init({
+  app: 'Summer Reading', prefix: 'summer-reading', getData: driveData, toast: showToast, allowed: driveAllowed,
+  onChange: () => OrtizDrive.mountBar(document.getElementById('drive-bar'), DRIVE_BAR)
+});
 
 function exportBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -10290,6 +10342,7 @@ async function init() {
       dismissSplash(() => showWhoOverlay());
     }, 1200);
   }
+  OrtizDrive.check();
 }
 
 function dismissSplash(callback) {
